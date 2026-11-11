@@ -78,24 +78,55 @@ function buildTarget(config: RoutineExercise, workouts: WorkoutLog[]): TargetSna
 // ---------------------------------------------------------------------------
 
 /** Timer de descanso em overlay. */
-function RestOverlay({ endsAt, onSkip }: { endsAt: number; onSkip: () => void }) {
+function RestOverlay({
+  endsAt,
+  onSkip,
+  onComplete,
+}: {
+  endsAt: number;
+  onSkip: () => void;
+  onComplete: () => void;
+}) {
   const [remaining, setRemaining] = useState(() =>
     Math.max(0, (endsAt - Date.now()) / 1000),
   );
+  // Ref para evitar chamar onComplete mais de uma vez
+  const completedRef = useRef(false);
 
   useEffect(() => {
+    completedRef.current = false;
     const id = setInterval(() => {
       const r = (endsAt - Date.now()) / 1000;
       if (r <= 0) {
         setRemaining(0);
         clearInterval(id);
-        // Vibra ao encerrar (opcional)
+        // Vibra ao encerrar
         try { navigator.vibrate?.(200); } catch { /* sem suporte */ }
+        // Bip curto via WebAudio
+        try {
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = 880;
+          gain.gain.setValueAtTime(0.25, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.4);
+        } catch { /* sem suporte a WebAudio */ }
+        // Fecha o overlay automaticamente
+        if (!completedRef.current) {
+          completedRef.current = true;
+          onComplete();
+        }
       } else {
         setRemaining(r);
       }
     }, 500);
     return () => clearInterval(id);
+    // onComplete é estável (vem do pai como função nomeada); endsAt muda por design
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endsAt]);
 
   const urgent = remaining <= 5;
@@ -128,66 +159,91 @@ interface SetRowProps {
   setIndex: number;
   set: SetLog;
   isTime: boolean;
+  trackEffort: boolean;
   onDone: () => void;
   onChange: (patch: Partial<SetLog>) => void;
 }
 
-function SetRow({ exIndex: _exIndex, setIndex, set, isTime, onDone, onChange }: SetRowProps) {
+function SetRow({ exIndex: _exIndex, setIndex, set, isTime, trackEffort, onDone, onChange }: SetRowProps) {
   const repsRef = useRef<HTMLInputElement>(null);
   const weightRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className={`tg-set-row${set.done ? ' done' : ''}`}>
-      <span className="tg-set-idx">{setIndex + 1}</span>
+    <div className={`tg-set-wrap${set.done ? ' done' : ''}`}>
+      <div className="tg-set-row">
+        <span className="tg-set-idx">{setIndex + 1}</span>
 
-      {isTime ? (
-        <input
-          ref={repsRef}
-          className="tg-input"
-          type="number"
-          inputMode="numeric"
-          min={0}
-          value={set.sec ?? ''}
-          onChange={(e) => onChange({ sec: e.target.value === '' ? undefined : Number(e.target.value) })}
-          aria-label={`Série ${setIndex + 1} — segundos`}
-        />
-      ) : (
-        <input
-          ref={repsRef}
-          className="tg-input"
-          type="number"
-          inputMode="numeric"
-          min={0}
-          value={set.reps ?? ''}
-          onChange={(e) => onChange({ reps: e.target.value === '' ? undefined : Number(e.target.value) })}
-          aria-label={`Série ${setIndex + 1} — reps`}
-        />
+        {isTime ? (
+          <input
+            ref={repsRef}
+            className="tg-input"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={set.sec ?? ''}
+            onChange={(e) => onChange({ sec: e.target.value === '' ? undefined : Number(e.target.value) })}
+            aria-label={`Série ${setIndex + 1} — segundos`}
+          />
+        ) : (
+          <input
+            ref={repsRef}
+            className="tg-input"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={set.reps ?? ''}
+            onChange={(e) => onChange({ reps: e.target.value === '' ? undefined : Number(e.target.value) })}
+            aria-label={`Série ${setIndex + 1} — reps`}
+          />
+        )}
+
+        {!isTime && (
+          <input
+            ref={weightRef}
+            className="tg-input"
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step={0.5}
+            value={set.weightKg ?? ''}
+            onChange={(e) => onChange({ weightKg: e.target.value === '' ? undefined : Number(e.target.value) })}
+            aria-label={`Série ${setIndex + 1} — carga kg`}
+          />
+        )}
+
+        {/* ocupa coluna de peso no modo time para manter o grid alinhado */}
+        {isTime && <span />}
+
+        <button
+          className={`tg-done-btn${set.done ? ' done' : ''}`}
+          onClick={onDone}
+          aria-label={set.done ? 'Desmarcar série' : 'Marcar série como feita'}
+        >
+          <Check size={20} strokeWidth={2.6} />
+        </button>
+      </div>
+
+      {/* Campo RIR — só aparece quando trackEffort está ativo */}
+      {trackEffort && (
+        <div className="tg-rir-row">
+          <span className="tg-rir-label">RIR</span>
+          <input
+            className="tg-rir-input"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={10}
+            placeholder="—"
+            value={set.effort?.rir ?? ''}
+            onChange={(e) => {
+              const val = e.target.value === '' ? undefined : Math.min(10, Math.max(0, Number(e.target.value)));
+              onChange({ effort: { ...set.effort, rir: val } });
+            }}
+            aria-label={`Série ${setIndex + 1} — RIR (repetições na reserva)`}
+          />
+          <span className="tg-rir-hint">reps na reserva</span>
+        </div>
       )}
-
-      {!isTime && (
-        <input
-          ref={weightRef}
-          className="tg-input"
-          type="number"
-          inputMode="decimal"
-          min={0}
-          step={0.5}
-          value={set.weightKg ?? ''}
-          onChange={(e) => onChange({ weightKg: e.target.value === '' ? undefined : Number(e.target.value) })}
-          aria-label={`Série ${setIndex + 1} — carga kg`}
-        />
-      )}
-
-      {/* ocupa coluna de peso no modo time para manter o grid alinhado */}
-      {isTime && <span />}
-
-      <button
-        className={`tg-done-btn${set.done ? ' done' : ''}`}
-        onClick={onDone}
-        aria-label={set.done ? 'Desmarcar série' : 'Marcar série como feita'}
-      >
-        <Check size={20} strokeWidth={2.6} />
-      </button>
     </div>
   );
 }
@@ -225,6 +281,18 @@ export function TreinoGuiado() {
     }),
     [],
   ) ?? new Map<string, Routine>();
+
+  // Settings reativas (trackEffort + defaultRestSec via useLiveQuery)
+  const settings = useLiveQuery(() => db.settings.get('app'), []);
+  const trackEffort = settings?.trackEffort ?? false;
+
+  // Ref para o defaultRestSec — preenchido no init e mantido sincronizado pelo liveQuery
+  const defaultRestSecRef = useRef<number>(90);
+
+  // Mantém o ref sincronizado com as settings reativas (sem depender de um useEffect separado)
+  if (settings !== undefined) {
+    defaultRestSecRef.current = settings.defaultRestSec;
+  }
 
   // Estado de inicialização da sessão
   const [initDone, setInitDone] = useState(false);
@@ -278,7 +346,7 @@ export function TreinoGuiado() {
           sets: buildSets(cfg, workouts),
         }));
 
-        const settings = await getSettings();
+        const fetchedSettings = await getSettings();
 
         start({
           dateISO: today,
@@ -287,8 +355,8 @@ export function TreinoGuiado() {
           exercises,
         });
 
-        // Guardamos o defaultRestSec no ref para uso posterior
-        defaultRestSecRef.current = settings.defaultRestSec;
+        // Inicializa o ref com o valor do banco (o liveQuery pode ainda estar carregando)
+        defaultRestSecRef.current = fetchedSettings.defaultRestSec;
         setInitDone(true);
       } catch (err) {
         setInitError(err instanceof Error ? err.message : 'Erro ao iniciar sessão.');
@@ -297,13 +365,6 @@ export function TreinoGuiado() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exercisesMap, routinesMap, workouts, initDone]);
-
-  const defaultRestSecRef = useRef<number>(90);
-
-  // Lê settings uma vez para preencher o ref de descanso
-  useEffect(() => {
-    void getSettings().then((s) => { defaultRestSecRef.current = s.defaultRestSec; });
-  }, []);
 
   // ---- Handlers ----
 
@@ -412,6 +473,7 @@ export function TreinoGuiado() {
             key="rest"
             endsAt={active.rest.endsAt}
             onSkip={stopRest}
+            onComplete={stopRest}
           />
         )}
       </AnimatePresence>
@@ -469,6 +531,7 @@ export function TreinoGuiado() {
               setIndex={si}
               set={set}
               isTime={isTime}
+              trackEffort={trackEffort}
               onDone={() => handleToggleDone(active.currentIndex, si)}
               onChange={(patch) => logSet(active.currentIndex, si, patch)}
             />

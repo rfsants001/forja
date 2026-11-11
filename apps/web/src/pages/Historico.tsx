@@ -44,6 +44,15 @@ function formatDuration(secs: number | undefined): string | null {
 }
 
 /** Descreve o valor de uma série logada (reps×kg, Xs, —). */
+/** Rótulo discreto do esforço logado (RIR/RPE), ou null se não houver. */
+function describeEffort(set: SetLog): string | null {
+  const rir = set.effort?.rir;
+  const rpe = set.effort?.rpe;
+  if (rir !== undefined) return `RIR ${rir}`;
+  if (rpe !== undefined) return `RPE ${rpe}`;
+  return null;
+}
+
 function describeSet(set: SetLog, _target: TargetSnapshot): string {
   if (set.sec !== undefined) {
     return `${set.sec}s`;
@@ -106,6 +115,9 @@ function ExerciseDetail({ entry, exerciseName }: ExerciseDetailProps) {
             </span>
             <span className="hist-set-value">{describeSet(set, entry.target)}</span>
             <span className="hist-set-target">{describeTarget(entry.target)}</span>
+            {describeEffort(set) !== null && (
+              <span className="hist-set-effort">{describeEffort(set)}</span>
+            )}
           </div>
         ))}
       </div>

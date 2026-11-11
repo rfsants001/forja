@@ -14,6 +14,25 @@ export default defineConfig({
     port: 5577,
     host: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Separação de chunks para otimizar code-splitting
+        manualChunks: (id) => {
+          // Chunk 'vendor' para dependências core de React e routing
+          if (id.includes('node_modules/react') ||
+              id.includes('node_modules/react-dom') ||
+              id.includes('node_modules/react-router-dom')) {
+            return 'vendor';
+          }
+          // Chunk 'motion' para framer-motion (potencialmente grande)
+          if (id.includes('node_modules/framer-motion')) {
+            return 'motion';
+          }
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
