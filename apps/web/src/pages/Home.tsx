@@ -1,8 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Link } from 'react-router-dom';
-import { Activity, Dumbbell, Swords, type LucideIcon } from 'lucide-react';
-import { computeStreak, weekActivity, startOfWeek, toISO } from '@forja/core';
+import { Link, useNavigate } from 'react-router-dom';
+import { Activity, Dumbbell, Swords, Play, RotateCcw, type LucideIcon } from 'lucide-react';
+import { computeStreak, weekActivity, startOfWeek, toISO, effectiveRoutine } from '@forja/core';
 import { db } from '../db/db';
+import { getWeekPlan, listOverrides } from '../db/repo';
+import { useSessionStore } from '../store/session';
 import { StreakPill } from '../components/StreakPill';
 import { WeekDots } from '../components/WeekDots';
 
@@ -12,10 +14,83 @@ const ICONS: Record<string, LucideIcon> = {
   swords: Swords,
 };
 
+// ---------------------------------------------------------------------------
+// Card "Treino de hoje"
+// ---------------------------------------------------------------------------
+
+interface TreinoHojeCardProps {
+  /** Resultado de effectiveRoutine: routineId | 'rest' | null | undefined (carregando) */
+  todayRoutineId: string | 'rest' | null | undefined;
+  /** true se já existe uma sessão ativa no store */
+  hasActiveSession: boolean;
+  onStart: () => void;
+}
+
+function TreinoHojeCard({ todayRoutineId, hasActiveSession, onStart }: TreinoHojeCardProps) {
+  // Ainda carregando
+  if (todayRoutineId === undefined) {
+    return (
+      <div className="card" style={{ marginBottom: 14 }}>
+        <p className="hint">Verificando treino de hoje…</p>
+      </div>
+    );
+  }
+
+  // Já existe sessão ativa → botão continuar
+  if (hasActiveSession) {
+    return (
+      <div className="card" style={{ marginBottom: 14 }}>
+        <div className="section-title" style={{ margin: '0 0 8px' }}>
+          Treino em andamento
+        </div>
+        <button className="btn" style={{ width: '100%', justifyContent: 'center' }} onClick={onStart}>
+          <RotateCcw size={18} />
+          Continuar treino
+        </button>
+      </div>
+    );
+  }
+
+  // Dia de descanso
+  if (todayRoutineId === null || todayRoutineId === 'rest') {
+    return (
+      <div className="card" style={{ marginBottom: 14 }}>
+        <div className="section-title" style={{ margin: '0 0 4px' }}>
+          Treino de hoje
+        </div>
+        <p className="hint">Hoje é descanso. Aproveite para recuperar!</p>
+      </div>
+    );
+  }
+
+  // Treino programado
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <div className="section-title" style={{ margin: '0 0 8px' }}>
+        Treino de hoje
+      </div>
+      <button className="btn" style={{ width: '100%', justifyContent: 'center' }} onClick={onStart}>
+        <Play size={18} />
+        Iniciar treino
+      </button>
+    </div>
+  );
+}
+
 export function Home() {
+  const navigate = useNavigate();
   const categories = useLiveQuery(() => db.categories.orderBy('order').toArray(), []);
   const workouts = useLiveQuery(() => db.workouts.toArray(), []);
   const settings = useLiveQuery(() => db.settings.get('app'), []);
+
+  // Rotina efetiva de hoje
+  const todayRoutineId = useLiveQuery(async () => {
+    const today = toISO(new Date());
+    const [weekPlan, overrides] = await Promise.all([getWeekPlan(), listOverrides()]);
+    return effectiveRoutine(today, weekPlan, overrides);
+  }, []);
+
+  const activeSession = useSessionStore((s) => s.active);
 
   const dates = (workouts ?? []).map((w) => w.dateISO);
   const streak = computeStreak(dates);
@@ -39,6 +114,13 @@ export function Home() {
         </div>
         <StreakPill current={streak.current} alive={streak.alive} />
       </div>
+
+      {/* CTA Treino de hoje */}
+      <TreinoHojeCard
+        todayRoutineId={todayRoutineId}
+        hasActiveSession={activeSession !== null}
+        onStart={() => navigate('/treino')}
+      />
 
       <div className="card">
         <div className="section-title" style={{ margin: '0 0 2px' }}>
