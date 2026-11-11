@@ -1,0 +1,79 @@
+/* Forja — design tokens. Base atlética escura (premium tipo Hevy/Strong) + camada
+   gamificada (energia quente do fogo/streak, acentos por categoria). */
+
+:root {
+  /* superfícies — quase-preto levemente quente, elevações sutis */
+  --bg: #0e0f13;
+  --bg-2: #14161d;
+  --surface: #1a1d26;
+  --surface-2: #222634;
+  --surface-3: #2b3040;
+  --border: #2d3240;
+  --border-soft: #22262f;
+
+  /* texto */
+  --text: #f2f4f8;
+  --text-2: #b7c0cf;
+  --text-muted: #7a8599;
+
+  /* energia / fogo (streak, destaque primário) */
+  --flame: #ff7a1a;
+  --flame-2: #ffb020;
+  --flame-glow: rgba(255, 122, 26, 0.35);
+
+  /* acentos por categoria (seed) */
+  --cal: #e8a838; /* calistenia */
+  --gym: #4a9fd4; /* musculação */
+  --box: #a768d8; /* boxe */
+
+  /* semânticos */
+  --ok: #3fae6b;
+  --warn: #e8a838;
+  --danger: #e05c4a;
+
+  /* acento ativo (sobrescrito por categoria via --accent) */
+  --accent: var(--flame);
+  --on-accent: #0e0f13;
+
+  /* tipografia */
+  --font-display: 'Barlow Condensed', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  /* raios — bem arredondado (gamificado) */
+  --r-sm: 10px;
+  --r: 16px;
+  --r-lg: 22px;
+  --r-pill: 999px;
+
+  /* sombras / glow */
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 14px 40px rgba(0, 0, 0, 0.45);
+  --glow-flame: 0 0 0 4px var(--flame-glow);
+
+  /* espaçamento base */
+  --gap: 14px;
+  --pad: 18px;
+
+  /* layout */
+  --maxw: 560px;
+  --nav-h: 64px;
+}
+
+@media (prefers-color-scheme: light) {
+  /* tema claro opcional (Settings) — v1 foca no escuro; tokens prontos pro toggle */
+  :root[data-theme='light'] {
+    --bg: #f5f6f9;
+    --bg-2: #eceef3;
+    --surface: #ffffff;
+    --surface-2: #f2f4f8;
+    --surface-3: #e7eaf1;
+    --border: #d9dee8;
+    --border-soft: #e7eaf1;
+    --text: #15171e;
+    --text-2: #3a4150;
+    --text-muted: #6b7486;
+    --on-accent: #ffffff;
+    --shadow: 0 6px 24px rgba(20, 22, 29, 0.12);
+    --shadow-lg: 0 14px 40px rgba(20, 22, 29, 0.18);
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "forja",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Forja — tracker de treino local-first, gamificado, dono dos seus dados. Melhor que o openGym.",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @forja/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm --filter @forja/core test",
+    "typecheck": "pnpm -r typecheck",
+    "seed": "pnpm dlx tsx scripts/extract-seed.mts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

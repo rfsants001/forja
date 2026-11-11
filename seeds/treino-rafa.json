@@ -1,0 +1,1443 @@
+{
+  "_meta": {
+    "source": "treino/app · src/data/workout.ts + demos.ts",
+    "extractedAt": "2026-10-29T22:56:22.676Z",
+    "note": "Dump fiel do plano fixo do Rafael. Vira o seed padrão do Forja (transformado no load da Fase 1)."
+  },
+  "days": [
+    {
+      "id": "seg",
+      "nav": "Seg",
+      "type": "pull",
+      "title": "Skill + Puxar",
+      "tag": "Skill·Pull",
+      "intro": "Handstand e front lever com o sistema nervoso fresco pela manhã. À tarde, hipertrofia de costas e bíceps no talo — agora é o treino principal, não acessório.",
+      "sessions": [
+        {
+          "id": "skill",
+          "kind": "skill",
+          "slot": "am",
+          "label": "Skill · manhã",
+          "intro": "Prática, não condicionamento — descanso completo entre séries.",
+          "blocks": [
+            {
+              "band": "Skill — descanso completo entre séries",
+              "type": "skill",
+              "keyBase": "seg-0",
+              "ex": [
+                {
+                  "anim": "handstand",
+                  "name": "Parada de mão na parede",
+                  "muscles": "Ombros · Core · Punho",
+                  "sets": "5 × 20–40s",
+                  "isNew": true,
+                  "how": "Barriga pra parede (peito pra parede), sobe e segura. Costelas fechadas, glúteo apertado, olha pras mãos.",
+                  "note": "Acumula tempo total, não série longa. É prática, não condicionamento — descanso completo.",
+                  "timer": {
+                    "sec": 30,
+                    "rounds": 5,
+                    "rest": 60,
+                    "label": "Handstand hold"
+                  }
+                },
+                {
+                  "anim": "frontlever",
+                  "name": "Front lever progressivo (tuck)",
+                  "muscles": "Dorsal · Core · Corpo inteiro",
+                  "sets": "5 × 8–15s",
+                  "isNew": true,
+                  "how": "Pendurado, puxa a escápula e traz os joelhos ao peito até o corpo ficar horizontal. Segura RÍGIDO.",
+                  "note": "Progressão: tuck → advanced tuck → one-leg. Isso resolve a fraqueza da barra diagonal.",
+                  "timer": {
+                    "sec": 12,
+                    "rounds": 5,
+                    "rest": 90,
+                    "label": "Front lever hold"
+                  }
+                },
+                {
+                  "anim": "hollow",
+                  "name": "Hollow body + arch",
+                  "muscles": "Core anterior · Compressão",
+                  "sets": "4 × 20s cada",
+                  "isNew": true,
+                  "how": "Hollow: deitado, lombar colada no chão, pernas e braços estendidos. Alterna com arch (superman).",
+                  "note": "Lombar SEMPRE colada no hollow. Se descolar, encolhe as pernas.",
+                  "timer": {
+                    "sec": 20,
+                    "rounds": 4,
+                    "rest": 20,
+                    "label": "Hollow hold"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "strength",
+          "kind": "strength",
+          "slot": "pm",
+          "label": "Hipertrofia · tarde",
+          "intro": "Hipertrofia de verdade: volume cheio e sobrecarga progressiva. Levou toda rep limpa? Sobe carga ou reps na próxima. Última série sempre perto da falha técnica.",
+          "blocks": [
+            {
+              "band": "Costas & bíceps — volume cheio",
+              "type": "pull",
+              "keyBase": "seg-1",
+              "ex": [
+                {
+                  "anim": "pullup",
+                  "name": "Pullup pegada larga",
+                  "muscles": "Grande dorsal · Largura",
+                  "sets": "4 × 6–10",
+                  "how": "Amplitude total, queixo passa a barra. Desce controlado até estender o cotovelo.",
+                  "note": "Largura do dorsal. Passou de 10-12 limpas? Pendura anilha/mochila (sobra anilha). Descanso 2 min."
+                },
+                {
+                  "anim": "row",
+                  "name": "Remada halter unilateral pesada",
+                  "muscles": "Dorsal · Trapézio médio · Bíceps",
+                  "sets": "4 × 8–12",
+                  "how": "Cotovelo rente ao corpo, puxa até o quadril. Joelho na cadeira. Pode carregar quase todas as anilhas num halter só.",
+                  "note": "Espessura das costas. Carga máxima com técnica — última série deixa 1 rep no tanque."
+                },
+                {
+                  "anim": "row",
+                  "name": "Remada curvada barra W",
+                  "muscles": "Dorsal · Romboides · Posterior",
+                  "sets": "3 × 10–12",
+                  "isNew": true,
+                  "how": "Tronco inclinado ~45°, pegada pronada, puxa a barra W ao umbigo. Lombar neutra.",
+                  "note": "Espessura bilateral. Segura 1s na contração. Descanso 90s."
+                },
+                {
+                  "anim": "supino",
+                  "name": "Pullover no sofá (apoio nas costas)",
+                  "muscles": "Grande dorsal · Serrátil · Peito",
+                  "sets": "3 × 12–15",
+                  "isNew": true,
+                  "how": "Deita com a parte de cima das costas atravessada no sofá (quadril pra baixo), halter com as duas mãos, e desce bem atrás da cabeça — abaixo da linha do corpo — sentindo o dorsal alongar. Puxa de volta.",
+                  "note": "Substitui o pullover no chão: o sofá libera o braço pra descer além da cabeça e dar o alongamento completo do dorsal que o chão travava. Peso moderado, controle total.",
+                  "video": "dumbbell pullover on couch bench lat stretch"
+                },
+                {
+                  "anim": "lateral",
+                  "name": "Crucifixo inverso (rear delt)",
+                  "muscles": "Deltoide posterior",
+                  "sets": "3 × 15–20",
+                  "isNew": true,
+                  "how": "Tronco inclinado à frente, abre os halteres pros lados com cotovelo levemente flexionado. Aperta as escápulas.",
+                  "note": "Posterior de ombro = ombro 3D e postura. Carga leve, foco na contração."
+                },
+                {
+                  "anim": "row",
+                  "name": "Encolhimento com halteres",
+                  "muscles": "Trapézio superior",
+                  "sets": "3 × 15–20",
+                  "isNew": true,
+                  "how": "Halteres ao lado do corpo, encolhe os ombros pra cima (pras orelhas), pausa 1s no topo, desce devagar.",
+                  "note": "Trapézio = aquele topo que dá a silhueta forte. Sem girar o ombro."
+                },
+                {
+                  "anim": "rosca",
+                  "name": "Rosca barra W",
+                  "muscles": "Bíceps · Braquial",
+                  "sets": "3 × 10–12",
+                  "how": "Cotovelos fixos ao lado do corpo. Sem balanço de tronco. Desce controlado (excêntrico de 2s).",
+                  "note": "Bíceps forte ajuda no muscle-up também. Descanso 60-90s."
+                },
+                {
+                  "anim": "rosca",
+                  "name": "Rosca martelo",
+                  "muscles": "Braquial · Braquiorradial",
+                  "sets": "3 × 12–15",
+                  "how": "Pegada neutra (polegar pra cima). Sem rotação do pulso.",
+                  "note": "Engrossa o braço por baixo e o antebraço. Finaliza o braço."
+                },
+                {
+                  "anim": "deadhang",
+                  "name": "Dead hang (preensão)",
+                  "muscles": "Preensão · Antebraço",
+                  "sets": "3 × máx tempo",
+                  "how": "Pendura na barra e segura o máximo que aguentar.",
+                  "note": "Finalizador de preensão. Na barra de batente, cuidado com a estabilidade.",
+                  "timer": {
+                    "sec": 40,
+                    "rounds": 3,
+                    "rest": 60,
+                    "label": "Dead hang"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cardio",
+          "kind": "cardio",
+          "slot": "pm",
+          "label": "Cardio · esteira",
+          "intro": "Base aeróbica diária. Ritmo de zona 2 (dá pra conversar).",
+          "blocks": [
+            {
+              "band": "Esteira — zona 2",
+              "type": "cardio",
+              "keyBase": "seg-cardio",
+              "ex": [
+                {
+                  "anim": "esteira",
+                  "name": "Esteira — zona 2",
+                  "muscles": "Cardio · base aeróbica",
+                  "sets": "1 × 20 min",
+                  "how": "Ritmo constante que ainda dá pra manter conversa (zona 2). Inclinação leve se quiser mais estímulo sem acelerar.",
+                  "note": "Todo dia. Pode ser depois do ferro ou em outro horário.",
+                  "timer": {
+                    "sec": 1200,
+                    "rounds": 1,
+                    "rest": 0,
+                    "label": "Esteira zona 2"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ter",
+      "nav": "Ter",
+      "type": "push",
+      "title": "Skill + Empurrar",
+      "tag": "Skill·Push",
+      "intro": "Potência de puxar de manhã (base do muscle-up). À tarde, hipertrofia de peito, ombro e tríceps com volume. O boxe saiu daqui — virou dia próprio no sábado.",
+      "sessions": [
+        {
+          "id": "skill",
+          "kind": "skill",
+          "slot": "am",
+          "label": "Skill · manhã",
+          "intro": "Explosão com o sistema nervoso fresco. Qualidade > quantidade.",
+          "blocks": [
+            {
+              "band": "Skill — potência de puxar (base do muscle-up)",
+              "type": "skill",
+              "keyBase": "ter-0",
+              "ex": [
+                {
+                  "anim": "pullup",
+                  "name": "Pullup explosivo / high pull",
+                  "muscles": "Dorsal · Potência · Preensão",
+                  "sets": "5 × 3–5",
+                  "isNew": true,
+                  "how": "Puxa a barra o mais rápido possível, tenta levar o peito à altura da barra. Explosão máxima.",
+                  "note": "Qualidade > quantidade. Descanso completo. Na barra de batente, nada de kipping forte — ela não aguenta tranco."
+                },
+                {
+                  "anim": "pullup",
+                  "name": "Muscle-up — transição (negativa)",
+                  "muscles": "Dorsal · Peito · Transição",
+                  "sets": "4 × 2–3",
+                  "isNew": true,
+                  "how": "Começa por cima da barra (apoiado) e desce a transição o mais devagar possível, controlando a passagem do peito.",
+                  "note": "Constrói a parte que todo mundo trava. Só numa barra firme — a de batente não serve pro muscle-up completo."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "strength",
+          "kind": "strength",
+          "slot": "pm",
+          "label": "Hipertrofia · tarde",
+          "intro": "Hipertrofia de verdade: volume cheio e sobrecarga progressiva. Levou toda rep limpa? Sobe carga ou reps na próxima. Última série sempre perto da falha técnica.",
+          "blocks": [
+            {
+              "band": "Peito, ombro & tríceps — volume cheio",
+              "type": "push",
+              "keyBase": "ter-1",
+              "ex": [
+                {
+                  "anim": "supino",
+                  "name": "Supino halter no chão",
+                  "muscles": "Peitoral · Tríceps · Deltoide",
+                  "sets": "4 × 6–10",
+                  "how": "Pausa 1s no chão a cada rep (o chão limita a amplitude e protege o ombro). Cotovelos ~45°.",
+                  "note": "Principal de peito. Carga: falha técnica por volta da 8ª-10ª. Descanso 2-3 min."
+                },
+                {
+                  "anim": "pushup",
+                  "name": "Flexão profunda nos suportes",
+                  "muscles": "Peitoral · Tríceps",
+                  "sets": "3 × máx",
+                  "isNew": true,
+                  "how": "Nos suportes de flexão, desce o peito ABAIXO da linha das mãos. Últimas reps em parciais no fundo (lengthened partials).",
+                  "note": "Segundo composto de peito, ainda com o peitoral forte. Quando passar de 20 reps, eleva os pés."
+                },
+                {
+                  "anim": "supino",
+                  "name": "Crucifixo no chão",
+                  "muscles": "Peitoral (alongamento)",
+                  "sets": "3 × 12–15",
+                  "isNew": true,
+                  "how": "Deitado, braços semi-estendidos, abre os halteres em arco até o braço tocar leve o chão. Sobe juntando como se abraçasse.",
+                  "note": "Fecha o peito com isolamento alongado sob carga — estímulo que o supino não dá. Peso moderado."
+                },
+                {
+                  "anim": "press",
+                  "name": "Desenvolvimento Arnold",
+                  "muscles": "Deltoide (todos) · Trapézio",
+                  "sets": "4 × 8–12",
+                  "how": "Começa com halteres na frente, gira pra fora enquanto sobe. Amplitude total.",
+                  "note": "Ombro completo em todos os ângulos. Sustenta o handstand também."
+                },
+                {
+                  "anim": "lateral",
+                  "name": "Elevação lateral — myo-reps",
+                  "muscles": "Deltoide médio",
+                  "sets": "3 × 15 + minis",
+                  "isNew": true,
+                  "how": "Série de ~15 até quase falhar; descansa 10-15s e arranca 3-4 mini-séries de 4-5 reps com a mesma carga.",
+                  "note": "Myo-reps no lugar do drop set (halter de rosca é lento de trocar). Ombro largo pro V."
+                },
+                {
+                  "anim": "triceps",
+                  "name": "Tríceps extensão acima da cabeça",
+                  "muscles": "Tríceps — cabeça longa",
+                  "sets": "3 × 10–12",
+                  "how": "Cotovelos apontam pro teto. Um halter com dois braços, desce bem atrás da cabeça.",
+                  "note": "Posição alongada recruta a cabeça longa (a maior massa do tríceps)."
+                },
+                {
+                  "anim": "triceps",
+                  "name": "Tríceps testa barra W",
+                  "muscles": "Tríceps — 3 cabeças",
+                  "sets": "3 × 10–12",
+                  "isNew": true,
+                  "how": "Deitado no chão, barra W desce em direção à testa, cotovelos fixos apontando pro teto.",
+                  "note": "Chão dá segurança. O tríceps é 2/3 do braço — não negligencia."
+                },
+                {
+                  "anim": "pushup",
+                  "name": "Flexão diamante (finalizador)",
+                  "muscles": "Tríceps · Peito interno",
+                  "sets": "2 × máx",
+                  "isNew": true,
+                  "how": "Mãos juntas formando um losango sob o peito. Desce até encostar e empurra.",
+                  "note": "Finaliza o tríceps na fadiga. Até a falha."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cardio",
+          "kind": "cardio",
+          "slot": "pm",
+          "label": "Cardio · esteira",
+          "intro": "Base aeróbica diária. Ritmo de zona 2 (dá pra conversar).",
+          "blocks": [
+            {
+              "band": "Esteira — zona 2",
+              "type": "cardio",
+              "keyBase": "ter-cardio",
+              "ex": [
+                {
+                  "anim": "esteira",
+                  "name": "Esteira — zona 2",
+                  "muscles": "Cardio · base aeróbica",
+                  "sets": "1 × 20 min",
+                  "how": "Ritmo constante que ainda dá pra manter conversa (zona 2). Inclinação leve se quiser mais estímulo sem acelerar.",
+                  "note": "Todo dia. Hoje sem boxe — a esteira cobre o condicionamento.",
+                  "timer": {
+                    "sec": 1200,
+                    "rounds": 1,
+                    "rest": 0,
+                    "label": "Esteira zona 2"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qua",
+      "nav": "Qua",
+      "type": "legs",
+      "title": "Pernas A + Core",
+      "tag": "Pernas",
+      "intro": "Core na sessão de skill de manhã. À tarde, pernas pesadas com ênfase em quadríceps — maior estímulo hormonal do corpo. Esteira leve hoje: perna frita + cardio pesado não combinam.",
+      "sessions": [
+        {
+          "id": "skill",
+          "kind": "skill",
+          "slot": "am",
+          "label": "Core · manhã",
+          "intro": "Base do front lever e do soco — compressão e core sob tração.",
+          "blocks": [
+            {
+              "band": "Core pesado — base do front lever e do soco",
+              "type": "skill",
+              "keyBase": "qua-1",
+              "ex": [
+                {
+                  "anim": "lsit",
+                  "name": "L-sit progressivo",
+                  "muscles": "Core · Flexores do quadril",
+                  "sets": "4 × 10–20s",
+                  "isNew": true,
+                  "how": "Entre dois apoios, ergue as pernas à frente e segura. Compressão máxima.",
+                  "note": "Progressão: tuck → uma perna → L-sit completo.",
+                  "timer": {
+                    "sec": 15,
+                    "rounds": 4,
+                    "rest": 45,
+                    "label": "L-sit hold"
+                  }
+                },
+                {
+                  "anim": "legraise",
+                  "name": "Hanging leg raise",
+                  "muscles": "Core anterior · Preensão",
+                  "sets": "3 × 8–12",
+                  "isNew": true,
+                  "how": "Pendurado, sobe as pernas retas até a barra. Sem balanço.",
+                  "note": "Core na barra sob tração — transfere direto pro front lever."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "strength",
+          "kind": "strength",
+          "slot": "pm",
+          "label": "Hipertrofia · pernas",
+          "intro": "Hipertrofia de verdade: volume cheio e sobrecarga progressiva. Levou toda rep limpa? Sobe carga ou reps na próxima. Última série sempre perto da falha técnica.",
+          "blocks": [
+            {
+              "band": "Pernas — ênfase em quadríceps",
+              "type": "legs",
+              "keyBase": "qua-0",
+              "ex": [
+                {
+                  "anim": "squat",
+                  "name": "Agachamento com halteres (calcanhares elevados)",
+                  "muscles": "Quadríceps · Glúteo · Core",
+                  "isNew": true,
+                  "sets": "3 × 10–12",
+                  "how": "Um halter em cada mão ao lado do corpo (não precisa levar nada ao peito/ombro), calcanhares sobre uma anilha ou livro. Agacha fundo e sobe forte.",
+                  "note": "Substitui o goblet: a carga fica nas mãos ao lado, sem ter que erguer peso até a altura do peito. O calcanhar elevado joga a ênfase pro quadríceps. Aquece o padrão e já soma volume.",
+                  "video": "agachamento halteres calcanhar elevado quadriceps"
+                },
+                {
+                  "anim": "bulgarian",
+                  "name": "Bulgarian split squat",
+                  "muscles": "Quadríceps · Glúteo · Estabilizadores",
+                  "sets": "4 × 8–12/lado",
+                  "how": "Pé de trás no sofá. Desce reto, joelho da frente viaja à frente, excêntrico de 2s. Halteres pesados nas mãos.",
+                  "note": "O principal de perna em casa — brutal pra quadríceps e glúteo. Última série perto da falha."
+                },
+                {
+                  "anim": "pistol",
+                  "name": "Pistol squat progressivo",
+                  "muscles": "Quadríceps · Glúteo · Estabilizadores",
+                  "sets": "3 × 6–10/lado",
+                  "how": "Uma perna à frente, desce mantendo o calcanhar no chão. Mão na cadeira como apoio se precisar.",
+                  "note": "Força unilateral e controle. Progressão: apoio → livre → com carga."
+                },
+                {
+                  "anim": "lunge",
+                  "name": "Afundo andando com halter",
+                  "muscles": "Glúteo · Quadríceps",
+                  "sets": "3 × 12/lado",
+                  "how": "Passo largo, joelho traseiro toca o chão levemente. Halteres ao lado.",
+                  "note": "Fecha o volume de quadríceps/glúteo antes de passar pro posterior. Bombeia a perna."
+                },
+                {
+                  "anim": "romeno",
+                  "name": "Terra romeno barra W",
+                  "muscles": "Isquiotibiais · Glúteo · Eretores",
+                  "sets": "4 × 8–10",
+                  "how": "Quadril empurra pra trás, não dobra a lombar. Sente o isquio esticar. Barra desliza rente à perna.",
+                  "note": "Abre o bloco de posterior. Carga pesada + grande estímulo hormonal. Descanso 2-3 min."
+                },
+                {
+                  "anim": "legcurl",
+                  "name": "Leg curl deslizante",
+                  "muscles": "Bíceps femoral · Semitendinoso",
+                  "sets": "3 × 10–12",
+                  "how": "Deitado de costas, calcanhares em pano no piso liso, quadril no ar. Estende deslizando e puxa com o isquio.",
+                  "note": "Isola o isquio (o romeno não pega tudo). Excêntrico lento. Progressão: Nordic."
+                },
+                {
+                  "anim": "calf",
+                  "name": "Panturrilha em pé com halter",
+                  "muscles": "Gastrocnêmio",
+                  "sets": "4 × 15–20",
+                  "how": "Degrau ou livro pra amplitude total. Pausa 2s no topo, descida lenta 3s.",
+                  "note": "Panturrilha responde a volume e amplitude. Sem quicar."
+                },
+                {
+                  "anim": "calf",
+                  "name": "Panturrilha sentado (sóleo)",
+                  "muscles": "Sóleo",
+                  "sets": "3 × 20",
+                  "isNew": true,
+                  "how": "Sentado, anilha/halter sobre os joelhos, sobe na ponta dos pés. Joelho dobrado isola o sóleo.",
+                  "note": "O sóleo (parte de baixo) só pega com joelho dobrado. Reps altas."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cardio",
+          "kind": "cardio",
+          "slot": "pm",
+          "label": "Cardio · esteira",
+          "intro": "Base aeróbica diária. Ritmo de zona 2 (dá pra conversar).",
+          "blocks": [
+            {
+              "band": "Esteira — zona 2",
+              "type": "cardio",
+              "keyBase": "qua-cardio",
+              "ex": [
+                {
+                  "anim": "esteira",
+                  "name": "Esteira — zona 2",
+                  "muscles": "Cardio · base aeróbica",
+                  "sets": "1 × 12 min",
+                  "how": "Ritmo constante que ainda dá pra manter conversa (zona 2). Inclinação leve se quiser mais estímulo sem acelerar.",
+                  "note": "Mais leve hoje — pernas pesadas. 10-15 min só pra soltar.",
+                  "timer": {
+                    "sec": 720,
+                    "rounds": 1,
+                    "rest": 0,
+                    "label": "Esteira zona 2"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qui",
+      "nav": "Qui",
+      "type": "pull",
+      "title": "Skill + Puxar (2ª)",
+      "tag": "Skill·Pull",
+      "intro": "Segunda dose de skill de manhã (equilíbrio, negativas, back lever). À tarde, 2ª sessão de costas com ênfase em largura, braço e posterior de ombro.",
+      "sessions": [
+        {
+          "id": "skill",
+          "kind": "skill",
+          "slot": "am",
+          "label": "Skill · manhã",
+          "intro": "Controle fino e negativas. Descanso completo.",
+          "blocks": [
+            {
+              "band": "Skill — prioridade absoluta",
+              "type": "skill",
+              "keyBase": "qui-0",
+              "ex": [
+                {
+                  "anim": "handstand",
+                  "name": "Handstand — foco em equilíbrio",
+                  "muscles": "Ombros · Core · Punho",
+                  "sets": "5 × 20–40s",
+                  "isNew": true,
+                  "how": "Se a parede já é fácil, afasta 1-2s ou faz kick-up livre num canto seguro.",
+                  "note": "Objetivo de hoje: controle fino, não força. Descanso completo.",
+                  "timer": {
+                    "sec": 30,
+                    "rounds": 5,
+                    "rest": 60,
+                    "label": "Handstand hold"
+                  }
+                },
+                {
+                  "anim": "frontlever",
+                  "name": "Front lever — negativas",
+                  "muscles": "Dorsal · Core · Corpo inteiro",
+                  "sets": "5 × 3–5",
+                  "isNew": true,
+                  "how": "Sobe na posição mais fácil que consegue e DESCE o mais devagar possível (4-6s) até pendurado.",
+                  "note": "Negativa constrói a posição. Corpo rígido na descida toda."
+                },
+                {
+                  "anim": "frontlever",
+                  "name": "Tuck front lever — hold",
+                  "muscles": "Dorsal · Core · Compressão",
+                  "sets": "4 × 8–15s",
+                  "isNew": true,
+                  "how": "Segura a posição estática que você domina. Escápula deprimida, costelas fechadas.",
+                  "note": "Alterna com as negativas acima.",
+                  "timer": {
+                    "sec": 12,
+                    "rounds": 4,
+                    "rest": 60,
+                    "label": "Tuck hold"
+                  }
+                },
+                {
+                  "anim": "frontlever",
+                  "name": "Back lever — progressão (tuck)",
+                  "muscles": "Peito · Bíceps · Ombro · Core",
+                  "sets": "4 × 8–12s",
+                  "isNew": true,
+                  "how": "De costas pra barra, gira pra baixo até o corpo ficar horizontal com o rosto pra baixo. Começa em tuck.",
+                  "note": "Complementa o front lever (padrão oposto). Ombro e bíceps sob alongamento — entra devagar.",
+                  "timer": {
+                    "sec": 10,
+                    "rounds": 4,
+                    "rest": 90,
+                    "label": "Back lever hold"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "strength",
+          "kind": "strength",
+          "slot": "pm",
+          "label": "Hipertrofia · tarde",
+          "intro": "Hipertrofia de verdade: volume cheio e sobrecarga progressiva. Levou toda rep limpa? Sobe carga ou reps na próxima. Última série sempre perto da falha técnica.",
+          "blocks": [
+            {
+              "band": "Costas (largura), braço & posterior — volume cheio",
+              "type": "pull",
+              "keyBase": "qui-1",
+              "ex": [
+                {
+                  "anim": "pullup",
+                  "name": "Chin-up pegada fechada",
+                  "muscles": "Bíceps · Dorsal inferior",
+                  "sets": "3 × máx",
+                  "how": "Pegada estreita e supinada. Sobe até o queixo passar.",
+                  "note": "Puxada vertical primeiro, com o dorsal fresco — é o estímulo de largura do dia. Adiciona carga se passar de 12."
+                },
+                {
+                  "anim": "australian",
+                  "name": "Australian row barra fixa",
+                  "muscles": "Dorsal · Romboides · Bíceps",
+                  "sets": "4 × 10–12",
+                  "how": "Corpo rígido como prancha (o próprio hollow body). Puxa o peito à barra. Quanto mais horizontal, mais difícil.",
+                  "note": "Espessura + o padrão da diagonal do core. Pausa 1s na contração."
+                },
+                {
+                  "anim": "row",
+                  "name": "Remada halter — pausa no topo",
+                  "muscles": "Dorsal · Trapézio médio",
+                  "sets": "3 × 10–12/lado",
+                  "how": "Pausa 2s no topo de cada rep, na contração máxima. Descida lenta.",
+                  "note": "Controle e pico de contração. Complementa a espessura."
+                },
+                {
+                  "anim": "supino",
+                  "name": "Pullover no sofá (apoio nas costas)",
+                  "muscles": "Grande dorsal · Serrátil",
+                  "sets": "3 × 12–15",
+                  "isNew": true,
+                  "how": "Costas de cima atravessadas no sofá, halter com as duas mãos, desce bem atrás da cabeça (abaixo da linha do corpo) sentindo o dorsal alongar e puxa de volta.",
+                  "note": "Substitui o pullover no chão: no sofá o braço desce além da cabeça e dá o alongamento completo. Ângulo diferente das remadas.",
+                  "video": "dumbbell pullover on couch bench lat stretch"
+                },
+                {
+                  "anim": "lateral",
+                  "name": "Crucifixo inverso (rear delt)",
+                  "muscles": "Deltoide posterior",
+                  "sets": "3 × 15–20",
+                  "isNew": true,
+                  "how": "Tronco inclinado, abre os halteres pros lados apertando as escápulas.",
+                  "note": "2ª dose de posterior de ombro na semana. Postura e ombro 3D."
+                },
+                {
+                  "anim": "row",
+                  "name": "Encolhimento com halteres",
+                  "muscles": "Trapézio superior",
+                  "sets": "3 × 15–20",
+                  "isNew": true,
+                  "how": "Encolhe os ombros pras orelhas, pausa 1s no topo, desce devagar.",
+                  "note": "2ª dose de trapézio. Sem girar o ombro."
+                },
+                {
+                  "anim": "rosca",
+                  "name": "Rosca concentrada",
+                  "muscles": "Bíceps — pico",
+                  "sets": "3 × 12/lado",
+                  "isNew": true,
+                  "how": "Sentado, cotovelo apoiado na coxa, rosca um braço de cada vez com controle total.",
+                  "note": "Braço por último, depois das costas. Pico do bíceps, zero balanço, segura 1s no topo."
+                },
+                {
+                  "anim": "rosca",
+                  "name": "Rosca martelo",
+                  "muscles": "Braquial · Braquiorradial",
+                  "sets": "3 × 12",
+                  "how": "Pegada neutra (polegar pra cima). Sem rotação do pulso.",
+                  "note": "Engrossa o braço e o antebraço."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cardio",
+          "kind": "cardio",
+          "slot": "pm",
+          "label": "Cardio · esteira",
+          "intro": "Base aeróbica diária. Ritmo de zona 2 (dá pra conversar).",
+          "blocks": [
+            {
+              "band": "Esteira — zona 2",
+              "type": "cardio",
+              "keyBase": "qui-cardio",
+              "ex": [
+                {
+                  "anim": "esteira",
+                  "name": "Esteira — zona 2",
+                  "muscles": "Cardio · base aeróbica",
+                  "sets": "1 × 20 min",
+                  "how": "Ritmo constante que ainda dá pra manter conversa (zona 2). Inclinação leve se quiser mais estímulo sem acelerar.",
+                  "note": "Todo dia. Zona 2 constante.",
+                  "timer": {
+                    "sec": 1200,
+                    "rounds": 1,
+                    "rest": 0,
+                    "label": "Esteira zona 2"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sex",
+      "nav": "Sex",
+      "type": "push",
+      "title": "Skill + Empurrar (2ª)",
+      "tag": "Skill·Push",
+      "intro": "Skill de empurrar de manhã (rumo à parada de mão e à planche). À tarde, 2ª sessão de empurrar com ênfase em ombro e tríceps.",
+      "sessions": [
+        {
+          "id": "skill",
+          "kind": "skill",
+          "slot": "am",
+          "label": "Skill · manhã",
+          "intro": "Empurrar vertical e a linha da planche. Descanso completo.",
+          "blocks": [
+            {
+              "band": "Skill — força de empurrar",
+              "type": "skill",
+              "keyBase": "sex-0",
+              "ex": [
+                {
+                  "anim": "pushup",
+                  "name": "Pike push-up / HSPU negativo",
+                  "muscles": "Ombros · Tríceps · Core",
+                  "sets": "5 × 5–8",
+                  "isNew": true,
+                  "how": "Pike: quadril alto, cabeça em direção ao chão entre as mãos. Progressão: pike → pés elevados → HSPU negativo na parede.",
+                  "note": "Use os suportes de flexão pra mais amplitude. Base da flexão em parada de mão. Descanso completo."
+                },
+                {
+                  "anim": "pushup",
+                  "name": "Pseudo-planche push-up",
+                  "muscles": "Peitoral inferior · Ombro · Core",
+                  "sets": "4 × 6–10",
+                  "isNew": true,
+                  "how": "Mãos na linha do quadril, inclina o corpo pra frente com os ombros à frente das mãos. Desce mantendo o ângulo.",
+                  "note": "Use os suportes de flexão. Base da planche."
+                },
+                {
+                  "anim": "pushup",
+                  "name": "Planche lean / tuck planche",
+                  "muscles": "Ombro · Serrátil · Core",
+                  "sets": "4 × 10–20s",
+                  "isNew": true,
+                  "how": "Inclina o máximo que sustentar com os ombros bem à frente das mãos (lean); evolui pra tuck recolhendo os joelhos.",
+                  "note": "Progressão: lean → tuck → advanced tuck → straddle. Protração de escápula o tempo todo.",
+                  "timer": {
+                    "sec": 12,
+                    "rounds": 4,
+                    "rest": 90,
+                    "label": "Planche hold"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "strength",
+          "kind": "strength",
+          "slot": "pm",
+          "label": "Hipertrofia · tarde",
+          "intro": "Hipertrofia de verdade: volume cheio e sobrecarga progressiva. Levou toda rep limpa? Sobe carga ou reps na próxima. Última série sempre perto da falha técnica.",
+          "blocks": [
+            {
+              "band": "Ombro & tríceps em ênfase, peito — volume cheio",
+              "type": "push",
+              "keyBase": "sex-1",
+              "ex": [
+                {
+                  "anim": "press",
+                  "name": "Desenvolvimento halter (OHP)",
+                  "muscles": "Deltoide anterior/médio · Tríceps",
+                  "sets": "4 × 8–10",
+                  "isNew": true,
+                  "how": "Sentado ou em pé, halteres da altura do ombro ao topo. Não deixa a lombar estourar — core firme.",
+                  "note": "Hoje o ombro lidera (terça foi peito primeiro). Carga pesada, falha técnica na última."
+                },
+                {
+                  "anim": "supino",
+                  "name": "Supino halter neutro (chão)",
+                  "muscles": "Peitoral · Tríceps · Deltoide",
+                  "sets": "4 × 8–10",
+                  "how": "Pegada neutra (palmas se encaram), cotovelos a 45°. Pausa no chão.",
+                  "note": "Poupa a cápsula do ombro na 2ª sessão. Peito ainda pega bem."
+                },
+                {
+                  "anim": "supino",
+                  "name": "Crucifixo no chão",
+                  "muscles": "Peitoral (alongamento)",
+                  "sets": "3 × 12–15",
+                  "isNew": true,
+                  "how": "Abre os halteres em arco até tocar leve o chão, sobe juntando.",
+                  "note": "Alongamento do peito sob carga. Peso moderado."
+                },
+                {
+                  "anim": "lateral",
+                  "name": "Elevação lateral — myo-reps",
+                  "muscles": "Deltoide médio",
+                  "sets": "3 × 15 + minis",
+                  "isNew": true,
+                  "how": "Série de ~15 até quase falhar; 10-15s de pausa e 3-4 mini-séries de 4-5 reps.",
+                  "note": "O deltoide médio adora volume e frequência — 2ª dose da semana."
+                },
+                {
+                  "anim": "lateral",
+                  "name": "Elevação frontal com anilha",
+                  "muscles": "Deltoide anterior",
+                  "sets": "3 × 12",
+                  "isNew": true,
+                  "how": "Segura uma anilha com as duas mãos e sobe até a linha dos olhos. Sem balanço.",
+                  "note": "Fecha o ombro por todos os ângulos. Opcional se o ombro já estiver frito."
+                },
+                {
+                  "anim": "triceps",
+                  "name": "Tríceps testa no chão",
+                  "muscles": "Tríceps — 3 cabeças",
+                  "sets": "3 × 12",
+                  "how": "Deitado no chão, cotovelos apontam pro teto, desce o halter/barra W até perto da testa.",
+                  "note": "Chão dá segurança pra ir pesado."
+                },
+                {
+                  "anim": "triceps",
+                  "name": "Tríceps francês unilateral",
+                  "muscles": "Tríceps — cabeça longa",
+                  "sets": "3 × 12/lado",
+                  "isNew": true,
+                  "how": "Um halter atrás da cabeça, cotovelo apontando pro teto, estende. Um braço de cada vez.",
+                  "note": "Posição alongada pega a cabeça longa. Controle, sem forçar o cotovelo."
+                },
+                {
+                  "anim": "pushup",
+                  "name": "Flexão declinada (pés elevados)",
+                  "muscles": "Peito superior · Ombro",
+                  "sets": "2 × máx",
+                  "isNew": true,
+                  "how": "Pés num sofá/cadeira, mãos no chão (ou suportes). Desce o peito até perto do chão.",
+                  "note": "Finaliza o peito pelo ângulo superior. Até a falha."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cardio",
+          "kind": "cardio",
+          "slot": "pm",
+          "label": "Cardio · esteira",
+          "intro": "Base aeróbica diária. Ritmo de zona 2 (dá pra conversar).",
+          "blocks": [
+            {
+              "band": "Esteira — zona 2",
+              "type": "cardio",
+              "keyBase": "sex-cardio",
+              "ex": [
+                {
+                  "anim": "esteira",
+                  "name": "Esteira — zona 2",
+                  "muscles": "Cardio · base aeróbica",
+                  "sets": "1 × 20 min",
+                  "how": "Ritmo constante que ainda dá pra manter conversa (zona 2). Inclinação leve se quiser mais estímulo sem acelerar.",
+                  "note": "Todo dia. Zona 2 constante.",
+                  "timer": {
+                    "sec": 1200,
+                    "rounds": 1,
+                    "rest": 0,
+                    "label": "Esteira zona 2"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sab",
+      "nav": "Sáb",
+      "type": "box",
+      "title": "Boxe + Pernas B",
+      "tag": "Boxe·Pernas",
+      "intro": "Dia do boxe: um currículo guiado do zero (shadow), de manhã. À tarde, 2ª sessão de pernas com ênfase em posterior e glúteo. O boxe que ficava espalhado na semana virou este dia dedicado.",
+      "sessions": [
+        {
+          "id": "box",
+          "kind": "box",
+          "slot": "am",
+          "label": "Boxe",
+          "blocks": []
+        },
+        {
+          "id": "strength",
+          "kind": "strength",
+          "slot": "pm",
+          "label": "Hipertrofia · pernas",
+          "intro": "Hipertrofia de verdade: volume cheio e sobrecarga progressiva. Levou toda rep limpa? Sobe carga ou reps na próxima. Última série sempre perto da falha técnica.",
+          "blocks": [
+            {
+              "band": "Pernas — ênfase posterior & glúteo",
+              "type": "legs",
+              "keyBase": "sab-0",
+              "ex": [
+                {
+                  "anim": "romeno",
+                  "name": "Terra romeno barra W",
+                  "muscles": "Isquiotibiais · Glúteo · Eretores",
+                  "sets": "4 × 8–10",
+                  "how": "Quadril pra trás, lombar neutra, barra rente à perna. Sente o isquio esticar no fundo.",
+                  "note": "Hinge principal do dia. Carga pesada — a 2ª dose de posterior da semana."
+                },
+                {
+                  "anim": "romeno",
+                  "name": "Elevação pélvica (hip thrust)",
+                  "muscles": "Glúteo máximo",
+                  "sets": "4 × 12–15",
+                  "isNew": true,
+                  "how": "Costas apoiadas no sofá, halter ou barra W sobre o quadril (com proteção), sobe até estender o quadril e aperta o glúteo 1s no topo.",
+                  "note": "O melhor movimento de glúteo que existe. Reps controladas, pausa no topo."
+                },
+                {
+                  "anim": "bulgarian",
+                  "name": "Bulgarian split squat",
+                  "muscles": "Quadríceps · Glúteo",
+                  "sets": "3 × 10–12/lado",
+                  "how": "Pé de trás no sofá. Desce reto, excêntrico de 2s.",
+                  "note": "2ª dose de perna unilateral. Se cansado, 2 séries pesadas valem mais."
+                },
+                {
+                  "anim": "lunge",
+                  "name": "Afundo andando com halter",
+                  "muscles": "Glúteo · Quadríceps",
+                  "sets": "3 × 12/lado",
+                  "how": "Passo largo, joelho traseiro toca o chão. Halteres ao lado.",
+                  "note": "Volume de glúteo + equilíbrio dinâmico (ajuda no footwork do boxe)."
+                },
+                {
+                  "anim": "legcurl",
+                  "name": "Leg curl deslizante",
+                  "muscles": "Bíceps femoral",
+                  "sets": "3 × 12",
+                  "how": "Calcanhares em pano no piso liso, quadril no ar, estende deslizando e puxa com o isquio.",
+                  "note": "Isola o isquio. Excêntrico lento."
+                },
+                {
+                  "anim": "calf",
+                  "name": "Panturrilha unilateral",
+                  "muscles": "Gastrocnêmio · Sóleo",
+                  "sets": "3 × 15–20/lado",
+                  "how": "Um pé de cada vez, amplitude total. Pausa 2s no topo. Parede pro equilíbrio.",
+                  "note": "Corrige assimetria. Reps altas."
+                }
+              ]
+            },
+            {
+              "band": "Core — 2ª dose (front lever/soco)",
+              "type": "skill",
+              "keyBase": "sab-1",
+              "ex": [
+                {
+                  "anim": "hollow",
+                  "name": "Hollow body rocks",
+                  "muscles": "Core anterior · Compressão",
+                  "sets": "4 × 15",
+                  "isNew": true,
+                  "how": "Na posição hollow, balança pra frente e pra trás mantendo tudo rígido.",
+                  "note": "A tensão que faltava na diagonal. Lombar colada."
+                },
+                {
+                  "anim": "twist",
+                  "name": "Russian twist com anilha",
+                  "muscles": "Oblíquos · Rotação de tronco",
+                  "sets": "3 × 20",
+                  "isNew": true,
+                  "how": "Sentado, pés no ar, gira o tronco com a anilha de lado a lado.",
+                  "note": "Rotação = força do soco. Controle, não velocidade."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cardio",
+          "kind": "cardio",
+          "slot": "pm",
+          "label": "Cardio · esteira",
+          "intro": "Base aeróbica diária. Ritmo de zona 2 (dá pra conversar).",
+          "blocks": [
+            {
+              "band": "Esteira — zona 2",
+              "type": "cardio",
+              "keyBase": "sab-cardio",
+              "ex": [
+                {
+                  "anim": "esteira",
+                  "name": "Esteira — zona 2",
+                  "muscles": "Cardio · base aeróbica",
+                  "sets": "1 × 20 min",
+                  "how": "Ritmo constante que ainda dá pra manter conversa (zona 2). Inclinação leve se quiser mais estímulo sem acelerar.",
+                  "note": "Todo dia. No dia de boxe ajuda a soltar as pernas depois.",
+                  "timer": {
+                    "sec": 1200,
+                    "rounds": 1,
+                    "rest": 0,
+                    "label": "Esteira zona 2"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dom",
+      "nav": "Dom",
+      "type": "rest",
+      "title": "Recuperação Ativa",
+      "tag": "Descanso",
+      "intro": "Mobilidade profunda, cuidado com o punho, shadow bem leve e esteira curtinha. Nada que gere fadiga.",
+      "sessions": [
+        {
+          "id": "rest",
+          "kind": "rest",
+          "label": "Recuperação",
+          "blocks": [
+            {
+              "band": "Mobilidade (25-35 min)",
+              "type": "rest",
+              "keyBase": "dom-0",
+              "ex": [
+                {
+                  "anim": "wrist",
+                  "name": "Mobilidade de punho",
+                  "muscles": "Punho · Antebraço",
+                  "sets": "3 min",
+                  "how": "Círculos, alongamento em flexão e extensão, apoio progressivo no chão.",
+                  "note": "Recupera dos handstands da semana — crítico. Punho lesionado para tudo."
+                },
+                {
+                  "anim": "mobility",
+                  "name": "Circuito de mobilidade",
+                  "muscles": "Quadril · Ombro · Coluna",
+                  "sets": "25 min",
+                  "how": "90/90 hip, world's greatest stretch, deep squat hold, shoulder CARs, pigeon pose, child's pose com rotação.",
+                  "note": "Baixa intensidade acelera recuperação sem comprometer síntese proteica (Hotta et al., 2018)."
+                },
+                {
+                  "anim": "shadow",
+                  "name": "Shadow leve (opcional)",
+                  "muscles": "Footwork · Forma",
+                  "sets": "3 rounds leves",
+                  "how": "Só footwork e forma, bem leve. Repassa o nível de boxe da semana sem intensidade.",
+                  "note": "Nada que gere fadiga. É soltura, não treino.",
+                  "timer": {
+                    "sec": 120,
+                    "rounds": 3,
+                    "rest": 60,
+                    "label": "Shadow leve"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cardio",
+          "kind": "cardio",
+          "slot": "pm",
+          "label": "Cardio · esteira",
+          "intro": "Base aeróbica diária. Ritmo de zona 2 (dá pra conversar).",
+          "blocks": [
+            {
+              "band": "Esteira — zona 2",
+              "type": "cardio",
+              "keyBase": "dom-cardio",
+              "ex": [
+                {
+                  "anim": "esteira",
+                  "name": "Esteira — zona 2",
+                  "muscles": "Cardio · base aeróbica",
+                  "sets": "1 × 15 min",
+                  "how": "Ritmo constante que ainda dá pra manter conversa (zona 2). Inclinação leve se quiser mais estímulo sem acelerar.",
+                  "note": "Recuperação ativa — zona 1/2 bem leve, 15 min. Caminhada conta.",
+                  "timer": {
+                    "sec": 900,
+                    "rounds": 1,
+                    "rest": 0,
+                    "label": "Esteira zona 2"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "boxingLevels": [
+    {
+      "n": 1,
+      "name": "Base & Jab",
+      "focus": "Postura, guarda, movimentação e o jab (1). A fundação de tudo.",
+      "ex": [
+        {
+          "anim": "shadow",
+          "name": "Postura & guarda",
+          "muscles": "Base · Equilíbrio",
+          "sets": "3 rounds 2 min",
+          "how": "Pé da frente apontado pro alvo, pé de trás a ~45°, joelhos macios, peso 50/50. Mãos na altura do queixo, cotovelos colados no corpo, queixo pra baixo.",
+          "note": "Grava de lado e confere a base. Guarda nunca abaixa.",
+          "video": "postura e guarda boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Guarda"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Movimentação (footwork)",
+          "muscles": "Footwork · Coordenação",
+          "sets": "3 rounds 2 min",
+          "how": "Passos curtos, o pé que lidera a direção se move primeiro e o outro acompanha — nunca cruza os pés. Sempre volta pra base.",
+          "note": "Devagar e certo. Pés embaixo dos ombros.",
+          "video": "footwork movimentação boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Footwork"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Jab (1)",
+          "muscles": "Ombro · Reto de frente",
+          "sets": "4 rounds 2 min",
+          "how": "Estende o braço da frente em linha reta, gira levemente o punho no fim, e TRAZ a mão de volta ao queixo na mesma velocidade. Não deixa a mão cair.",
+          "note": "O golpe mais importante do boxe. Qualidade do retorno > força.",
+          "video": "como dar o jab boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 4,
+            "rest": 45,
+            "label": "Jab"
+          }
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "name": "Direto & 1-2",
+      "focus": "O direto (2) e a combinação jab-direto (1-2).",
+      "ex": [
+        {
+          "anim": "shadow",
+          "name": "Direto / cruzado (2)",
+          "muscles": "Potência · Rotação de quadril",
+          "sets": "4 rounds 2 min",
+          "how": "Mão de trás reta, girando o quadril e o pé de trás (como esmagar um cigarro). A potência vem do chão e do quadril, não do braço.",
+          "note": "Mantém a guarda da outra mão colada no rosto.",
+          "video": "como dar o direto cruzado boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 4,
+            "rest": 45,
+            "label": "Direto"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Combinação 1-2",
+          "muscles": "Timing · Encadeamento",
+          "sets": "4 rounds 2 min",
+          "how": "Jab e, na volta dele, dispara o direto. Fluido: o retorno do jab arma o direto.",
+          "note": "A combinação mais clássica. Ritmo antes de velocidade.",
+          "video": "combinação 1-2 jab direto boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 4,
+            "rest": 45,
+            "label": "1-2"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Retorno da guarda",
+          "muscles": "Defesa · Disciplina",
+          "sets": "3 rounds 2 min",
+          "how": "Depois de cada soco, a mão volta IMEDIATAMENTE ao queixo. Treina socar e recolher.",
+          "note": "A maioria apanha por esquecer de voltar a mão. Fixa isso agora.",
+          "video": "retorno da guarda boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Retorno"
+          }
+        }
+      ]
+    },
+    {
+      "n": 3,
+      "name": "Ganchos & Uppercuts",
+      "focus": "Gancho (3/4) e uppercut (5/6) — os golpes curtos e a rotação.",
+      "ex": [
+        {
+          "anim": "shadow",
+          "name": "Gancho (3/4)",
+          "muscles": "Oblíquos · Rotação",
+          "sets": "4 rounds 2 min",
+          "how": "Cotovelo a 90°, na altura do ombro, gira o tronco e o pé do mesmo lado. O golpe vem da rotação do corpo, não do braço.",
+          "note": "Curto e rotacional. Não abre o braço (telegrafado).",
+          "video": "como dar o gancho hook boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 4,
+            "rest": 45,
+            "label": "Gancho"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Uppercut (5/6)",
+          "muscles": "Pernas · Core",
+          "sets": "4 rounds 2 min",
+          "how": "Flexiona levemente os joelhos e sobe o golpe de baixo pra cima, girando o quadril. Palma vira pra você.",
+          "note": "Vem das pernas. Não baixa muito a mão pra carregar.",
+          "video": "como dar o uppercut boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 4,
+            "rest": 45,
+            "label": "Uppercut"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Rotação de quadril",
+          "muscles": "Quadril · Potência",
+          "sets": "3 rounds 2 min",
+          "how": "Shadow focado só em sentir o quadril girar em cada golpe de potência (2, 3/4, 5/6).",
+          "note": "Sem quadril não há potência. Exagera a rotação pra gravar o padrão.",
+          "video": "rotação de quadril soco boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Quadril"
+          }
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "name": "Combinações",
+      "focus": "Combos de 3-4 golpes, alternando alvo cabeça e corpo.",
+      "ex": [
+        {
+          "anim": "shadow",
+          "name": "Combos de 3-4 golpes",
+          "muscles": "Encadeamento · Ritmo",
+          "sets": "4 rounds 2,5 min",
+          "how": "Monta sequências: 1-2-3, 1-2-5-2, 1-1-2. Fluidez entre os golpes, guarda sempre voltando.",
+          "note": "Qualidade da forma antes de velocidade. Respira entre os combos.",
+          "video": "combinações de golpes boxe iniciante tutorial",
+          "timer": {
+            "sec": 150,
+            "rounds": 4,
+            "rest": 45,
+            "label": "Combos"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Alvo cabeça / corpo",
+          "muscles": "Precisão · Leitura",
+          "sets": "3 rounds 2,5 min",
+          "how": "Mesmos combos variando o alvo: direto no corpo, gancho na cabeça. Imagina a guarda do oponente abrindo.",
+          "note": "Atacar o corpo cansa o oponente e abre a cabeça.",
+          "video": "ataque ao corpo boxe iniciante tutorial",
+          "timer": {
+            "sec": 150,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Alvos"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Ritmo & respiração",
+          "muscles": "Condicionamento · Controle",
+          "sets": "3 rounds 2 min",
+          "how": "Solta ar (tss) a cada golpe, mantém o ritmo sem travar a respiração. Alterna momentos lentos e explosões.",
+          "note": "Respiração presa = cansaço rápido. O tss também protege o core.",
+          "video": "respiração no boxe boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Ritmo"
+          }
+        }
+      ]
+    },
+    {
+      "n": 5,
+      "name": "Defesa",
+      "focus": "Esquiva (slip), rolamento (roll), bloqueio e contra-ataque.",
+      "ex": [
+        {
+          "anim": "shadow",
+          "name": "Esquiva (slip)",
+          "muscles": "Reflexo · Core",
+          "sets": "4 rounds 2 min",
+          "how": "Pequena inclinação lateral do tronco pra \"sair da linha\" do soco — slip pra fora do jab, pra dentro do direto. Cabeça sai da reta, pés firmes.",
+          "note": "Movimento pequeno. Esquivar demais te desequilibra.",
+          "video": "esquiva slip boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 4,
+            "rest": 45,
+            "label": "Slip"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Rolamento & bloqueio",
+          "muscles": "Defesa · Ombro",
+          "sets": "3 rounds 2 min",
+          "how": "Roll: absorve o gancho rolando o ombro/tronco por baixo dele. Block: recebe o soco na luva/antebraço sem abrir a guarda.",
+          "note": "Defesa que já deixa você em posição de revidar.",
+          "video": "rolamento e bloqueio defesa boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Defesa"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Contra-ataque",
+          "muscles": "Timing · Combinação",
+          "sets": "3 rounds 2,5 min",
+          "how": "Esquiva e responde: slip + direto, roll + gancho. Defesa e ataque como um movimento só.",
+          "note": "O contragolpe é o que o boxe tem de mais eficiente.",
+          "video": "contra ataque boxe iniciante tutorial",
+          "timer": {
+            "sec": 150,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Contra"
+          }
+        }
+      ]
+    },
+    {
+      "n": 6,
+      "name": "Footwork & Ritmo",
+      "focus": "Pivot, controle de distância, entrar/sair e feints.",
+      "ex": [
+        {
+          "anim": "shadow",
+          "name": "Pivot & ângulos",
+          "muscles": "Footwork · Posicionamento",
+          "sets": "3 rounds 2,5 min",
+          "how": "Gira sobre o pé da frente pra mudar de ângulo depois de uma combinação, saindo da linha do oponente.",
+          "note": "Quem domina ângulo acerta sem ser acertado.",
+          "video": "pivot e ângulos footwork boxe iniciante tutorial",
+          "timer": {
+            "sec": 150,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Pivot"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Entrar e sair (distância)",
+          "muscles": "Distância · Timing",
+          "sets": "3 rounds 2,5 min",
+          "how": "Entra na distância com um 1-2 e sai imediatamente da linha. Nunca fica parado na frente depois de socar.",
+          "note": "Acertar e não estar lá quando a resposta vem.",
+          "video": "controle de distância boxe iniciante tutorial",
+          "timer": {
+            "sec": 150,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Distância"
+          }
+        },
+        {
+          "anim": "shadow",
+          "name": "Feints",
+          "muscles": "Leitura · Ritmo",
+          "sets": "3 rounds 2 min",
+          "how": "Finge o golpe (ombro, olhar, pé) pra provocar reação e abrir o alvo de verdade. Pequeno e convincente.",
+          "note": "O feint é o xadrez do boxe. Fecha o currículo — agora é repetir e refinar.",
+          "video": "feint finta boxe iniciante tutorial",
+          "timer": {
+            "sec": 120,
+            "rounds": 3,
+            "rest": 45,
+            "label": "Feints"
+          }
+        }
+      ]
+    }
+  ],
+  "customDemos": {
+    "frontlever": "<svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"6\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n    <line x1=\"14\" y1=\"18\" x2=\"86\" y2=\"18\" stroke-width=\"4\" opacity=\"0.4\"/>\n    <g>\n      <animateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;0 2.5;0 0\" dur=\"3s\" repeatCount=\"indefinite\"/>\n      <line x1=\"41\" y1=\"20\" x2=\"43\" y2=\"44\"/>\n      <line x1=\"57\" y1=\"20\" x2=\"55\" y2=\"44\"/>\n      <circle cx=\"34\" cy=\"47\" r=\"7\" fill=\"currentColor\" stroke=\"none\"/>\n      <line x1=\"41\" y1=\"48\" x2=\"84\" y2=\"51\"/>\n      <line x1=\"84\" y1=\"51\" x2=\"92\" y2=\"50\" stroke-width=\"5\"/>\n    </g></svg>",
+    "boxe": "<svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"6\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n    <line x1=\"74\" y1=\"8\" x2=\"74\" y2=\"30\" stroke-width=\"3\" opacity=\"0.4\"/>\n    <g>\n      <animateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;3 1;0 0\" dur=\"0.9s\" repeatCount=\"indefinite\"/>\n      <rect x=\"66\" y=\"30\" width=\"16\" height=\"36\" rx=\"8\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.35\"/>\n    </g>\n    <circle cx=\"30\" cy=\"27\" r=\"7\" fill=\"currentColor\" stroke=\"none\"/>\n    <line x1=\"30\" y1=\"34\" x2=\"32\" y2=\"57\"/>\n    <line x1=\"32\" y1=\"57\" x2=\"24\" y2=\"80\"/>\n    <line x1=\"32\" y1=\"57\" x2=\"42\" y2=\"80\"/>\n    <line x1=\"31\" y1=\"41\" x2=\"23\" y2=\"49\"/>\n    <g>\n      <animateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;19 4;0 0\" dur=\"0.9s\" repeatCount=\"indefinite\"/>\n      <line x1=\"31\" y1=\"41\" x2=\"46\" y2=\"45\"/>\n      <circle cx=\"50\" cy=\"46\" r=\"5\" fill=\"currentColor\" stroke=\"none\"/>\n    </g></svg>",
+    "shadow": "<svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"6\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n    <g>\n      <animateTransform attributeName=\"transform\" type=\"translate\" values=\"-5 0;5 0;-5 0\" dur=\"1.8s\" repeatCount=\"indefinite\"/>\n      <circle cx=\"50\" cy=\"26\" r=\"7\" fill=\"currentColor\" stroke=\"none\"/>\n      <line x1=\"50\" y1=\"33\" x2=\"50\" y2=\"56\"/>\n      <line x1=\"50\" y1=\"56\" x2=\"42\" y2=\"80\"/>\n      <line x1=\"50\" y1=\"56\" x2=\"58\" y2=\"80\"/>\n      <line x1=\"50\" y1=\"41\" x2=\"60\" y2=\"45\"/>\n      <circle cx=\"63\" cy=\"46\" r=\"4.5\" fill=\"currentColor\" stroke=\"none\"/>\n      <g>\n        <animateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-13 -3;0 0\" dur=\"0.8s\" repeatCount=\"indefinite\"/>\n        <line x1=\"50\" y1=\"41\" x2=\"40\" y2=\"37\"/>\n        <circle cx=\"37\" cy=\"36\" r=\"4.5\" fill=\"currentColor\" stroke=\"none\"/>\n      </g>\n    </g></svg>",
+    "esteira": "<svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"6\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n    <line x1=\"18\" y1=\"86\" x2=\"82\" y2=\"86\" stroke-width=\"4\" opacity=\"0.4\"/>\n    <line x1=\"26\" y1=\"86\" x2=\"30\" y2=\"80\" stroke-width=\"3\" opacity=\"0.4\"/>\n    <g>\n      <animateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;0 -3;0 0\" dur=\"0.6s\" repeatCount=\"indefinite\"/>\n      <circle cx=\"52\" cy=\"24\" r=\"7\" fill=\"currentColor\" stroke=\"none\"/>\n      <line x1=\"52\" y1=\"31\" x2=\"50\" y2=\"52\"/>\n      <g>\n        <animateTransform attributeName=\"transform\" type=\"rotate\" values=\"-18 50 52;18 50 52;-18 50 52\" dur=\"0.6s\" repeatCount=\"indefinite\"/>\n        <line x1=\"50\" y1=\"52\" x2=\"60\" y2=\"70\"/>\n      </g>\n      <g>\n        <animateTransform attributeName=\"transform\" type=\"rotate\" values=\"18 50 52;-18 50 52;18 50 52\" dur=\"0.6s\" repeatCount=\"indefinite\"/>\n        <line x1=\"50\" y1=\"52\" x2=\"40\" y2=\"70\"/>\n      </g>\n      <line x1=\"52\" y1=\"37\" x2=\"62\" y2=\"44\"/>\n      <line x1=\"52\" y1=\"37\" x2=\"43\" y2=\"45\"/>\n    </g></svg>",
+    "wrist": "<svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"6\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n    <circle cx=\"16\" cy=\"62\" r=\"5\" fill=\"currentColor\" stroke=\"none\"/>\n    <line x1=\"18\" y1=\"62\" x2=\"52\" y2=\"62\"/>\n    <g>\n      <animateTransform attributeName=\"transform\" type=\"rotate\" values=\"34 52 62;-34 52 62;34 52 62\" dur=\"2.4s\" repeatCount=\"indefinite\"/>\n      <line x1=\"52\" y1=\"62\" x2=\"70\" y2=\"62\"/>\n      <line x1=\"70\" y1=\"62\" x2=\"80\" y2=\"58\"/>\n      <line x1=\"70\" y1=\"62\" x2=\"81\" y2=\"62\"/>\n      <line x1=\"70\" y1=\"62\" x2=\"80\" y2=\"66\"/>\n    </g></svg>"
+  }
+}

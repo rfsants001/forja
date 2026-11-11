@@ -1,0 +1,24 @@
+{
+  "name": "@forja/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Domínio puro do Forja: tipos + regras de treino (streak, 1RM, progressão, histórico). Sem React, sem Node.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
+}

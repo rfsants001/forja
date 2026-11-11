@@ -1,0 +1,191 @@
+// Modelo de domínio do Forja. Tipado e normalizado — a mesma fonte de verdade que web e
+// (futuramente) api importam. Sem React, sem Node: só tipos e regras puras.
+//
+// Princípio herdado do openGym: o LOG é o que aconteceu; a PRÓXIMA PRESCRIÇÃO é derivada do
+// histórico toda vez, nunca um contador salvo. Cada workout guarda o `target` que valia na
+// hora, pra julgar a sessão com honestidade mesmo que a política mude depois.
+
+/** Como um exercício é medido/executado. */
+export type ExerciseMode = 'reps' | 'time' | 'cardio';
+
+/** Dia da semana — 0=domingo ... 6=sábado (igual Date.getDay). */
+export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+/** Políticas de progressão de carga (motor da Fase 5). */
+export type ProgressionPolicy = 'off' | 'linear' | 'greyskull' | 'double' | 'time';
+
+/** Unidade de carga. */
+export type Unit = 'kg' | 'lb';
+
+/** Grupo muscular base (de-para com MuscleMap vem na Fase 5). */
+export type MuscleGroup =
+  | 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'forearms'
+  | 'quads' | 'hamstrings' | 'glutes' | 'calves' | 'abs' | 'obliques'
+  | 'traps' | 'lats' | 'fullbody' | 'cardio' | 'other';
+
+/** Fonte da demo visual do exercício. */
+export type DemoSource =
+  | { kind: 'asset'; frames: number } // ilustrações SVG locais em flipbook
+  | { kind: 'custom'; svg: string } // vetor desenhado à mão (SMIL)
+  | { kind: 'none' };
+
+/** Exercício da biblioteca (curado, do dataset, ou criado pelo usuário). */
+export interface Exercise {
+  id: string;
+  name: string;
+  mode: ExerciseMode;
+  primaryMuscle: MuscleGroup;
+  secondaryMuscles: MuscleGroup[];
+  equipment: string[];
+  demo: DemoSource;
+  instructions?: string;
+  /** Busca no YouTube pro botão "ver vídeo" (sobrepõe a busca pelo nome). */
+  videoQuery?: string;
+  /** Atribuição obrigatória quando a mídia é © Gym visual (dataset). */
+  attribution?: string;
+  /** true quando criado pelo usuário (não veio de seed/dataset). */
+  custom?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+/** Categoria de treino (calistenia, musculação, box…). CRUD pelo usuário. */
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  /** Cor de acento (hex) usada no visual por categoria. */
+  color: string;
+  /** Nome do ícone (lucide) ou emoji. */
+  icon?: string;
+  order: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Exercício configurado dentro de uma rotina. */
+export interface RoutineExercise {
+  exerciseId: string;
+  sets: number;
+  /** Reps-alvo (modo reps) — faixa textual "8–12" ou número. */
+  targetReps?: string;
+  /** Tempo-alvo em segundos (modo time/cardio). */
+  targetSec?: number;
+  restSec?: number;
+  progression?: ProgressionPolicy;
+  /** Incremento de carga por sessão (kg) quando a política dispara. */
+  incrementKg?: number;
+  note?: string;
+  /** Exercícios no mesmo grupo formam um superset (Fase 5). */
+  supersetGroup?: number;
+}
+
+/** Rotina nomeada (um "treino") dentro de uma categoria. */
+export interface Routine {
+  id: string;
+  name: string;
+  categoryId: string;
+  note?: string;
+  exercises: RoutineExercise[];
+  createdAt: number;
+  updatedAt: number;
+  /** Ordem de exibição dentro da categoria. */
+  order?: number;
+}
+
+/** Plano semanal: cada weekday aponta pra uma rotina (ou descanso = null). */
+export type WeekPlan = Record<Weekday, string | null>;
+
+/** Override por data ISO: remarcar um dia sem mexer no plano semanal. */
+export interface DayOverride {
+  dateISO: string;
+  /** routineId, 'rest', ou null pra "voltar ao plano semanal". */
+  routine: string | 'rest' | null;
+}
+
+/** Esforço opcional por série (Fase 5 — não afeta progressão/1RM por padrão). */
+export interface Effort {
+  rir?: number;
+  rpe?: number;
+}
+
+/** Uma série logada (o que de fato aconteceu). */
+export interface SetLog {
+  reps?: number;
+  weightKg?: number;
+  sec?: number;
+  done: boolean;
+  effort?: Effort;
+}
+
+/** Prescrição derivada do histórico pro próximo treino. */
+export interface Prescription {
+  weightKg?: number;
+  reps?: number;
+  sec?: number;
+  /** Explicação legível do porquê desta prescrição (auditável). */
+  why: string;
+  kind: ProgressionPolicy | 'prefill' | 'fresh';
+}
+
+/** Snapshot do target que valia quando o exercício foi logado. */
+export interface TargetSnapshot {
+  sets: number;
+  reps?: string;
+  sec?: number;
+  weightKg?: number;
+  policy?: ProgressionPolicy;
+}
+
+/** Um exercício dentro de um workout logado. */
+export interface WorkoutEntry {
+  exerciseId: string;
+  sets: SetLog[];
+  target: TargetSnapshot;
+}
+
+/** Sessão de treino concluída. */
+export interface WorkoutLog {
+  id: string;
+  dateISO: string;
+  routineId?: string;
+  categoryId?: string;
+  entries: WorkoutEntry[];
+  durationSec?: number;
+  note?: string;
+  createdAt: number;
+}
+
+/** Ponto da série temporal de peso corporal. */
+export interface BodyWeight {
+  dateISO: string;
+  kg: number;
+}
+
+/** Preferências do usuário. */
+export interface Settings {
+  unit: Unit;
+  defaultRestSec: number;
+  theme: 'dark' | 'light' | 'system';
+  trackEffort: boolean;
+  /** 0=domingo, 1=segunda. */
+  weekStartsOn: 0 | 1;
+  bodyWeightGoalKg?: number;
+}
+
+/** Estado derivado de streak (nunca persistido como contador — calculado do histórico). */
+export interface Streak {
+  current: number;
+  longest: number;
+  lastTrainedISO: string | null;
+  /** true se a streak está "viva" hoje (treinou hoje ou ontem). */
+  alive: boolean;
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  unit: 'kg',
+  defaultRestSec: 90,
+  theme: 'dark',
+  trackEffort: false,
+  weekStartsOn: 1,
+};

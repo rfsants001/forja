@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+coverage/
+*.local
+.env
+.env.*
+!.env.example
+# dado self-hosted (Fase 6)
+forja.db
+data/
+.specs/
+docs/
