@@ -2,11 +2,12 @@ import '../styles/perfil.css';
 
 import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { User, Trash2, CheckCircle2, TrendingUp } from 'lucide-react';
+import { User, Trash2, CheckCircle2, TrendingUp, Download, Upload, Database } from 'lucide-react';
 import { DEFAULT_SETTINGS } from '@forja/core';
 import type { Settings, BodyWeight } from '@forja/core';
 import { db } from '../db/db';
 import { updateSettings, addBodyWeight, deleteBodyWeight } from '../db/repo';
+import { downloadBackup, importAll } from '../lib/backup';
 
 // ---------------------------------------------------------------------------
 // Utilitários
@@ -575,6 +576,140 @@ function SettingsSection({ settings }: { settings: Settings }) {
 }
 
 // ---------------------------------------------------------------------------
+// Seção de dados (export/import)
+// ---------------------------------------------------------------------------
+
+function SeusDadosSection() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [status, setStatus] = useState<'idle' | 'busy' | 'ok' | 'error'>('idle');
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  function showFeedback(msg: string, type: 'ok' | 'error') {
+    setFeedback(msg);
+    setStatus(type);
+    window.setTimeout(() => {
+      setFeedback(null);
+      setStatus('idle');
+    }, 4000);
+  }
+
+  async function handleExport() {
+    setStatus('busy');
+    try {
+      await downloadBackup();
+      showFeedback('Backup exportado com sucesso!', 'ok');
+    } catch (err) {
+      showFeedback(
+        err instanceof Error ? err.message : 'Erro ao exportar.',
+        'error',
+      );
+    }
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Limpa o input para permitir re-importar o mesmo arquivo
+    e.target.value = '';
+
+    const mode = window.confirm(
+      'Substituir todos os dados locais pelo backup?\n\n' +
+      'OK = Substituir (apaga tudo e importa o arquivo)\n' +
+      'Cancelar = Mesclar (mantém os dados atuais e adiciona/atualiza pelo backup)',
+    )
+      ? 'replace'
+      : 'merge';
+
+    setStatus('busy');
+    try {
+      const json = await file.text();
+      const result = await importAll(json, mode);
+
+      const linhas = Object.entries(result.counts)
+        .map(([tabela, n]) => `${tabela}: ${n}`)
+        .join(', ');
+      showFeedback(
+        `Importado (${mode === 'replace' ? 'substituição' : 'mesclagem'}): ${linhas}`,
+        'ok',
+      );
+    } catch (err) {
+      showFeedback(
+        err instanceof Error ? err.message : 'Erro ao importar.',
+        'error',
+      );
+    }
+  }
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <Database size={15} style={{ opacity: 0.6, flexShrink: 0 }} />
+        <p className="hint" style={{ lineHeight: 1.5 }}>
+          <strong style={{ color: 'var(--text)' }}>Local-first:</strong> seus dados ficam
+          neste aparelho, sem passar por servidores. Exporte um backup JSON para guardar
+          ou transferir para outro dispositivo.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+        {/* Exportar */}
+        <button
+          className="btn"
+          disabled={status === 'busy'}
+          onClick={() => { void handleExport(); }}
+          style={{ flex: '1 1 auto' }}
+        >
+          <Download size={15} />
+          Exportar backup
+        </button>
+
+        {/* Importar — input oculto disparado pelo botão ghost */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json"
+          style={{ display: 'none' }}
+          onChange={(e) => { void handleFileChange(e); }}
+        />
+        <button
+          className="btn ghost"
+          disabled={status === 'busy'}
+          onClick={() => fileInputRef.current?.click()}
+          style={{ flex: '1 1 auto' }}
+        >
+          <Upload size={15} />
+          Importar backup
+        </button>
+      </div>
+
+      {/* Aviso sobre replace */}
+      <p className="hint" style={{ marginTop: 10 }}>
+        Na importação, você escolhe entre <em>substituir</em> (apaga os dados atuais)
+        ou <em>mesclar</em> (sobrescreve apenas os itens em conflito).
+      </p>
+
+      {/* Feedback */}
+      {feedback !== null && (
+        <p
+          style={{
+            marginTop: 10,
+            fontSize: 13,
+            color: status === 'ok' ? 'var(--ok)' : 'var(--danger)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          {status === 'ok' && <CheckCircle2 size={14} />}
+          {feedback}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Página principal
 // ---------------------------------------------------------------------------
 
@@ -640,8 +775,12 @@ export function Perfil() {
         />
       </div>
 
+      {/* Seção 4 — Seus dados */}
+      <div className="section-title perfil-section">Seus dados</div>
+      <SeusDadosSection />
+
       <p className="hint" style={{ textAlign: 'center', marginTop: 24 }}>
-        Export/import e login por passkey (sync) chegam nas Fases 4 e 6.
+        Login por passkey e sync entre dispositivos chegam na Fase 6.
       </p>
     </>
   );

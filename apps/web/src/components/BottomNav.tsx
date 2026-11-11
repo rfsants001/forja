@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { Flame, Dumbbell, CalendarDays, User } from 'lucide-react';
+import { Flame, Dumbbell, CalendarDays, TrendingUp, User } from 'lucide-react';
 
 const ITEMS = [
   { to: '/', label: 'Hoje', Icon: Flame, end: true },
   { to: '/treinos', label: 'Treinos', Icon: Dumbbell, end: false },
   { to: '/historico', label: 'Histórico', Icon: CalendarDays, end: false },
+  { to: '/progresso', label: 'Progresso', Icon: TrendingUp, end: false },
   { to: '/perfil', label: 'Perfil', Icon: User, end: false },
 ];
 

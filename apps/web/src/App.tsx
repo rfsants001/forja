@@ -6,6 +6,7 @@ import { RotinaEditor } from './pages/RotinaEditor';
 import { Exercicios } from './pages/Exercicios';
 import { TreinoGuiado } from './pages/TreinoGuiado';
 import { Historico } from './pages/Historico';
+import { Progresso } from './pages/Progresso';
 import { Perfil } from './pages/Perfil';
 
 export function App() {
@@ -19,6 +20,7 @@ export function App() {
         <Route path="/exercicios" element={<Exercicios />} />
         <Route path="/treino" element={<TreinoGuiado />} />
         <Route path="/historico" element={<Historico />} />
+        <Route path="/progresso" element={<Progresso />} />
         <Route path="/perfil" element={<Perfil />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

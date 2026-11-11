@@ -1,0 +1,149 @@
+/* progresso.css — tela de Insights / Progresso */
+
+/* ---- seletor de período ---- */
+.prog-period-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.prog-period-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.prog-period-btn.active {
+  background: color-mix(in srgb, var(--flame) 18%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--flame) 50%, transparent);
+  color: var(--flame-2);
+}
+
+/* ---- grid de resumo (3 métricas) ---- */
+.prog-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.prog-stat {
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.prog-stat-value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.prog-stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
+
+/* ---- heatmap card ---- */
+.prog-heatmap-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+/* ---- lista de PRs ---- */
+.prog-pr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.prog-pr-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.prog-pr-rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.prog-pr-rank.top {
+  background: color-mix(in srgb, var(--flame) 20%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--flame) 40%, transparent);
+  color: var(--flame-2);
+}
+
+.prog-pr-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.prog-pr-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prog-pr-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.prog-pr-rm {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--flame-2);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.prog-pr-rm span {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ---- mapa muscular card ---- */
+.prog-muscle-wrap {
+  margin-top: 4px;
+}
+
+/* ---- empty state ---- */
+.prog-empty-icon {
+  opacity: 0.35;
+  margin-bottom: 12px;
+}

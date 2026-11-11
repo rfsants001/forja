@@ -1,0 +1,156 @@
+// Heatmap de atividade estilo GitHub — grade de ~17 semanas × 7 dias.
+// Cada célula representa um dia; a intensidade (opacidade do --flame) reflete
+// quantos treinos foram feitos naquele dia.
+
+import { useMemo } from 'react';
+import { toISO, fromISO, addDays } from '@forja/core';
+
+// ---------------------------------------------------------------------------
+// Constantes
+// ---------------------------------------------------------------------------
+
+const CELL = 14;        // tamanho da célula (px)
+const GAP = 3;          // espaçamento entre células (px)
+const WEEKS = 17;       // número de semanas exibidas
+const TOTAL_DAYS = WEEKS * 7;
+const MONTH_LABELS_Y = 14; // y dos labels de mês
+const GRID_TOP = 22;    // início da grade (abaixo dos labels de mês)
+
+const DAY_ABBR = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']; // 0=dom
+const DAY_LABEL_X = -2; // x dos labels de dia da semana
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Cor de fundo da célula baseada na intensidade (0 = sem treino). */
+function cellColor(count: number): string {
+  if (count === 0) return 'var(--surface-2)';
+  if (count === 1) return 'rgba(255, 122, 26, 0.45)';
+  if (count === 2) return 'rgba(255, 122, 26, 0.70)';
+  return 'var(--flame)';
+}
+
+/** Label do mês abreviado em PT-BR. */
+function monthAbbr(monthIndex: number): string {
+  const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+                  'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  return MONTHS[monthIndex] ?? '';
+}
+
+// ---------------------------------------------------------------------------
+// Props e componente
+// ---------------------------------------------------------------------------
+
+interface HeatmapProps {
+  /** Lista de datas ISO (YYYY-MM-DD) dos treinos. Pode ter duplicatas (>1 treino/dia). */
+  dates: string[];
+}
+
+export function Heatmap({ dates }: HeatmapProps) {
+  // ---- construir a grade ----
+  const { cells, monthMarkers } = useMemo(() => {
+    // Conta treinos por dia
+    const countByDate = new Map<string, number>();
+    for (const d of dates) {
+      countByDate.set(d, (countByDate.get(d) ?? 0) + 1);
+    }
+
+    // Dia inicial: começa num domingo, TOTAL_DAYS antes de hoje
+    const today = toISO(new Date());
+    // Recua até o domingo anterior a (hoje - TOTAL_DAYS)
+    const startDate = (() => {
+      const d = fromISO(addDays(today, -(TOTAL_DAYS - 1)));
+      const wd = d.getDay(); // 0=domingo
+      d.setDate(d.getDate() - wd); // recua até domingo
+      return toISO(d);
+    })();
+
+    // Gera todas as células (cada uma tem col, row, iso, count)
+    type Cell = { col: number; row: number; iso: string; count: number };
+    const cells: Cell[] = [];
+    // Meses únicos para labels
+    type MonthMarker = { col: number; label: string };
+    const monthMarkers: MonthMarker[] = [];
+    let lastMonth = -1;
+
+    for (let i = 0; i < WEEKS * 7; i++) {
+      const iso = addDays(startDate, i);
+      if (iso > today) break; // não exibir datas futuras
+
+      const col = Math.floor(i / 7);
+      const row = i % 7; // 0=dom
+      const count = countByDate.get(iso) ?? 0;
+      cells.push({ col, row, iso, count });
+
+      // Label de mês: primeira célula de cada novo mês
+      const month = fromISO(iso).getMonth();
+      if (month !== lastMonth) {
+        monthMarkers.push({ col, label: monthAbbr(month) });
+        lastMonth = month;
+      }
+    }
+
+    return { cells, monthMarkers };
+  }, [dates]);
+
+  // ---- dimensões do SVG ----
+  const svgW = WEEKS * (CELL + GAP) + 24; // 24 = espaço pra labels de dia
+  const svgH = GRID_TOP + 7 * (CELL + GAP);
+
+  return (
+    <svg
+      width="100%"
+      viewBox={`0 0 ${svgW} ${svgH}`}
+      aria-label="Heatmap de atividade"
+      style={{ display: 'block', overflow: 'visible' }}
+    >
+      {/* Labels de mês */}
+      {monthMarkers.map(({ col, label }) => (
+        <text
+          key={`month-${col}`}
+          x={24 + col * (CELL + GAP)}
+          y={MONTH_LABELS_Y}
+          fontSize={9}
+          fill="var(--text-muted)"
+          fontFamily="var(--font-body)"
+          letterSpacing="0.04em"
+        >
+          {label}
+        </text>
+      ))}
+
+      {/* Labels de dia da semana (dom, seg, ter...) — apenas 3 deles pra não poluir */}
+      {[0, 2, 4].map((row) => (
+        <text
+          key={`wd-${row}`}
+          x={DAY_LABEL_X}
+          y={GRID_TOP + row * (CELL + GAP) + CELL - 2}
+          fontSize={8}
+          fill="var(--text-muted)"
+          fontFamily="var(--font-body)"
+          textAnchor="end"
+        >
+          {DAY_ABBR[row] ?? ''}
+        </text>
+      ))}
+
+      {/* Células */}
+      {cells.map(({ col, row, iso, count }) => (
+        <rect
+          key={iso}
+          x={24 + col * (CELL + GAP)}
+          y={GRID_TOP + row * (CELL + GAP)}
+          width={CELL}
+          height={CELL}
+          rx={3}
+          ry={3}
+          fill={cellColor(count)}
+          style={{ transition: 'fill 0.15s ease' }}
+        >
+          <title>{`${iso}${count > 0 ? ` · ${count} treino${count > 1 ? 's' : ''}` : ''}`}</title>
+        </rect>
+      ))}
+    </svg>
+  );
+}
