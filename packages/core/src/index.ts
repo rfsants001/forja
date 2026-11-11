@@ -5,3 +5,4 @@ export * from './streak.js';
 export * from './onerm.js';
 export * from './history.js';
 export * from './progression.js';
+export * from './schedule.js';
