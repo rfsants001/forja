@@ -1,7 +1,7 @@
 import '../styles/setup.css';
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Dumbbell, Search, Plus, X, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, X, Pencil, Trash2, ChevronRight } from 'lucide-react';
 import type { Exercise, ExerciseMode, MuscleGroup } from '@forja/core';
 import { db } from '../db/db';
 import { upsertExercise, deleteExercise } from '../db/repo';
@@ -11,6 +11,7 @@ import {
   MUSCLE_OPTIONS,
   MODE_OPTIONS,
 } from '../lib/labels';
+import { Media } from '../components/Media';
 
 // ---------------------------------------------------------------------------
 // Tipos do formulário
@@ -37,6 +38,10 @@ const EMPTY_FORM: ExForm = {
 // Equipamentos frequentes para sugestão de chips
 const EQUIP_FILTERS = ['Barra', 'Halteres', 'Cabo', 'Máquina', 'Peso corporal', 'Elástico'];
 
+// Performance: exibe 50 itens + "carregar mais" para suportar 1324+ exercícios.
+// A busca/filtro opera sobre o conjunto completo; a paginação só afeta a exibição.
+const PAGE_SIZE = 50;
+
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
@@ -47,6 +52,8 @@ export function Exercicios() {
   const [query, setQuery] = useState('');
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | null>(null);
   const [equipFilter, setEquipFilter] = useState<string | null>(null);
+  // Paginação — reset quando filtros mudam
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Formulário / sheet
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -54,11 +61,14 @@ export function Exercicios() {
   const [form, setForm] = useState<ExForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
+  // Detalhe / modal de visualização (G1)
+  const [detailEx, setDetailEx] = useState<Exercise | null>(null);
+
   // Confirmação de exclusão
   const [deleteTarget, setDeleteTarget] = useState<Exercise | null>(null);
 
   // ---------------------------------------------------------------------------
-  // Filtro em memória (mesma estratégia do repo.searchExercises)
+  // Filtro em memória — opera sobre conjunto completo
   // ---------------------------------------------------------------------------
   const filtered = useMemo(() => {
     const all = exercises ?? [];
@@ -74,6 +84,15 @@ export function Exercicios() {
       return true;
     });
   }, [exercises, query, muscleFilter, equipFilter]);
+
+  // Itens visíveis (paginação)
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = filtered.length > visibleCount;
+
+  // Reset paginação ao mudar filtros
+  function resetPaging() {
+    setVisibleCount(PAGE_SIZE);
+  }
 
   // ---------------------------------------------------------------------------
   // Helpers de formulário
@@ -171,10 +190,10 @@ export function Exercicios() {
           type="text"
           placeholder="Buscar exercício…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { setQuery(e.target.value); resetPaging(); }}
         />
         {query.length > 0 && (
-          <button onClick={() => setQuery('')} style={{ color: 'var(--text-muted)', display: 'grid', placeItems: 'center' }}>
+          <button onClick={() => { setQuery(''); resetPaging(); }} style={{ color: 'var(--text-muted)', display: 'grid', placeItems: 'center' }}>
             <X size={14} />
           </button>
         )}
@@ -184,7 +203,7 @@ export function Exercicios() {
       <div className="chip-row" style={{ marginBottom: 8 }}>
         <button
           className={`chip${muscleFilter === null ? ' active' : ''}`}
-          onClick={() => setMuscleFilter(null)}
+          onClick={() => { setMuscleFilter(null); resetPaging(); }}
         >
           Todos
         </button>
@@ -192,7 +211,7 @@ export function Exercicios() {
           <button
             key={m}
             className={`chip${muscleFilter === m ? ' active' : ''}`}
-            onClick={() => setMuscleFilter(muscleFilter === m ? null : m)}
+            onClick={() => { setMuscleFilter(muscleFilter === m ? null : m); resetPaging(); }}
           >
             {MUSCLE_LABEL[m]}
           </button>
@@ -205,17 +224,25 @@ export function Exercicios() {
           <button
             key={eq}
             className={`chip${equipFilter === eq ? ' active' : ''}`}
-            onClick={() => setEquipFilter(equipFilter === eq ? null : eq)}
+            onClick={() => { setEquipFilter(equipFilter === eq ? null : eq); resetPaging(); }}
           >
             {eq}
           </button>
         ))}
       </div>
 
+      {/* Contador */}
+      {filtered.length > 0 && (
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+          {filtered.length} exercício{filtered.length !== 1 ? 's' : ''}
+          {hasMore ? ` — mostrando ${visibleCount}` : ''}
+        </p>
+      )}
+
       {/* Lista */}
       {filtered.length === 0 ? (
         <div className="empty">
-          <Dumbbell size={40} strokeWidth={1.6} style={{ opacity: 0.4 }} />
+          <Media demo={{ kind: 'none' }} name="" size="lg" />
           <p style={{ marginTop: 12 }}>
             {(exercises ?? []).length === 0
               ? 'Nenhum exercício encontrado. Adicione o primeiro!'
@@ -229,42 +256,126 @@ export function Exercicios() {
           )}
         </div>
       ) : (
-        <div className="ex-list">
-          {filtered.map((ex) => (
-            <div key={ex.id} className="ex-item">
-              <div className="ex-icon">
-                <Dumbbell size={18} strokeWidth={1.8} />
-              </div>
-              <div className="ex-info">
-                <div className="ex-name">{ex.name}</div>
-                <div className="ex-meta">
-                  {MUSCLE_LABEL[ex.primaryMuscle]}
-                  {ex.equipment.length > 0 && ` · ${ex.equipment.join(', ')}`}
-                  {' · '}
-                  {MODE_LABEL[ex.mode]}
+        <>
+          <div className="ex-list">
+            {visible.map((ex) => (
+              <div
+                key={ex.id}
+                className="ex-item"
+                onClick={() => setDetailEx(ex)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter') setDetailEx(ex); }}
+              >
+                {/* G1: miniatura da demo */}
+                <Media demo={ex.demo} name={ex.name} size="sm" staticOnly />
+                <div className="ex-info">
+                  <div className="ex-name">{ex.name}</div>
+                  <div className="ex-meta">
+                    {MUSCLE_LABEL[ex.primaryMuscle]}
+                    {ex.equipment.length > 0 && ` · ${ex.equipment.join(', ')}`}
+                    {' · '}
+                    {MODE_LABEL[ex.mode]}
+                  </div>
                 </div>
-              </div>
-              {ex.custom === true && (
-                <>
+                {ex.custom === true && (
                   <span className="ex-badge">Custom</span>
+                )}
+                <ChevronRight size={16} color="var(--text-muted)" />
+              </div>
+            ))}
+          </div>
+
+          {/* Carregar mais */}
+          {hasMore && (
+            <button
+              className="btn ghost"
+              style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
+              onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+            >
+              Carregar mais ({filtered.length - visibleCount} restantes)
+            </button>
+          )}
+        </>
+      )}
+
+      {/* G1: modal de detalhe do exercício */}
+      {detailEx !== null && (
+        <div
+          className="sheet-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setDetailEx(null); }}
+        >
+          <div className="sheet">
+            <div className="sheet-handle" />
+
+            {/* Demo em tamanho maior */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+              <Media demo={detailEx.demo} name={detailEx.name} size="lg" />
+            </div>
+
+            <h2 style={{ marginBottom: 8 }}>{detailEx.name}</h2>
+
+            {/* Metadados */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+              <span className="ex-badge" style={{ fontSize: 11 }}>
+                {MODE_LABEL[detailEx.mode]}
+              </span>
+              <span className="ex-badge" style={{ fontSize: 11 }}>
+                {MUSCLE_LABEL[detailEx.primaryMuscle]}
+              </span>
+              {detailEx.secondaryMuscles.map((m) => (
+                <span key={m} className="ex-badge" style={{ fontSize: 11, opacity: 0.7 }}>
+                  {MUSCLE_LABEL[m]}
+                </span>
+              ))}
+              {detailEx.custom === true && (
+                <span className="ex-badge" style={{ fontSize: 11 }}>Custom</span>
+              )}
+            </div>
+
+            {detailEx.equipment.length > 0 && (
+              <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 12 }}>
+                <strong>Equipamento:</strong> {detailEx.equipment.join(', ')}
+              </p>
+            )}
+
+            {detailEx.instructions !== undefined && detailEx.instructions.length > 0 && (
+              <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 16 }}>
+                {detailEx.instructions}
+              </p>
+            )}
+
+            {/* Atribuição */}
+            {detailEx.attribution !== undefined && (
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16 }}>
+                {detailEx.attribution}
+              </p>
+            )}
+
+            <div className="btn-row">
+              <button className="btn ghost" onClick={() => setDetailEx(null)}>
+                Fechar
+              </button>
+              {detailEx.custom === true && (
+                <>
                   <button
-                    className="icon-btn"
-                    onClick={() => openEdit(ex)}
-                    aria-label="Editar exercício"
+                    className="btn ghost"
+                    onClick={() => { openEdit(detailEx); setDetailEx(null); }}
                   >
                     <Pencil size={15} />
+                    Editar
                   </button>
                   <button
-                    className="icon-btn danger"
-                    onClick={() => setDeleteTarget(ex)}
-                    aria-label="Excluir exercício"
+                    className="btn danger"
+                    onClick={() => { setDeleteTarget(detailEx); setDetailEx(null); }}
                   >
                     <Trash2 size={15} />
+                    Excluir
                   </button>
                 </>
               )}
             </div>
-          ))}
+          </div>
         </div>
       )}
 

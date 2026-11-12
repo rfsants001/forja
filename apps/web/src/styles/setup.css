@@ -477,6 +477,84 @@
   gap: 8px;
 }
 
+/* ---- superset UI (G2) ---- */
+
+/* Barra lateral colorida indicando o grupo */
+.rex-item {
+  position: relative;
+}
+
+.rex-item--superset {
+  border-color: var(--superset-color, var(--flame));
+  padding-left: 20px;
+}
+
+.rex-superset-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: var(--r) 0 0 var(--r);
+  background: var(--superset-color, var(--flame));
+}
+
+/* Badge de grupo (Superset A, Superset B…) */
+.rex-superset-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+/* Botão de seleção (círculo que vira check) */
+.rex-select-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+  display: grid;
+  place-items: center;
+}
+
+.rex-select-btn.active {
+  border-color: var(--flame);
+  background: var(--flame);
+}
+
+.rex-select-btn.active::after {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translateY(-1px);
+}
+
+/* Item selecionado: fundo levemente destacado */
+.rex-item--selected {
+  background: color-mix(in srgb, var(--flame) 6%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--flame) 40%, var(--border));
+}
+
+/* Card de preview muscular (G7) */
+.muscle-preview-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+}
+
 /* ---- danger zone ---- */
 .danger-zone {
   margin-top: 32px;

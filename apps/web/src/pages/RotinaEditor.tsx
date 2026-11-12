@@ -11,8 +11,10 @@ import {
   Search,
   X,
   Save,
+  Link2,
+  Unlink2,
 } from 'lucide-react';
-import type { RoutineExercise, ProgressionPolicy, ExerciseMode, MuscleGroup } from '@forja/core';
+import type { RoutineExercise, ProgressionPolicy, ExerciseMode, MuscleGroup, Exercise } from '@forja/core';
 import { db } from '../db/db';
 import { upsertRoutine, deleteRoutine } from '../db/repo';
 import {
@@ -22,13 +24,16 @@ import {
   PROGRESSION_OPTIONS,
   MUSCLE_OPTIONS,
 } from '../lib/labels';
+import { Media } from '../components/Media';
+import { MuscleMap } from '../components/MuscleMap';
+import { previewVolumeByMuscle } from '../lib/stats';
 
 // ---------------------------------------------------------------------------
 // Tipos locais
 // ---------------------------------------------------------------------------
 
 interface RexDraft extends RoutineExercise {
-  /** key estável para a lista (exerciseId pode repetir em supersets futuros) */
+  /** key estável para a lista (exerciseId pode repetir em supersets) */
   _key: string;
 }
 
@@ -40,9 +45,45 @@ function newKey() {
   return Math.random().toString(36).slice(2, 9);
 }
 
+/** Converte número de superset para letra A, B, C... */
+function supersetLabel(group: number): string {
+  return String.fromCharCode(64 + (((group - 1) % 26) + 1));
+}
+
+/** Calcula o próximo número de grupo disponível na lista. */
+function nextSupersetGroup(list: RexDraft[]): number {
+  let max = 0;
+  for (const r of list) {
+    if (r.supersetGroup !== undefined && r.supersetGroup > max) {
+      max = r.supersetGroup;
+    }
+  }
+  return max + 1;
+}
+
+// Paleta de cores para grupos A, B, C... (loop se >8)
+const SUPERSET_COLORS = [
+  'var(--flame)',
+  '#3b82f6',
+  '#22c55e',
+  '#a855f7',
+  '#f59e0b',
+  '#06b6d4',
+  '#ec4899',
+  '#84cc16',
+];
+
+function supersetColor(group: number): string {
+  return SUPERSET_COLORS[(group - 1) % SUPERSET_COLORS.length] ?? 'var(--flame)';
+}
+
 // ---------------------------------------------------------------------------
 // Sub-componente: Seletor de exercícios (modal)
+// Performance: exibe 50 itens + "carregar mais" para suportar 1324+ exercícios.
+// A busca/filtro opera sobre o conjunto completo; a paginação só afeta a exibição.
 // ---------------------------------------------------------------------------
+
+const PICKER_PAGE_SIZE = 50;
 
 interface ExPickerProps {
   onSelect: (exerciseId: string) => void;
@@ -53,7 +94,9 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
   const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray(), []);
   const [query, setQuery] = useState('');
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PICKER_PAGE_SIZE);
 
+  // Filtragem sobre o conjunto completo
   const filtered = useMemo(() => {
     const all = exercises ?? [];
     const q = query.toLowerCase().trim();
@@ -63,6 +106,16 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
       return true;
     });
   }, [exercises, query, muscleFilter]);
+
+  // Reset paginação ao mudar filtros
+  const prevFiltered = useMemo(() => filtered, [filtered]);
+  useEffect(() => {
+    void prevFiltered; // referência estável para silenciar lint
+    setVisibleCount(PICKER_PAGE_SIZE);
+  }, [query, muscleFilter]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = filtered.length > visibleCount;
 
   return (
     <div
@@ -113,9 +166,17 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
           ))}
         </div>
 
+        {/* Contador */}
+        {filtered.length > 0 && (
+          <p className="hint" style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
+            {filtered.length} exercício{filtered.length !== 1 ? 's' : ''}
+            {filtered.length > visibleCount ? ` — mostrando ${visibleCount}` : ''}
+          </p>
+        )}
+
         {/* Lista */}
         <div className="ex-picker-list">
-          {filtered.map((ex) => (
+          {visible.map((ex) => (
             <div
               key={ex.id}
               className="ex-item selectable"
@@ -124,6 +185,8 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter') { onSelect(ex.id); onClose(); } }}
             >
+              {/* G1: miniatura da demo */}
+              <Media demo={ex.demo} name={ex.name} size="sm" staticOnly />
               <div className="ex-info">
                 <div className="ex-name">{ex.name}</div>
                 <div className="ex-meta">
@@ -133,6 +196,18 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
               <Plus size={16} color="var(--flame)" />
             </div>
           ))}
+
+          {/* Carregar mais */}
+          {hasMore && (
+            <button
+              className="btn ghost"
+              style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}
+              onClick={() => setVisibleCount((n) => n + PICKER_PAGE_SIZE)}
+            >
+              Carregar mais ({filtered.length - visibleCount} restantes)
+            </button>
+          )}
+
           {filtered.length === 0 && (
             <p className="hint" style={{ textAlign: 'center', padding: '24px 0' }}>
               Nenhum exercício encontrado.
@@ -152,24 +227,67 @@ interface RexRowProps {
   rex: RexDraft;
   mode: ExerciseMode;
   exName: string;
+  demo: Exercise['demo'];
   index: number;
   total: number;
+  selected: boolean;
+  onToggleSelect: (key: string) => void;
   onChange: (key: string, patch: Partial<RoutineExercise>) => void;
   onMoveUp: (key: string) => void;
   onMoveDown: (key: string) => void;
   onRemove: (key: string) => void;
+  onUngroup: (key: string) => void;
 }
 
-function RexRow({ rex, mode, exName, index, total, onChange, onMoveUp, onMoveDown, onRemove }: RexRowProps) {
+function RexRow({
+  rex, mode, exName, demo, index, total,
+  selected, onToggleSelect,
+  onChange, onMoveUp, onMoveDown, onRemove, onUngroup,
+}: RexRowProps) {
+  const hasGroup = rex.supersetGroup !== undefined;
+  const color = hasGroup ? supersetColor(rex.supersetGroup!) : undefined;
+  const label = hasGroup ? supersetLabel(rex.supersetGroup!) : undefined;
+
   return (
-    <div className="rex-item">
+    <div
+      className={`rex-item${selected ? ' rex-item--selected' : ''}${hasGroup ? ' rex-item--superset' : ''}`}
+      style={hasGroup ? { '--superset-color': color } as React.CSSProperties : undefined}
+    >
+      {/* Indicador lateral de superset */}
+      {hasGroup && (
+        <div className="rex-superset-bar" aria-hidden="true" />
+      )}
+
       <div className="rex-item-header">
-        <span className="rex-name">{exName}</span>
-        <span className="rex-mode">{MODE_LABEL[mode]}</span>
+        {/* G1: miniatura demo */}
+        <Media demo={demo} name={exName} size="sm" staticOnly />
+
+        {/* Checkbox de seleção para agrupar */}
+        <button
+          className={`rex-select-btn${selected ? ' active' : ''}`}
+          onClick={() => onToggleSelect(rex._key)}
+          aria-label={selected ? 'Desselecionar' : 'Selecionar para superset'}
+          title={selected ? 'Desselecionar' : 'Selecionar para superset'}
+        />
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="rex-name">{exName}</div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
+            <span className="rex-mode">{MODE_LABEL[mode]}</span>
+            {hasGroup && (
+              <span
+                className="rex-superset-badge"
+                style={{ background: `color-mix(in srgb, ${color} 20%, transparent)`, borderColor: color, color }}
+              >
+                Superset {label}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="rex-controls">
-        {/* Sets */}
+        {/* Sets — sempre */}
         <div className="field">
           <label>Séries</label>
           <input
@@ -181,8 +299,20 @@ function RexRow({ rex, mode, exName, index, total, onChange, onMoveUp, onMoveDow
           />
         </div>
 
-        {/* Target — reps ou tempo */}
-        {mode === 'time' || mode === 'cardio' ? (
+        {/* G3: campos condicionais por modo */}
+        {mode === 'reps' && (
+          <div className="field">
+            <label>Reps-alvo</label>
+            <input
+              type="text"
+              placeholder="Ex.: 8–12"
+              value={rex.targetReps ?? ''}
+              onChange={(e) => onChange(rex._key, { targetReps: e.target.value || undefined })}
+            />
+          </div>
+        )}
+
+        {mode === 'time' && (
           <div className="field">
             <label>Tempo (seg)</label>
             <input
@@ -197,19 +327,58 @@ function RexRow({ rex, mode, exName, index, total, onChange, onMoveUp, onMoveDow
               }
             />
           </div>
-        ) : (
-          <div className="field">
-            <label>Reps-alvo</label>
-            <input
-              type="text"
-              placeholder="Ex.: 8–12"
-              value={rex.targetReps ?? ''}
-              onChange={(e) => onChange(rex._key, { targetReps: e.target.value || undefined })}
-            />
-          </div>
         )}
 
-        {/* Descanso */}
+        {mode === 'cardio' && (
+          <>
+            <div className="field">
+              <label>Tempo (seg)</label>
+              <input
+                type="number"
+                min={1}
+                placeholder="Opcional"
+                value={rex.targetSec ?? ''}
+                onChange={(e) =>
+                  onChange(rex._key, {
+                    targetSec: e.target.value === '' ? undefined : parseInt(e.target.value, 10),
+                  })
+                }
+              />
+            </div>
+            <div className="field">
+              <label>Distância (m)</label>
+              <input
+                type="number"
+                min={0}
+                step={100}
+                placeholder="Ex.: 1000"
+                value={rex.targetDistanceM ?? ''}
+                onChange={(e) =>
+                  onChange(rex._key, {
+                    targetDistanceM: e.target.value === '' ? undefined : parseFloat(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div className="field">
+              <label>Velocidade (km/h)</label>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                placeholder="Ex.: 10"
+                value={rex.targetSpeedKmh ?? ''}
+                onChange={(e) =>
+                  onChange(rex._key, {
+                    targetSpeedKmh: e.target.value === '' ? undefined : parseFloat(e.target.value),
+                  })
+                }
+              />
+            </div>
+          </>
+        )}
+
+        {/* Descanso — sempre */}
         <div className="field">
           <label>Descanso (seg)</label>
           <input
@@ -225,22 +394,24 @@ function RexRow({ rex, mode, exName, index, total, onChange, onMoveUp, onMoveDow
           />
         </div>
 
-        {/* Incremento */}
-        <div className="field">
-          <label>Incremento (kg)</label>
-          <input
-            type="number"
-            min={0}
-            step={0.5}
-            placeholder="Ex.: 2.5"
-            value={rex.incrementKg ?? ''}
-            onChange={(e) =>
-              onChange(rex._key, {
-                incrementKg: e.target.value === '' ? undefined : parseFloat(e.target.value),
-              })
-            }
-          />
-        </div>
+        {/* Incremento — só para reps */}
+        {mode === 'reps' && (
+          <div className="field">
+            <label>Incremento (kg)</label>
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              placeholder="Ex.: 2.5"
+              value={rex.incrementKg ?? ''}
+              onChange={(e) =>
+                onChange(rex._key, {
+                  incrementKg: e.target.value === '' ? undefined : parseFloat(e.target.value),
+                })
+              }
+            />
+          </div>
+        )}
 
         {/* Progressão */}
         <div className="field full">
@@ -260,6 +431,16 @@ function RexRow({ rex, mode, exName, index, total, onChange, onMoveUp, onMoveDow
 
       {/* Ações da linha */}
       <div className="rex-actions">
+        {hasGroup && (
+          <button
+            className="icon-btn"
+            onClick={() => onUngroup(rex._key)}
+            aria-label="Remover do superset"
+            title="Remover do superset"
+          >
+            <Unlink2 size={15} />
+          </button>
+        )}
         <button
           className="icon-btn"
           disabled={index === 0}
@@ -300,10 +481,10 @@ export function RotinaEditor() {
   const categories = useLiveQuery(() => db.categories.orderBy('order').toArray(), []);
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
 
-  // Map exerciseId → Exercise para lookup rápido
+  // Map exerciseId → Exercise completo para lookup rápido (G1 + G7)
   const exerciseMap = useMemo(() => {
-    const map = new Map<string, { name: string; mode: ExerciseMode }>();
-    (exercises ?? []).forEach((ex) => map.set(ex.id, { name: ex.name, mode: ex.mode }));
+    const map = new Map<string, Exercise>();
+    (exercises ?? []).forEach((ex) => map.set(ex.id, ex));
     return map;
   }, [exercises]);
 
@@ -312,6 +493,9 @@ export function RotinaEditor() {
   const [categoryId, setCategoryId] = useState('');
   const [note, setNote] = useState('');
   const [rexList, setRexList] = useState<RexDraft[]>([]);
+
+  // G2: seleção para agrupar em superset
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
 
   const [saving, setSaving] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -339,6 +523,21 @@ export function RotinaEditor() {
       if (first !== undefined) setCategoryId(first.id);
     }
   }, [categories, categoryId]);
+
+  // ---------------------------------------------------------------------------
+  // G7: preview muscular (recomputa toda vez que rexList muda)
+  // ---------------------------------------------------------------------------
+  const volumeByMuscle = useMemo(() => {
+    const map = previewVolumeByMuscle(rexList, exerciseMap);
+    // Converte Map para Partial<Record<MuscleGroup,number>> esperado pelo MuscleMap
+    const record: Partial<Record<MuscleGroup, number>> = {};
+    for (const [muscle, v] of map) {
+      record[muscle] = v;
+    }
+    return record;
+  }, [rexList, exerciseMap]);
+
+  const hasAnyVolume = Object.keys(volumeByMuscle).length > 0;
 
   // ---------------------------------------------------------------------------
   // Manipulação da lista de exercícios
@@ -392,6 +591,55 @@ export function RotinaEditor() {
 
   function removeRex(key: string) {
     setRexList((l) => l.filter((r) => r._key !== key));
+    setSelectedKeys((s) => { const next = new Set(s); next.delete(key); return next; });
+  }
+
+  // G2: toggle seleção para superset
+  function toggleSelect(key: string) {
+    setSelectedKeys((s) => {
+      const next = new Set(s);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  // G2: agrupar selecionados em superset
+  function groupSelected() {
+    if (selectedKeys.size < 2) return;
+    const group = nextSupersetGroup(rexList);
+    setRexList((l) =>
+      l.map((r) => (selectedKeys.has(r._key) ? { ...r, supersetGroup: group } : r)),
+    );
+    setSelectedKeys(new Set());
+  }
+
+  // G2: remover exercício do superset (ungroup individual)
+  function ungroupRex(key: string) {
+    setRexList((l) => {
+      const target = l.find((r) => r._key === key);
+      if (target?.supersetGroup === undefined) return l;
+      const group = target.supersetGroup;
+
+      // Verifica quantos restam no grupo após remoção
+      const remaining = l.filter((r) => r._key !== key && r.supersetGroup === group);
+
+      return l.map((r) => {
+        if (r._key === key) {
+          const { supersetGroup: _sg, ...rest } = r;
+          return { ...rest, _key: r._key };
+        }
+        // Se só sobrou 1 no grupo, remove o grupo dele também
+        if (remaining.length === 1 && r.supersetGroup === group) {
+          const { supersetGroup: _sg, ...rest } = r;
+          return { ...rest, _key: r._key };
+        }
+        return r;
+      });
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -431,6 +679,7 @@ export function RotinaEditor() {
   // ---------------------------------------------------------------------------
 
   const canSave = name.trim().length > 0 && categoryId !== '';
+  const canGroup = selectedKeys.size >= 2;
 
   return (
     <>
@@ -498,7 +747,29 @@ export function RotinaEditor() {
       </div>
 
       {/* Exercícios */}
-      <div className="section-title">Exercícios</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div className="section-title" style={{ marginBottom: 0 }}>Exercícios</div>
+
+        {/* G2: botão agrupar em superset */}
+        {selectedKeys.size > 0 && (
+          <button
+            className={`btn${canGroup ? '' : ' ghost'}`}
+            onClick={groupSelected}
+            disabled={!canGroup}
+            style={{ padding: '8px 14px', fontSize: 12 }}
+            title={canGroup ? 'Agrupar em superset' : 'Selecione ao menos 2 exercícios'}
+          >
+            <Link2 size={14} />
+            Superset ({selectedKeys.size})
+          </button>
+        )}
+      </div>
+
+      {selectedKeys.size === 1 && (
+        <p className="hint" style={{ fontSize: 11, marginBottom: 8, marginTop: -4 }}>
+          Selecione mais 1 exercício para criar um superset.
+        </p>
+      )}
 
       <div className="rex-list">
         {rexList.map((rex, i) => {
@@ -510,12 +781,16 @@ export function RotinaEditor() {
               rex={rex}
               mode={info.mode}
               exName={info.name}
+              demo={info.demo}
               index={i}
               total={rexList.length}
+              selected={selectedKeys.has(rex._key)}
+              onToggleSelect={toggleSelect}
               onChange={patchRex}
               onMoveUp={moveUp}
               onMoveDown={moveDown}
               onRemove={removeRex}
+              onUngroup={ungroupRex}
             />
           );
         })}
@@ -535,6 +810,14 @@ export function RotinaEditor() {
         <Plus size={16} />
         Adicionar exercício
       </button>
+
+      {/* G7: preview muscular da rotina */}
+      {hasAnyVolume && (
+        <div className="card muscle-preview-card" style={{ marginBottom: 24 }}>
+          <div className="section-title" style={{ marginBottom: 12 }}>O que esta rotina treina</div>
+          <MuscleMap volumeByMuscle={volumeByMuscle} preview />
+        </div>
+      )}
 
       {/* Danger zone — só em edição */}
       {!isNew && (
