@@ -1,7 +1,7 @@
 // Cálculos puros de progresso/insights. Sem I/O, sem React.
 // Recebe os dados já carregados e devolve métricas prontas pra exibir.
 
-import type { WorkoutLog, Exercise, MuscleGroup } from '@forja/core';
+import type { WorkoutLog, Exercise, MuscleGroup, RoutineExercise } from '@forja/core';
 import { estimate1RM } from '@forja/core';
 
 // ---------------------------------------------------------------------------
@@ -182,4 +182,49 @@ export function computeVolumeByMuscle(
  */
 export function workoutDates(workouts: WorkoutLog[], days: number | null): string[] {
   return filterByPeriod(workouts, days).map((w) => w.dateISO);
+}
+
+/**
+ * Calcula um mapa de volume sintético para preview da rotina no editor.
+ * Não usa histórico — deriva de quais exercícios estão na rotina.
+ *
+ * Contribuição:
+ *   - primaryMuscle do exercício  → peso 1.0
+ *   - cada secondaryMuscle        → peso 0.5
+ *
+ * O resultado é normalizado para [0, 1] (máximo = 1.0).
+ * Adequado para o modo `preview` do MuscleMap.
+ *
+ * @param exercises   Exercícios configurados na rotina (RoutineExercise[]).
+ * @param exerciseMap Map id→Exercise para resolver primaryMuscle/secondaryMuscles.
+ */
+export function previewVolumeByMuscle(
+  exercises: RoutineExercise[],
+  exerciseMap: Map<string, Exercise>,
+): Map<MuscleGroup, number> {
+  const acc = new Map<MuscleGroup, number>();
+
+  for (const re of exercises) {
+    const ex = exerciseMap.get(re.exerciseId);
+    if (ex === undefined) continue;
+
+    acc.set(ex.primaryMuscle, (acc.get(ex.primaryMuscle) ?? 0) + 1.0);
+
+    for (const sec of ex.secondaryMuscles) {
+      acc.set(sec, (acc.get(sec) ?? 0) + 0.5);
+    }
+  }
+
+  // Normaliza para [0, 1]
+  let max = 0;
+  for (const v of acc.values()) {
+    if (v > max) max = v;
+  }
+  if (max === 0) return acc;
+
+  const normalized = new Map<MuscleGroup, number>();
+  for (const [muscle, v] of acc) {
+    normalized.set(muscle, v / max);
+  }
+  return normalized;
 }

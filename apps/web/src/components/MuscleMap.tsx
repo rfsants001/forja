@@ -1,22 +1,35 @@
 // Mapa muscular simplificado — SVG próprio (frente + costas lado a lado).
 // Regiões são interpoladas de --surface-2 (sem volume) até --flame (máximo).
 // Sem dependência de asset externo.
+//
+// Props principais:
+//   volumeByMuscle  — Partial<Record<MuscleGroup, number>> (Σ reps×kg ou ratio normalizado)
+//   figure          — 'male' | 'female' (default 'male') — troca o outline
+//   preview         — quando true, usa destaque binário "acerta/não acerta" em vez de heatmap
+//   showUntrained   — quando true, exibe painel de músculos com volume 0 (modo stats)
+//   onUntrainedClick — callback ao clicar num grupo não treinado (deep link p/ biblioteca)
 
 import { useMemo } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import type { MuscleGroup } from '@forja/core';
 import { MUSCLE_LABEL } from '../lib/labels';
 import {
   MUSCLE_REGIONS,
-  BODY_OUTLINE_FRONT,
-  BODY_OUTLINE_BACK,
+  bodyOutline,
 } from '../lib/muscle-map-paths';
+
+// ---------------------------------------------------------------------------
+// Grupos excluídos da lista de "não treinados" (não representáveis no mapa de força)
+// ---------------------------------------------------------------------------
+
+const IGNORED_FOR_UNTRAINED = new Set<MuscleGroup>(['fullbody', 'cardio', 'other']);
 
 // ---------------------------------------------------------------------------
 // Helpers de cor
 // ---------------------------------------------------------------------------
 
 /**
- * Interpola entre --surface-2 (cinza escuro) e --flame (laranja) conforme ratio [0,1].
+ * Heatmap: interpola entre --surface-2 (cinza escuro) e --flame (laranja) conforme ratio [0,1].
  * Usa uma escala com 5 stops para controle fino.
  */
 function muscleColor(ratio: number): string {
@@ -26,6 +39,13 @@ function muscleColor(ratio: number): string {
   if (ratio < 0.65) return 'rgba(255, 122, 26, 0.62)';
   if (ratio < 0.85) return 'rgba(255, 122, 26, 0.82)';
   return 'var(--flame)';
+}
+
+/**
+ * Preview: destaque binário — acerta (laranja vivo) vs não acerta (surface-2).
+ */
+function previewColor(ratio: number): string {
+  return ratio > 0 ? 'rgba(255, 122, 26, 0.75)' : 'var(--surface-2)';
 }
 
 // ---------------------------------------------------------------------------
@@ -69,31 +89,117 @@ function Legend() {
 }
 
 // ---------------------------------------------------------------------------
+// Painel de músculos não treinados
+// ---------------------------------------------------------------------------
+
+interface UntrainedPanelProps {
+  groups: MuscleGroup[];
+  onUntrainedClick?: (muscle: MuscleGroup) => void;
+}
+
+function UntrainedPanel({ groups, onUntrainedClick }: UntrainedPanelProps) {
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="muscle-untrained-panel">
+      <div className="muscle-untrained-header">
+        <AlertTriangle size={13} strokeWidth={2.2} />
+        <span>Não treinou nesta janela</span>
+      </div>
+      <div className="muscle-untrained-list">
+        {groups.map((g) => (
+          <button
+            key={g}
+            className="muscle-untrained-tag"
+            onClick={() => onUntrainedClick?.(g)}
+            title={`Ver exercícios de ${MUSCLE_LABEL[g]}`}
+          >
+            {MUSCLE_LABEL[g]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Props e componente principal
 // ---------------------------------------------------------------------------
 
-interface MuscleMapProps {
-  /** Volume por MuscleGroup (Σ reps×kg). Grupos ausentes = 0. */
-  volumeByMuscle: Map<MuscleGroup, number>;
+export interface MuscleMapProps {
+  /**
+   * Volume por MuscleGroup.
+   * Modo stats: Σ reps×kg (normalizado internamente pelo máximo).
+   * Modo preview: já deve estar em [0, 1] (use `previewVolumeByMuscle`).
+   * Grupos ausentes têm volume 0.
+   */
+  volumeByMuscle: Partial<Record<MuscleGroup, number>>;
+  /**
+   * Figura da silhueta. Padrão: 'male'.
+   * 'female' usa outline com ombros mais estreitos e quadril mais largo.
+   */
+  figure?: 'male' | 'female';
+  /**
+   * Quando true, exibe destaque binário em vez de heatmap de intensidade.
+   * Usado no editor de rotina para mostrar "quais músculos a rotina atinge".
+   */
+  preview?: boolean;
+  /**
+   * Quando true, exibe painel listando grupos sem volume no período.
+   * Recomendado apenas no modo stats (não no preview da rotina).
+   */
+  showUntrained?: boolean;
+  /**
+   * Callback ao clicar num grupo não treinado.
+   * Recebe o MuscleGroup para que a tela pai possa abrir deep link (ex.: /biblioteca?muscle=…).
+   */
+  onUntrainedClick?: (muscle: MuscleGroup) => void;
 }
 
 type View = 'front' | 'back';
 
-export function MuscleMap({ volumeByMuscle }: MuscleMapProps) {
-  // Valor máximo para normalização
+export function MuscleMap({
+  volumeByMuscle,
+  figure = 'male',
+  preview = false,
+  showUntrained = false,
+  onUntrainedClick,
+}: MuscleMapProps) {
+  // Valor máximo para normalização (apenas no modo heatmap)
   const maxVolume = useMemo(() => {
+    if (preview) return 1; // já normalizado
     let max = 0;
-    for (const v of volumeByMuscle.values()) {
-      if (v > max) max = v;
+    for (const v of Object.values(volumeByMuscle)) {
+      if (v !== undefined && v > max) max = v;
     }
     return max;
-  }, [volumeByMuscle]);
+  }, [volumeByMuscle, preview]);
 
   /** Ratio normalizado [0,1] para um grupo muscular. */
   function ratio(muscle: MuscleGroup): number {
+    const v = volumeByMuscle[muscle] ?? 0;
+    if (preview) return v; // já [0,1]
     if (maxVolume === 0) return 0;
-    return (volumeByMuscle.get(muscle) ?? 0) / maxVolume;
+    return v / maxVolume;
   }
+
+  /** Cor final baseada no modo. */
+  function fillColor(muscle: MuscleGroup): string {
+    const r = ratio(muscle);
+    return preview ? previewColor(r) : muscleColor(r);
+  }
+
+  // Outlines (frente/costas) conforme figura
+  const outlines = useMemo(() => bodyOutline(figure), [figure]);
+
+  // Lista de grupos "não treinados" (apenas grupos que têm path no mapa)
+  const untrainedGroups = useMemo<MuscleGroup[]>(() => {
+    if (!showUntrained) return [];
+    const withPaths = (Object.keys(MUSCLE_REGIONS) as MuscleGroup[]).filter(
+      (g) => !IGNORED_FOR_UNTRAINED.has(g),
+    );
+    return withPaths.filter((g) => (volumeByMuscle[g] ?? 0) === 0);
+  }, [showUntrained, volumeByMuscle]);
 
   // Renderiza os paths de um lado (front ou back)
   function renderSide(view: View) {
@@ -101,7 +207,7 @@ export function MuscleMap({ volumeByMuscle }: MuscleMapProps) {
       <>
         {/* Silhueta de fundo */}
         <path
-          d={view === 'front' ? BODY_OUTLINE_FRONT : BODY_OUTLINE_BACK}
+          d={view === 'front' ? outlines.front : outlines.back}
           fill="var(--surface-3)"
           stroke="var(--border)"
           strokeWidth={1}
@@ -113,9 +219,8 @@ export function MuscleMap({ volumeByMuscle }: MuscleMapProps) {
             if (region === undefined) return null;
             const paths = view === 'front' ? region.front : region.back;
             if (paths === undefined || paths.length === 0) return null;
-            const r = ratio(muscle);
-            const fill = muscleColor(r);
-            const vol = volumeByMuscle.get(muscle) ?? 0;
+            const fill = fillColor(muscle);
+            const vol = volumeByMuscle[muscle] ?? 0;
 
             return paths.map((d, i) => (
               <path
@@ -126,11 +231,16 @@ export function MuscleMap({ volumeByMuscle }: MuscleMapProps) {
                 style={{ transition: 'fill 0.3s ease' }}
               >
                 <title>
-                  {MUSCLE_LABEL[muscle]}{vol > 0 ? `: ${Math.round(vol).toLocaleString('pt-BR')} kg` : ''}
+                  {MUSCLE_LABEL[muscle]}
+                  {vol > 0 && !preview
+                    ? `: ${Math.round(vol).toLocaleString('pt-BR')} kg`
+                    : vol > 0 && preview
+                    ? ' ✓'
+                    : ''}
                 </title>
               </path>
             ));
-          }
+          },
         )}
       </>
     );
@@ -191,7 +301,13 @@ export function MuscleMap({ volumeByMuscle }: MuscleMapProps) {
         </div>
       </div>
 
-      <Legend />
+      {/* Legenda só no modo heatmap */}
+      {!preview && <Legend />}
+
+      {/* Painel de não treinados */}
+      {showUntrained && (
+        <UntrainedPanel groups={untrainedGroups} onUntrainedClick={onUntrainedClick} />
+      )}
     </div>
   );
 }

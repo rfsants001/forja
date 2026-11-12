@@ -2,19 +2,20 @@
 // Rota: /progresso (wiring em App.tsx pelo orquestrador).
 //
 // Seções:
-//   1. Seletor de período (30d / 90d / tudo)
+//   1. Seletor de período (7d / 30d / tudo)
 //   2. Heatmap de atividade
 //   3. Resumo (nº treinos, dias, volume)
-//   4. Mapa muscular (volume por grupo)
+//   4. Mapa muscular (volume por grupo) + toggle figura + painel de não treinados
 //   5. PRs (top 1RM estimado por exercício)
 
 import '../styles/progresso.css';
 
 import { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { TrendingUp, Dumbbell } from 'lucide-react';
-import type { Exercise } from '@forja/core';
+import { TrendingUp, Dumbbell, User, Users } from 'lucide-react';
+import type { Exercise, MuscleGroup } from '@forja/core';
 import { db } from '../db/db';
+import * as repo from '../db/repo';
 import { Heatmap } from '../components/Heatmap';
 import { MuscleMap } from '../components/MuscleMap';
 import {
@@ -28,7 +29,8 @@ import {
 // Tipos e constantes
 // ---------------------------------------------------------------------------
 
-type Period = 30 | 90 | null; // null = todos
+/** Janela temporal em dias. null = histórico completo. */
+type Period = 7 | 30 | null;
 
 interface PeriodOption {
   label: string;
@@ -36,10 +38,33 @@ interface PeriodOption {
 }
 
 const PERIOD_OPTIONS: PeriodOption[] = [
-  { label: '30 dias', value: 30 },
-  { label: '90 dias', value: 90 },
+  { label: '7d', value: 7 },
+  { label: '30d', value: 30 },
   { label: 'Tudo', value: null },
 ];
+
+// Chave localStorage para persistir a janela selecionada
+const PERIOD_STORAGE_KEY = 'forja:progresso:period';
+
+function loadPeriod(): Period {
+  try {
+    const raw = localStorage.getItem(PERIOD_STORAGE_KEY);
+    if (raw === 'null') return null;
+    const n = Number(raw);
+    if (n === 7 || n === 30) return n;
+  } catch {
+    // ignore
+  }
+  return 30;
+}
+
+function savePeriod(p: Period): void {
+  try {
+    localStorage.setItem(PERIOD_STORAGE_KEY, String(p));
+  } catch {
+    // ignore
+  }
+}
 
 // Número máximo de PRs exibidos na lista
 const MAX_PRS = 10;
@@ -55,7 +80,6 @@ interface SummaryGridProps {
 }
 
 function SummaryGrid({ workoutCount, daysCount, totalVolume }: SummaryGridProps) {
-  // Formata volume: se >= 1000 mostra em "t" (toneladas), senão em kg
   const volumeStr = useMemo(() => {
     if (totalVolume >= 1000) {
       return `${(totalVolume / 1000).toFixed(1)}t`;
@@ -95,13 +119,18 @@ function SummaryGrid({ workoutCount, daysCount, totalVolume }: SummaryGridProps)
 // ---------------------------------------------------------------------------
 
 export function Progresso() {
-  const [period, setPeriod] = useState<Period>(30);
+  const [period, setPeriod] = useState<Period>(loadPeriod);
 
   // ---- dados reativos ----
   const workouts = useLiveQuery(() => db.workouts.toArray(), []);
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
+  // Settings para figura do mapa muscular
+  const settings = useLiveQuery(() => db.settings.get('app'), []);
 
   const isLoading = workouts === undefined || exercises === undefined;
+
+  // Figura persistida em Settings (padrão 'male')
+  const figure = settings?.muscleFigure ?? 'male';
 
   // ---- mapa de exercícios ----
   const exerciseMap = useMemo(() => {
@@ -110,29 +139,53 @@ export function Progresso() {
     return m;
   }, [exercises]);
 
-  // ---- métricas derivadas (recalculam quando workouts, exercises ou period mudam) ----
+  // ---- métricas derivadas ----
   const summary = useMemo(
     () => computeSummary(workouts ?? [], period),
     [workouts, period],
   );
 
   const heatmapDates = useMemo(
-    () => workoutDates(workouts ?? [], null), // heatmap sempre mostra ~17 semanas cheias
+    () => workoutDates(workouts ?? [], null),
     [workouts],
   );
 
-  const volumeByMuscle = useMemo(
+  const volumeByMuscleMap = useMemo(
     () => computeVolumeByMuscle(workouts ?? [], exerciseMap, period),
     [workouts, exerciseMap, period],
   );
+
+  // Converte Map→Partial<Record> para o MuscleMap atualizado
+  const volumeByMuscle = useMemo(() => {
+    const rec: Partial<Record<MuscleGroup, number>> = {};
+    for (const [k, v] of volumeByMuscleMap) {
+      rec[k] = v;
+    }
+    return rec;
+  }, [volumeByMuscleMap]);
 
   const prs = useMemo(
     () => computePRs(workouts ?? [], exerciseMap, period).slice(0, MAX_PRS),
     [workouts, exerciseMap, period],
   );
 
-  // ---- render ----
+  // ---- handlers ----
+  function handlePeriod(p: Period) {
+    setPeriod(p);
+    savePeriod(p);
+  }
 
+  async function handleFigureToggle() {
+    const next = figure === 'male' ? 'female' : 'male';
+    await repo.updateSettings({ muscleFigure: next });
+  }
+
+  function handleUntrainedClick(muscle: MuscleGroup) {
+    // Deep link para biblioteca filtrada por músculo
+    window.location.hash = `#/biblioteca?muscle=${muscle}`;
+  }
+
+  // ---- render ----
   return (
     <>
       {/* Topbar */}
@@ -174,7 +227,7 @@ export function Progresso() {
               <button
                 key={String(opt.value)}
                 className={`prog-period-btn${period === opt.value ? ' active' : ''}`}
-                onClick={() => setPeriod(opt.value)}
+                onClick={() => handlePeriod(opt.value)}
               >
                 {opt.label}
               </button>
@@ -205,16 +258,40 @@ export function Progresso() {
 
           {/* Mapa muscular */}
           <div className="card" style={{ marginBottom: 'var(--gap)' }}>
-            <div className="section-title" style={{ margin: '0 0 4px' }}>
-              Músculos
+            <div className="prog-muscle-header">
+              <div className="section-title">Músculos</div>
+              {/* Toggle figura masculina/feminina */}
+              <button
+                className={`prog-figure-btn${figure === 'female' ? ' active' : ''}`}
+                onClick={() => void handleFigureToggle()}
+                title={figure === 'male' ? 'Mudar para figura feminina' : 'Mudar para figura masculina'}
+                aria-label="Alternar figura do mapa muscular"
+              >
+                {figure === 'male' ? (
+                  <>
+                    <User size={13} strokeWidth={2.2} />
+                    <span>M</span>
+                  </>
+                ) : (
+                  <>
+                    <Users size={13} strokeWidth={2.2} />
+                    <span>F</span>
+                  </>
+                )}
+              </button>
             </div>
             <div className="prog-muscle-wrap">
-              {volumeByMuscle.size === 0 ? (
+              {volumeByMuscleMap.size === 0 ? (
                 <p className="hint" style={{ textAlign: 'center', padding: '12px 0' }}>
                   Sem dados de volume neste período.
                 </p>
               ) : (
-                <MuscleMap volumeByMuscle={volumeByMuscle} />
+                <MuscleMap
+                  volumeByMuscle={volumeByMuscle}
+                  figure={figure}
+                  showUntrained
+                  onUntrainedClick={handleUntrainedClick}
+                />
               )}
             </div>
           </div>

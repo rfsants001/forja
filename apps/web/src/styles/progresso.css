@@ -142,6 +142,83 @@
   margin-top: 4px;
 }
 
+/* cabeçalho do card de músculos: título + botão de figura */
+.prog-muscle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 4px;
+}
+
+/* botão toggle masculino/feminino */
+.prog-figure-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.prog-figure-btn.active,
+.prog-figure-btn:hover {
+  background: color-mix(in srgb, var(--flame) 14%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--flame) 40%, transparent);
+  color: var(--flame-2);
+}
+
+/* ---- painel de não treinados ---- */
+.muscle-untrained-panel {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--flame) 6%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--flame) 22%, transparent);
+}
+
+.muscle-untrained-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--flame) 80%, var(--text-muted));
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.muscle-untrained-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.muscle-untrained-tag {
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.muscle-untrained-tag:hover {
+  background: color-mix(in srgb, var(--flame) 12%, var(--surface-2));
+  color: var(--flame-2);
+  border-color: color-mix(in srgb, var(--flame) 35%, transparent);
+}
+
 /* ---- empty state ---- */
 .prog-empty-icon {
   opacity: 0.35;

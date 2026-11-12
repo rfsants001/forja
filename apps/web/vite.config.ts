@@ -15,6 +15,10 @@ export default defineConfig({
     host: true,
   },
   build: {
+    // O chunk exercises.generated (~1.3 MB raw / 126 KB gzip) é carregado de forma
+    // lazy (import dinâmico), não entra no bundle principal. O aviso de tamanho é
+    // esperado e controlado.
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
         // Separação de chunks para otimizar code-splitting

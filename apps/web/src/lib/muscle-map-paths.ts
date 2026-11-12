@@ -18,13 +18,41 @@ export interface MuscleRegion {
 // Silhueta de fundo (frente e costas) — representação do torso/membros
 // ---------------------------------------------------------------------------
 
-/** Path da silhueta humana simplificada — frente (viewBox 0 0 200 340). */
+/** Path da silhueta humana simplificada — frente masculina (viewBox 0 0 200 340).
+ *  Ombros largos (~132px), cintura média, quadril neutro. */
 export const BODY_OUTLINE_FRONT =
   'M100 10 C80 10 68 22 68 38 C68 52 76 62 85 66 L82 90 C72 92 55 98 50 110 L44 160 L38 220 L45 290 L52 330 L60 330 L65 290 L68 240 L72 200 L100 196 L128 200 L132 240 L135 290 L140 330 L148 330 L155 290 L162 220 L156 160 L150 110 C145 98 128 92 118 90 L115 66 C124 62 132 52 132 38 C132 22 120 10 100 10Z M44 110 L28 115 L22 170 L30 175 L38 130 Z M156 110 L172 115 L178 170 L170 175 L162 130 Z';
 
-/** Path da silhueta humana simplificada — costas (viewBox 0 0 200 340). */
+/** Path da silhueta humana simplificada — costas masculina (viewBox 0 0 200 340). */
 export const BODY_OUTLINE_BACK =
   'M100 10 C80 10 68 22 68 38 C68 52 76 62 85 66 L82 90 C72 92 55 98 50 110 L44 160 L38 220 L45 290 L52 330 L60 330 L65 290 L68 240 L72 200 L100 196 L128 200 L132 240 L135 290 L140 330 L148 330 L155 290 L162 220 L156 160 L150 110 C145 98 128 92 118 90 L115 66 C124 62 132 52 132 38 C132 22 120 10 100 10Z M44 110 L28 115 L22 170 L30 175 L38 130 Z M156 110 L172 115 L178 170 L170 175 L162 130 Z';
+
+// ---------------------------------------------------------------------------
+// Silhueta feminina — ombros mais estreitos (~122px), quadril mais largo (~144px),
+// cintura marcada. Regiões musculares são as mesmas; só o outline muda.
+// ---------------------------------------------------------------------------
+
+/** Path da silhueta humana simplificada — frente feminina (viewBox 0 0 200 340). */
+export const BODY_OUTLINE_FRONT_F =
+  'M100 10 C82 10 70 22 70 38 C70 52 77 62 86 66 L84 90 C76 92 60 97 55 108 L50 155 L46 218 L52 288 L58 330 L66 330 L70 288 L72 240 L75 200 L100 196 L125 200 L128 240 L130 288 L134 330 L142 330 L148 288 L154 218 L150 155 L145 108 C140 97 124 92 116 90 L114 66 C123 62 130 52 130 38 C130 22 118 10 100 10Z M55 108 L40 113 L35 165 L43 169 L50 130 Z M145 108 L160 113 L165 165 L157 169 L150 130 Z';
+
+/** Path da silhueta humana simplificada — costas feminina (viewBox 0 0 200 340). */
+export const BODY_OUTLINE_BACK_F =
+  'M100 10 C82 10 70 22 70 38 C70 52 77 62 86 66 L84 90 C76 92 60 97 55 108 L50 155 L46 218 L52 288 L58 330 L66 330 L70 288 L72 240 L75 200 L100 196 L125 200 L128 240 L130 288 L134 330 L142 330 L148 288 L154 218 L150 155 L145 108 C140 97 124 92 116 90 L114 66 C123 62 130 52 130 38 C130 22 118 10 100 10Z M55 108 L40 113 L35 165 L43 169 L50 130 Z M145 108 L160 113 L165 165 L157 169 L150 130 Z';
+
+/**
+ * Retorna os paths de outline corretos para a figura selecionada.
+ * Uso: `const { front, back } = bodyOutline('female')`.
+ */
+export function bodyOutline(figure: 'male' | 'female'): {
+  front: string;
+  back: string;
+} {
+  if (figure === 'female') {
+    return { front: BODY_OUTLINE_FRONT_F, back: BODY_OUTLINE_BACK_F };
+  }
+  return { front: BODY_OUTLINE_FRONT, back: BODY_OUTLINE_BACK };
+}
 
 // ---------------------------------------------------------------------------
 // Regiões musculares — paths simplificados sobre a silhueta

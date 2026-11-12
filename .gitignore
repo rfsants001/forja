@@ -7,8 +7,8 @@ coverage/
 .env
 .env.*
 !.env.example
-# dado self-hosted (Fase 6)
+# dado self-hosted / runtime (não o código-fonte em apps/web/src/data)
 forja.db
-data/
+/data/
 .specs/
 docs/
