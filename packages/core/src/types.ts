@@ -27,6 +27,9 @@ export type MuscleGroup =
 export type DemoSource =
   | { kind: 'asset'; frames: number } // ilustrações SVG locais em flipbook
   | { kind: 'custom'; svg: string } // vetor desenhado à mão (SMIL)
+  // Mídia remota (dataset hasaneyldrm): imagem estática e/ou GIF servidos de CDN.
+  // Atribuição obrigatória (© Gym visual) quando presente — ver Exercise.attribution.
+  | { kind: 'cdn'; image?: string; gif?: string }
   | { kind: 'none' };
 
 /** Exercício da biblioteca (curado, do dataset, ou criado pelo usuário). */
@@ -75,6 +78,10 @@ export interface RoutineExercise {
   progression?: ProgressionPolicy;
   /** Incremento de carga por sessão (kg) quando a política dispara. */
   incrementKg?: number;
+  /** Alvo de distância em metros (cardio). */
+  targetDistanceM?: number;
+  /** Alvo de velocidade km/h (cardio). */
+  targetSpeedKmh?: number;
   note?: string;
   /** Exercícios no mesmo grupo formam um superset (Fase 5). */
   supersetGroup?: number;
@@ -114,6 +121,10 @@ export interface SetLog {
   reps?: number;
   weightKg?: number;
   sec?: number;
+  /** Distância em metros (cardio). */
+  distanceM?: number;
+  /** Velocidade média km/h (cardio). */
+  speedKmh?: number;
   done: boolean;
   effort?: Effort;
 }
@@ -144,6 +155,13 @@ export interface WorkoutEntry {
   target: TargetSnapshot;
 }
 
+/** Recorde pessoal detectado numa sessão (derivado do histórico na hora do log). */
+export interface PR {
+  exerciseId: string;
+  kind: 'weight' | '1rm' | 'reps';
+  value: number;
+}
+
 /** Sessão de treino concluída. */
 export interface WorkoutLog {
   id: string;
@@ -154,6 +172,8 @@ export interface WorkoutLog {
   durationSec?: number;
   note?: string;
   createdAt: number;
+  /** PRs batidos nesta sessão (guardados p/ exibição; a verdade continua derivável do log). */
+  prs?: PR[];
 }
 
 /** Ponto da série temporal de peso corporal. */
@@ -171,6 +191,8 @@ export interface Settings {
   /** 0=domingo, 1=segunda. */
   weekStartsOn: 0 | 1;
   bodyWeightGoalKg?: number;
+  /** Figura usada no mapa muscular. */
+  muscleFigure?: 'male' | 'female';
 }
 
 /** Estado derivado de streak (nunca persistido como contador — calculado do histórico). */
