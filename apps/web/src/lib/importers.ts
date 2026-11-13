@@ -14,6 +14,7 @@
 import type { WorkoutLog, Exercise, BodyWeight, SetLog, WorkoutEntry } from '@forja/core';
 import { db, uid } from '../db/db';
 import { upsertExercise, addWorkout, addBodyWeight } from '../db/repo';
+import { normalizeExName } from './normalize';
 
 // ---------------------------------------------------------------------------
 // Tipos públicos
@@ -102,16 +103,6 @@ function csvToObjects(csv: string): Array<Record<string, string>> {
 // ---------------------------------------------------------------------------
 // Casamento de exercício com o catálogo local
 // ---------------------------------------------------------------------------
-
-function normalizeExName(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '') // remove diacríticos
-    .replace(/[^a-z0-9 ]/g, '')      // só letras, dígitos e espaço
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 /** Cache em memória de um exercício por nome normalizado. Carregado uma vez por chamada de applyImport. */
 let _exerciseCacheMap: Map<string, Exercise> | null = null;

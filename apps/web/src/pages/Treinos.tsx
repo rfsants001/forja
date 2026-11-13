@@ -2,10 +2,12 @@ import '../styles/setup.css';
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
-import { Plus, Dumbbell, CalendarDays, Library } from 'lucide-react';
+import { Plus, Dumbbell, CalendarDays, Library, Sparkles, X } from 'lucide-react';
 import type { Weekday } from '@forja/core';
 import { db } from '../db/db';
 import { setWeekday } from '../db/repo';
+import { STARTER_PLANS, applyStarterPlan } from '../lib/starter-plans';
+import type { ApplyResult } from '../lib/starter-plans';
 
 // ---------------------------------------------------------------------------
 // Helpers de label do dia da semana
@@ -30,6 +32,119 @@ const WEEKDAY_FULL: Record<Weekday, string> = {
   5: 'Sexta',
   6: 'Sábado',
 };
+
+// ---------------------------------------------------------------------------
+// StarterPlansSheet — modal/sheet de seleção e aplicação de planos prontos
+// ---------------------------------------------------------------------------
+
+const WEEKDAY_SHORT_LABELS: Record<Weekday, string> = {
+  0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb',
+};
+
+function StarterPlansSheet({ onClose }: { onClose: () => void }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
+  const [result, setResult] = useState<ApplyResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleApply() {
+    if (selected === null) return;
+    setApplying(true);
+    setError(null);
+    try {
+      const res = await applyStarterPlan(selected);
+      setResult(res);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao aplicar plano.');
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-handle" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 style={{ margin: 0 }}>Planos prontos</h2>
+          <button
+            className="btn ghost"
+            style={{ padding: '8px', borderRadius: '50%' }}
+            onClick={onClose}
+            aria-label="Fechar"
+          >
+            <X size={18} strokeWidth={2.4} />
+          </button>
+        </div>
+
+        {/* Lista de planos */}
+        {result === null ? (
+          <>
+            <div className="sp-plan-list">
+              {STARTER_PLANS.map((plan) => (
+                <button
+                  key={plan.id}
+                  className={`sp-plan-card${selected === plan.id ? ' selected' : ''}`}
+                  onClick={() => setSelected(plan.id)}
+                >
+                  <div className="sp-plan-card-header">
+                    <span className="sp-plan-dot" style={{ background: plan.color }} />
+                    <span className="sp-plan-name">{plan.name}</span>
+                    <span className="sp-plan-days">
+                      {plan.weekdays.map((d) => WEEKDAY_SHORT_LABELS[d]).join(' / ')}
+                    </span>
+                  </div>
+                  <span className="sp-plan-desc">{plan.description}</span>
+                  <div className="sp-plan-routines">
+                    {plan.routines.map((r) => (
+                      <span key={r.name}>{r.name}</span>
+                    ))}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {error !== null && (
+              <div className="sp-feedback warn">{error}</div>
+            )}
+
+            <div className="btn-row">
+              <button className="btn ghost" onClick={onClose}>Cancelar</button>
+              <button
+                className="btn"
+                disabled={selected === null || applying}
+                onClick={() => { void handleApply(); }}
+              >
+                {applying ? 'Aplicando…' : 'Aplicar plano'}
+              </button>
+            </div>
+          </>
+        ) : (
+          /* Feedback pós-aplicação */
+          <>
+            <div className="sp-feedback">
+              {result.created > 0
+                ? `${result.created} rotina${result.created > 1 ? 's' : ''} criada${result.created > 1 ? 's' : ''} com sucesso!`
+                : 'Plano já aplicado — rotinas existentes foram mantidas.'}
+              {result.skipped > 0 && (
+                <span> ({result.skipped} já existia{result.skipped > 1 ? 'm' : ''})</span>
+              )}
+            </div>
+            {result.unresolved.length > 0 && (
+              <div className="sp-feedback warn" style={{ marginTop: 8 }}>
+                Exercícios não encontrados no catálogo:{' '}
+                {result.unresolved.join(', ')}
+              </div>
+            )}
+            <div className="btn-row" style={{ marginTop: 16 }}>
+              <button className="btn" onClick={onClose}>Fechar</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Componente
@@ -98,6 +213,9 @@ export function Treinos() {
   // Saving state por dia (para feedback visual)
   const [saving, setSaving] = useState<Weekday | null>(null);
 
+  // Sheet de planos prontos
+  const [showStarterPlans, setShowStarterPlans] = useState(false);
+
   async function handleWeekdayChange(day: Weekday, value: string) {
     setSaving(day);
     try {
@@ -113,12 +231,25 @@ export function Treinos() {
 
   return (
     <>
+      {/* Sheet de planos prontos */}
+      {showStarterPlans && (
+        <StarterPlansSheet onClose={() => setShowStarterPlans(false)} />
+      )}
+
       {/* Topbar */}
       <div className="topbar">
         <div className="brand">
           <h1>Treinos</h1>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn ghost"
+            style={{ padding: '10px 14px', fontSize: 13 }}
+            onClick={() => setShowStarterPlans(true)}
+            title="Planos prontos"
+          >
+            <Sparkles size={16} strokeWidth={2.2} />
+          </button>
           <Link
             to="/exercicios"
             className="btn ghost"
@@ -150,14 +281,24 @@ export function Treinos() {
         <div className="empty">
           <Dumbbell size={40} strokeWidth={1.6} style={{ opacity: 0.4 }} />
           <p style={{ marginTop: 12 }}>Nenhuma rotina criada ainda.</p>
-          <Link
-            to="/treinos/rotina/nova"
-            className="btn"
-            style={{ marginTop: 16, display: 'inline-flex' }}
-          >
-            <Plus size={16} />
-            Criar primeira rotina
-          </Link>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 16 }}>
+            <button
+              className="btn ghost-accent"
+              style={{ display: 'inline-flex', gap: 6 }}
+              onClick={() => setShowStarterPlans(true)}
+            >
+              <Sparkles size={16} strokeWidth={2.2} />
+              Começar com um plano pronto
+            </button>
+            <Link
+              to="/treinos/rotina/nova"
+              className="btn ghost"
+              style={{ display: 'inline-flex' }}
+            >
+              <Plus size={16} />
+              Criar rotina do zero
+            </Link>
+          </div>
         </div>
       ) : (
         <>
