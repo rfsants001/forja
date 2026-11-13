@@ -4,6 +4,7 @@
 
 import { useMemo } from 'react';
 import { toISO, fromISO, addDays } from '@forja/core';
+import { useT } from '../lib/i18n';
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -16,7 +17,6 @@ const TOTAL_DAYS = WEEKS * 7;
 const MONTH_LABELS_Y = 14; // y dos labels de mês
 const GRID_TOP = 22;    // início da grade (abaixo dos labels de mês)
 
-const DAY_ABBR = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']; // 0=dom
 const DAY_LABEL_X = -2; // x dos labels de dia da semana
 
 // ---------------------------------------------------------------------------
@@ -31,11 +31,10 @@ function cellColor(count: number): string {
   return 'var(--flame)';
 }
 
-/** Label do mês abreviado em PT-BR. */
-function monthAbbr(monthIndex: number): string {
-  const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun',
-                  'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-  return MONTHS[monthIndex] ?? '';
+/** Label do mês abreviado de acordo com o locale do browser. */
+function monthAbbr(monthIndex: number, lang: string): string {
+  const date = new Date(2024, monthIndex, 1);
+  return date.toLocaleDateString(lang === 'en' ? 'en-US' : 'pt-BR', { month: 'short' }).replace('.', '');
 }
 
 // ---------------------------------------------------------------------------
@@ -48,6 +47,13 @@ interface HeatmapProps {
 }
 
 export function Heatmap({ dates }: HeatmapProps) {
+  const tFn = useT();
+  // Lê o idioma atual para a função de mês e abreviaturas de dia
+  const langRaw = (tFn('wd.short.0') === 'Sun') ? 'en' : 'pt';
+
+  // Abreviaturas de dia da semana no idioma atual (dom..sáb)
+  const DAY_ABBR = [0, 1, 2, 3, 4, 5, 6].map((i) => tFn(`wd.short.${i}`).charAt(0));
+
   // ---- construir a grade ----
   const { cells, monthMarkers } = useMemo(() => {
     // Conta treinos por dia
@@ -86,13 +92,14 @@ export function Heatmap({ dates }: HeatmapProps) {
       // Label de mês: primeira célula de cada novo mês
       const month = fromISO(iso).getMonth();
       if (month !== lastMonth) {
-        monthMarkers.push({ col, label: monthAbbr(month) });
+        monthMarkers.push({ col, label: monthAbbr(month, langRaw) });
         lastMonth = month;
       }
     }
 
     return { cells, monthMarkers };
-  }, [dates]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dates, langRaw]);
 
   // ---- dimensões do SVG ----
   const svgW = WEEKS * (CELL + GAP) + 24; // 24 = espaço pra labels de dia
@@ -102,7 +109,7 @@ export function Heatmap({ dates }: HeatmapProps) {
     <svg
       width="100%"
       viewBox={`0 0 ${svgW} ${svgH}`}
-      aria-label="Heatmap de atividade"
+      aria-label={tFn('heatmap.ariaLabel')}
       style={{ display: 'block', overflow: 'visible' }}
     >
       {/* Labels de mês */}
@@ -148,7 +155,10 @@ export function Heatmap({ dates }: HeatmapProps) {
           fill={cellColor(count)}
           style={{ transition: 'fill 0.15s ease' }}
         >
-          <title>{`${iso}${count > 0 ? ` · ${count} treino${count > 1 ? 's' : ''}` : ''}`}</title>
+          <title>{count > 0
+            ? tFn('heatmap.tooltip', [iso, count, count > 1 ? 's' : ''])
+            : iso
+          }</title>
         </rect>
       ))}
     </svg>

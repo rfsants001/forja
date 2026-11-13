@@ -13,6 +13,7 @@ import { useMemo } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import type { MuscleGroup } from '@forja/core';
 import { MUSCLE_LABEL } from '../lib/labels';
+import { useT } from '../lib/i18n';
 import {
   MUSCLE_REGIONS,
   bodyOutline,
@@ -55,6 +56,7 @@ function previewColor(ratio: number): string {
 const LEGEND_STEPS = [0, 0.25, 0.5, 0.75, 1] as const;
 
 function Legend() {
+  const t = useT();
   return (
     <div
       style={{
@@ -66,7 +68,7 @@ function Legend() {
       }}
     >
       <span style={{ fontSize: 10, color: 'var(--text-muted)', marginRight: 2 }}>
-        menos
+        {t('musclemap.less')}
       </span>
       {LEGEND_STEPS.map((r) => (
         <span
@@ -82,7 +84,7 @@ function Legend() {
         />
       ))}
       <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 2 }}>
-        mais
+        {t('musclemap.more')}
       </span>
     </div>
   );
@@ -98,13 +100,14 @@ interface UntrainedPanelProps {
 }
 
 function UntrainedPanel({ groups, onUntrainedClick }: UntrainedPanelProps) {
+  const t = useT();
   if (groups.length === 0) return null;
 
   return (
     <div className="muscle-untrained-panel">
       <div className="muscle-untrained-header">
         <AlertTriangle size={13} strokeWidth={2.2} />
-        <span>Não treinou nesta janela</span>
+        <span>{t('musclemap.untrained')}</span>
       </div>
       <div className="muscle-untrained-list">
         {groups.map((g) => (
@@ -112,7 +115,7 @@ function UntrainedPanel({ groups, onUntrainedClick }: UntrainedPanelProps) {
             key={g}
             className="muscle-untrained-tag"
             onClick={() => onUntrainedClick?.(g)}
-            title={`Ver exercícios de ${MUSCLE_LABEL[g]}`}
+            title={t('musclemap.seeExercises', [MUSCLE_LABEL[g]])}
           >
             {MUSCLE_LABEL[g]}
           </button>
@@ -149,6 +152,7 @@ export interface MuscleMapProps {
    * Recomendado apenas no modo stats (não no preview da rotina).
    */
   showUntrained?: boolean;
+  trainedMuscles?: ReadonlySet<MuscleGroup>;
   /**
    * Callback ao clicar num grupo não treinado.
    * Recebe o MuscleGroup para que a tela pai possa abrir deep link (ex.: /biblioteca?muscle=…).
@@ -164,7 +168,9 @@ export function MuscleMap({
   preview = false,
   showUntrained = false,
   onUntrainedClick,
+  trainedMuscles,
 }: MuscleMapProps) {
+  const tMuscle = useT();
   // Valor máximo para normalização (apenas no modo heatmap)
   const maxVolume = useMemo(() => {
     if (preview) return 1; // já normalizado
@@ -198,8 +204,8 @@ export function MuscleMap({
     const withPaths = (Object.keys(MUSCLE_REGIONS) as MuscleGroup[]).filter(
       (g) => !IGNORED_FOR_UNTRAINED.has(g),
     );
-    return withPaths.filter((g) => (volumeByMuscle[g] ?? 0) === 0);
-  }, [showUntrained, volumeByMuscle]);
+    return withPaths.filter((g) => trainedMuscles ? !trainedMuscles.has(g) : (volumeByMuscle[g] ?? 0) === 0);
+  }, [showUntrained, volumeByMuscle, trainedMuscles]);
 
   // Renderiza os paths de um lado (front ou back)
   function renderSide(view: View) {
@@ -274,9 +280,9 @@ export function MuscleMap({
               marginBottom: 4,
             }}
           >
-            Frente
+            {tMuscle('musclemap.front')}
           </span>
-          <svg viewBox={VB} style={svgStyle} aria-label="Vista frontal dos músculos">
+          <svg viewBox={VB} style={svgStyle} aria-label={tMuscle('musclemap.frontAriaLabel')}>
             {renderSide('front')}
           </svg>
         </div>
@@ -293,9 +299,9 @@ export function MuscleMap({
               marginBottom: 4,
             }}
           >
-            Costas
+            {tMuscle('musclemap.back')}
           </span>
-          <svg viewBox={VB} style={svgStyle} aria-label="Vista posterior dos músculos">
+          <svg viewBox={VB} style={svgStyle} aria-label={tMuscle('musclemap.backAriaLabel')}>
             {renderSide('back')}
           </svg>
         </div>

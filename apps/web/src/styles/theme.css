@@ -14,7 +14,7 @@
   /* texto */
   --text: #f2f4f8;
   --text-2: #b7c0cf;
-  --text-muted: #7a8599;
+  --text-muted: #a4afc1;
 
   /* energia / fogo (streak, destaque primário) */
   --flame: #ff7a1a;
@@ -29,11 +29,15 @@
   /* semânticos */
   --ok: #3fae6b;
   --warn: #e8a838;
-  --danger: #e05c4a;
+  --danger: #ff8e80;
+  --danger-fill: #ad2e24;
+  --focus: #f7ca78;
+  --control-border: #778397;
+  color-scheme: dark;
 
   /* acento ativo (padrão flame; sobrescrito por [data-accent] ou categoria via inline style) */
-  --accent: var(--flame);
-  --on-accent: #0e0f13;
+  --accent: var(--accent-dark, #ff9a53);
+  --on-accent: #141019;
 
   /* tipografia */
   --font-display: 'Barlow Condensed', system-ui, sans-serif;
@@ -73,8 +77,15 @@
   --border-soft: #e7eaf1;
   --text: #15171e;
   --text-2: #3a4150;
-  --text-muted: #6b7486;
+  --text-muted: #525e73;
+  --accent: var(--accent-light, #9f3d12);
   --on-accent: #ffffff;
+  --focus: #80430f;
+  --control-border: #69768c;
+  --ok: #236d44;
+  --warn: #845000;
+  --danger: #ab3428;
+  color-scheme: light;
   --shadow: 0 6px 24px rgba(20, 22, 29, 0.12);
   --shadow-lg: 0 14px 40px rgba(20, 22, 29, 0.18);
 }
@@ -91,71 +102,26 @@
     --border-soft: #e7eaf1;
     --text: #15171e;
     --text-2: #3a4150;
-    --text-muted: #6b7486;
+    --text-muted: #525e73;
+    --accent: var(--accent-light, #9f3d12);
     --on-accent: #ffffff;
+    --focus: #80430f;
+    --control-border: #69768c;
+    --ok: #236d44;
+    --warn: #845000;
+    --danger: #ab3428;
+    color-scheme: light;
     --shadow: 0 6px 24px rgba(20, 22, 29, 0.12);
     --shadow-lg: 0 14px 40px rgba(20, 22, 29, 0.18);
   }
 }
 
-/* ---------------------------------------------------------------------------
-   Paletas de acento — 8 opções nomeadas.
-   Cada uma sobrescreve --accent e --on-accent. Funciona em dark E light.
-   O acento por categoria (Home.tsx via inline style) continua valendo por cima.
-   --------------------------------------------------------------------------- */
 
-/* flame — laranja fogo, padrão */
-:root[data-accent='flame'],
-[data-accent='flame'] {
-  --accent: #ff7a1a;
-  --on-accent: #1a0a00;
-}
-
-/* blue — azul vivo */
-:root[data-accent='blue'],
-[data-accent='blue'] {
-  --accent: #3b8ff5;
-  --on-accent: #ffffff;
-}
-
-/* violet — roxo vibrante */
-:root[data-accent='violet'],
-[data-accent='violet'] {
-  --accent: #9b5de5;
-  --on-accent: #ffffff;
-}
-
-/* green — verde fresco */
-:root[data-accent='green'],
-[data-accent='green'] {
-  --accent: #22c55e;
-  --on-accent: #052010;
-}
-
-/* amber — âmbar quente */
-:root[data-accent='amber'],
-[data-accent='amber'] {
-  --accent: #f5a623;
-  --on-accent: #1a0f00;
-}
-
-/* rose — rosa intenso */
-:root[data-accent='rose'],
-[data-accent='rose'] {
-  --accent: #f43f5e;
-  --on-accent: #ffffff;
-}
-
-/* cyan — ciano elétrico */
-:root[data-accent='cyan'],
-[data-accent='cyan'] {
-  --accent: #06b6d4;
-  --on-accent: #001a1f;
-}
-
-/* magenta — magenta energético */
-:root[data-accent='magenta'],
-[data-accent='magenta'] {
-  --accent: #d946ef;
-  --on-accent: #ffffff;
-}
+/* Os acentos claros usam texto escuro. Em tema claro, o próprio acento escurece. */
+:root[data-accent='blue'] { --accent-dark: #83b8ff; --accent-light: #1d55a2; }
+:root[data-accent='violet'] { --accent-dark: #c6a0ff; --accent-light: #6835a6; }
+:root[data-accent='green'] { --accent-dark: #6fda98; --accent-light: #226b44; }
+:root[data-accent='amber'] { --accent-dark: #ffc465; --accent-light: #8a4b08; }
+:root[data-accent='rose'] { --accent-dark: #ff9bad; --accent-light: #a52648; }
+:root[data-accent='cyan'] { --accent-dark: #6ad8e9; --accent-light: #136176; }
+:root[data-accent='magenta'] { --accent-dark: #ef9df6; --accent-light: #842594; }

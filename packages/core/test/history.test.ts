@@ -107,9 +107,9 @@ describe('readSession — modo reps', () => {
     const entry: WorkoutEntry = {
       exerciseId: 'curl',
       sets: [
-        { reps: 8, done: true },
-        { reps: 8, done: true },
-        { reps: 8, done: true },
+        { reps: 8, weightKg: 20, done: true },
+        { reps: 8, weightKg: 20, done: true },
+        { reps: 8, weightKg: 20, done: true },
       ],
       target: { sets: 3, reps: '8–12', weightKg: 20 },
     };
@@ -120,9 +120,9 @@ describe('readSession — modo reps', () => {
     const entry: WorkoutEntry = {
       exerciseId: 'curl',
       sets: [
-        { reps: 8, done: true },
-        { reps: 7, done: true }, // falhou
-        { reps: 8, done: true },
+        { reps: 8, weightKg: 20, done: true },
+        { reps: 7, weightKg: 20, done: true }, // falhou
+        { reps: 8, weightKg: 20, done: true },
       ],
       target: { sets: 3, reps: '8', weightKg: 20 },
     };
@@ -266,7 +266,7 @@ describe('consecutiveMisses', () => {
   it('2 misses consecutivos seguidos de 1 hit antigo → conta 2', () => {
     const hit: WorkoutEntry = {
       exerciseId: 'bench',
-      sets: [{ reps: 10, done: true }, { reps: 10, done: true }, { reps: 10, done: true }],
+      sets: [{ reps: 10, weightKg: 60, done: true }, { reps: 10, weightKg: 60, done: true }, { reps: 10, weightKg: 60, done: true }],
       target: { sets: 3, reps: '10', weightKg: 60 },
     };
     const miss: WorkoutEntry = {

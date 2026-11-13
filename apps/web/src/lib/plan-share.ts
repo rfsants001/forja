@@ -2,17 +2,18 @@
  * plan-share.ts — G6: Exportar, importar e imprimir o plano semanal.
  *
  * O "plano" é: categorias + rotinas + plano semanal.
- * NÃO inclui workouts, peso corporal, settings, nem exercícios.
+ * Inclui definições mínimas dos exercícios referenciados, sem mídia ou notas pessoais.
  *
  * Formato do arquivo:
  * { _meta: { app:'forja', kind:'plan', version:1, exportedAt:ISO },
  *   categories: Category[], routines: Routine[], weekPlan: WeekPlanRow[] }
  */
 
-import type { Category, Routine } from '@forja/core';
+import type { Category, Exercise, Routine } from '@forja/core';
 import type { WeekPlanRow } from '../db/db';
 import { db } from '../db/db';
-import { upsertCategory, upsertRoutine, setWeekday } from '../db/repo';
+import { upsertCategory, upsertExercise, upsertRoutine, setWeekday } from '../db/repo';
+import { isBackupCategory, isBackupExercise, isBackupRoutine, isBackupWeekday } from './backup';
 
 // ---------------------------------------------------------------------------
 // Formato do arquivo de plano
@@ -20,7 +21,7 @@ import { upsertCategory, upsertRoutine, setWeekday } from '../db/repo';
 
 const PLAN_APP = 'forja';
 const PLAN_KIND = 'plan';
-const PLAN_VERSION = 1;
+const PLAN_VERSION = 2;
 
 interface PlanMeta {
   app: typeof PLAN_APP;
@@ -34,6 +35,7 @@ interface PlanFile {
   categories: Category[];
   routines: Routine[];
   weekPlan: WeekPlanRow[];
+  exercises: Exercise[];
 }
 
 // ---------------------------------------------------------------------------
@@ -48,6 +50,21 @@ export async function exportPlan(): Promise<string> {
     db.weekPlan.toArray(),
   ]);
 
+  const exerciseIds = [...new Set(routines.flatMap((routine) => routine.exercises.map((entry) => entry.exerciseId)))];
+  const exercises = (await db.exercises.bulkGet(exerciseIds)).flatMap((exercise) => exercise === undefined ? [] : [{
+    id: exercise.id,
+    name: exercise.name,
+    mode: exercise.mode,
+    primaryMuscle: exercise.primaryMuscle,
+    secondaryMuscles: exercise.secondaryMuscles,
+    equipment: exercise.equipment,
+    demo: { kind: 'none' } as const,
+    custom: exercise.custom,
+  }]);
+  if (exercises.length !== exerciseIds.length) {
+    throw new Error('Alguma rotina tem exercícios indisponíveis. Revise as rotinas antes de exportar.');
+  }
+
   const plan: PlanFile = {
     _meta: {
       app: PLAN_APP,
@@ -58,6 +75,7 @@ export async function exportPlan(): Promise<string> {
     categories,
     routines,
     weekPlan,
+    exercises,
   };
 
   return JSON.stringify(plan, null, 2);
@@ -91,6 +109,7 @@ export interface PlanImportCounts {
   categories: number;
   routines: number;
   weekPlan: number;
+  preservedDays: number;
 }
 
 /**
@@ -98,7 +117,7 @@ export interface PlanImportCounts {
  * - Categorias e rotinas: upsert por id (preserva workouts e peso).
  * - Plano semanal: sobrescreve apenas os dias presentes no arquivo.
  */
-export async function importPlan(json: string): Promise<PlanImportCounts> {
+export async function importPlan(json: string, replaceDays = false): Promise<PlanImportCounts> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json) as unknown;
@@ -114,49 +133,67 @@ export async function importPlan(json: string): Promise<PlanImportCounts> {
     throw new Error('Arquivo inválido: estrutura inesperada.');
   }
 
-  const file = parsed as { _meta: unknown; categories?: unknown; routines?: unknown; weekPlan?: unknown };
-
-  if (
-    typeof file._meta !== 'object' ||
-    file._meta === null ||
-    !('app' in file._meta) ||
-    !('kind' in file._meta) ||
-    (file._meta as { app: unknown }).app !== PLAN_APP ||
-    (file._meta as { kind: unknown }).kind !== PLAN_KIND
-  ) {
-    throw new Error('Arquivo inválido: este arquivo não é um plano do Forja.');
+  const file = parsed as { _meta: { app?: unknown; kind?: unknown; version?: unknown }; categories?: unknown;
+    routines?: unknown; weekPlan?: unknown; exercises?: unknown };
+  const meta = file._meta;
+  if (meta?.app !== PLAN_APP || meta.kind !== PLAN_KIND || (meta.version !== 1 && meta.version !== PLAN_VERSION)) {
+    throw new Error('Escolha um arquivo de plano compatível com a Forja.');
+  }
+  const rawExercises = meta.version === 1 ? [] : file.exercises;
+  if (!Array.isArray(file.categories) || !file.categories.every(isBackupCategory)
+    || !Array.isArray(file.routines) || !file.routines.every(isBackupRoutine)
+    || !Array.isArray(file.weekPlan) || !file.weekPlan.every(isBackupWeekday)
+    || !Array.isArray(rawExercises) || !rawExercises.every(isBackupExercise)) {
+    throw new Error('O plano tem registros incompletos ou inválidos.');
   }
 
-  const categories = Array.isArray(file.categories) ? (file.categories as Category[]) : [];
-  const routines = Array.isArray(file.routines) ? (file.routines as Routine[]) : [];
-  const weekPlanRows = Array.isArray(file.weekPlan) ? (file.weekPlan as WeekPlanRow[]) : [];
+  const categories = file.categories as Category[];
+  const routines = file.routines as Routine[];
+  const weekPlanRows = file.weekPlan as WeekPlanRow[];
+  const exercises = rawExercises as Exercise[];
 
-  // Upsert categorias
-  for (const cat of categories) {
-    if (typeof cat.id === 'string' && typeof cat.name === 'string') {
-      await upsertCategory(cat);
+  return db.transaction('rw', [db.categories, db.exercises, db.routines, db.weekPlan], async () => {
+    const allExerciseIds = new Set<string>([...await db.exercises.toCollection().primaryKeys(), ...exercises.map((ex) => ex.id)]);
+    const categoryIds = new Set<string>([...await db.categories.toCollection().primaryKeys(), ...categories.map((cat) => cat.id)]);
+    const routineIds = new Set<string>([...await db.routines.toCollection().primaryKeys(), ...routines.map((routine) => routine.id)]);
+    if (routines.some((routine) => !categoryIds.has(routine.categoryId)
+      || routine.exercises.some((entry) => !allExerciseIds.has(entry.exerciseId)))
+      || weekPlanRows.some((row) => row.routineId !== null && !routineIds.has(row.routineId))) {
+      throw new Error('O plano referencia dados que não estão no arquivo nem no catálogo local. Exporte novamente pela Forja atual.');
     }
-  }
 
-  // Upsert rotinas
-  for (const rot of routines) {
-    if (typeof rot.id === 'string' && typeof rot.name === 'string') {
-      await upsertRoutine(rot);
+    for (const ex of exercises) {
+      if (await db.exercises.get(ex.id) === undefined) await upsertExercise({ ...ex, demo: { kind: 'none' }, note: undefined });
     }
-  }
-
-  // Plano semanal: sobrescreve dias presentes
-  for (const row of weekPlanRows) {
-    if (typeof row.weekday === 'number' && row.weekday >= 0 && row.weekday <= 6) {
-      await setWeekday(row.weekday as 0 | 1 | 2 | 3 | 4 | 5 | 6, row.routineId ?? null);
+    for (const cat of categories) {
+      if (await db.categories.get(cat.id) === undefined) await upsertCategory(cat);
     }
-  }
-
-  return {
-    categories: categories.length,
-    routines: routines.length,
-    weekPlan: weekPlanRows.length,
-  };
+    const remapped = new Map<string, string>();
+    for (const routine of routines) {
+      const existing = await db.routines.get(routine.id);
+      if (existing === undefined) {
+        await upsertRoutine(routine);
+      } else if (existing.name !== routine.name || existing.categoryId !== routine.categoryId
+        || existing.note !== routine.note || JSON.stringify(existing.exercises) !== JSON.stringify(routine.exercises)) {
+        const copies = await db.routines.where('categoryId').equals(routine.categoryId).toArray();
+        const copy = copies.find((item) => item.name === routine.name && item.note === routine.note
+          && JSON.stringify(item.exercises) === JSON.stringify(routine.exercises))
+          ?? await upsertRoutine({ ...routine, id: undefined });
+        remapped.set(routine.id, copy.id);
+      }
+    }
+    let preservedDays = 0;
+    for (const row of weekPlanRows) {
+      const routineId = row.routineId === null ? null : remapped.get(row.routineId) ?? row.routineId;
+      const existing = await db.weekPlan.get(row.weekday);
+      if (existing?.routineId && existing.routineId !== routineId && !replaceDays) {
+        preservedDays++;
+        continue;
+      }
+      await setWeekday(row.weekday, routineId);
+    }
+    return { categories: categories.length, routines: routines.length, weekPlan: weekPlanRows.length - preservedDays, preservedDays };
+  });
 }
 
 // ---------------------------------------------------------------------------

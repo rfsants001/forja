@@ -19,61 +19,41 @@ const ICONS: Record<string, LucideIcon> = {
 // ---------------------------------------------------------------------------
 
 interface TreinoHojeCardProps {
-  /** Resultado de effectiveRoutine: routineId | 'rest' | null | undefined (carregando) */
-  todayRoutineId: string | 'rest' | null | undefined;
-  /** true se já existe uma sessão ativa no store */
+  todayRoutine: { id: string; name: string } | null | undefined;
+  hasRoutines: boolean | undefined;
   hasActiveSession: boolean;
   onStart: () => void;
 }
 
-function TreinoHojeCard({ todayRoutineId, hasActiveSession, onStart }: TreinoHojeCardProps) {
-  // Ainda carregando
-  if (todayRoutineId === undefined) {
-    return (
-      <div className="card" style={{ marginBottom: 14 }}>
-        <p className="hint">Verificando treino de hoje…</p>
-      </div>
-    );
-  }
-
-  // Já existe sessão ativa → botão continuar
-  if (hasActiveSession) {
-    return (
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div className="section-title" style={{ margin: '0 0 8px' }}>
-          Treino em andamento
-        </div>
-        <button className="btn" style={{ width: '100%', justifyContent: 'center' }} onClick={onStart}>
-          <RotateCcw size={18} />
-          Continuar treino
-        </button>
-      </div>
-    );
-  }
-
-  // Dia de descanso
-  if (todayRoutineId === null || todayRoutineId === 'rest') {
-    return (
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div className="section-title" style={{ margin: '0 0 4px' }}>
-          Treino de hoje
-        </div>
-        <p className="hint">Hoje é descanso. Aproveite para recuperar!</p>
-      </div>
-    );
-  }
-
-  // Treino programado
+function TreinoHojeCard({ todayRoutine, hasRoutines, hasActiveSession, onStart }: TreinoHojeCardProps) {
   return (
-    <div className="card" style={{ marginBottom: 14 }}>
-      <div className="section-title" style={{ margin: '0 0 8px' }}>
-        Treino de hoje
-      </div>
-      <button className="btn" style={{ width: '100%', justifyContent: 'center' }} onClick={onStart}>
-        <Play size={18} />
-        Iniciar treino
-      </button>
-    </div>
+    <section className="card today-card" aria-labelledby="today-workout">
+      <h2 id="today-workout">{hasActiveSession ? 'Treino em andamento' : 'Treino de hoje'}</h2>
+      {hasActiveSession ? (
+        <div className="today-actions"><button className="btn" onClick={onStart}><RotateCcw size={18} aria-hidden />Continuar treino</button></div>
+      ) : todayRoutine === undefined || hasRoutines === undefined ? (
+        <p role="status">Carregando sua agenda…</p>
+      ) : todayRoutine !== null ? (
+        <>
+          <p>{todayRoutine.name}</p>
+          <div className="today-actions"><button className="btn" onClick={onStart}><Play size={18} aria-hidden />Iniciar treino</button></div>
+        </>
+      ) : hasRoutines ? (
+        <>
+          <p>Nenhum treino programado para hoje.</p>
+          <div className="today-actions"><Link className="btn ghost" to="/treinos">Escolher uma rotina</Link></div>
+        </>
+      ) : (
+        <>
+          <p>Escolha como montar seu primeiro treino.</p>
+          <div className="today-actions">
+            <Link className="btn" to="/treinos?planos=1">Começar com um plano</Link>
+            <Link className="btn ghost" to="/treinos/rotina/nova">Criar rotina</Link>
+            <Link className="btn ghost" to="/perfil#importar-historico">Importar histórico</Link>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -84,10 +64,13 @@ export function Home() {
   const settings = useLiveQuery(() => db.settings.get('app'), []);
 
   // Rotina efetiva de hoje
-  const todayRoutineId = useLiveQuery(async () => {
+  const hasRoutines = useLiveQuery(async () => (await db.routines.count()) > 0, []);
+  const todayRoutine = useLiveQuery(async () => {
     const today = toISO(new Date());
     const [weekPlan, overrides] = await Promise.all([getWeekPlan(), listOverrides()]);
-    return effectiveRoutine(today, weekPlan, overrides);
+    const routineId = effectiveRoutine(today, weekPlan, overrides);
+    if (routineId === null || routineId === 'rest') return null;
+    return (await db.routines.get(routineId)) ?? null;
   }, []);
 
   const activeSession = useSessionStore((s) => s.active);
@@ -117,7 +100,8 @@ export function Home() {
 
       {/* CTA Treino de hoje */}
       <TreinoHojeCard
-        todayRoutineId={todayRoutineId}
+        todayRoutine={todayRoutine}
+        hasRoutines={hasRoutines}
         hasActiveSession={activeSession !== null}
         onStart={() => navigate('/treino')}
       />

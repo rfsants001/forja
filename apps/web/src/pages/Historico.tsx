@@ -11,7 +11,7 @@ import { CalendarDays, ChevronDown, Clock, Dumbbell, Trash2, Check, X } from 'lu
 import type { WorkoutLog, WorkoutEntry, SetLog, TargetSnapshot, Exercise, Routine, Category } from '@forja/core';
 import { readSession } from '@forja/core';
 import { db } from '../db/db';
-import { deleteWorkout } from '../db/repo';
+import { deleteWorkout, updateWorkoutEntries } from '../db/repo';
 
 // ---------------------------------------------------------------------------
 // Helpers de formatação
@@ -53,34 +53,29 @@ function describeEffort(set: SetLog): string | null {
   return null;
 }
 
-function describeSet(set: SetLog, _target: TargetSnapshot): string {
-  if (set.sec !== undefined) {
-    return `${set.sec}s`;
-  }
-  if (set.reps !== undefined && set.weightKg !== undefined) {
-    return `${set.reps} × ${set.weightKg} kg`;
-  }
-  if (set.reps !== undefined) {
-    return `${set.reps} reps`;
-  }
-  return '—';
+function describeSet(set: SetLog): string {
+  const parts = [
+    set.reps === undefined ? undefined : `${set.reps} reps`,
+    set.weightKg === undefined ? undefined : `${set.weightKg} kg`,
+    set.sec === undefined ? undefined : `${set.sec} s`,
+    set.distanceM === undefined ? undefined : `${set.distanceM} m`,
+    set.speedKmh === undefined ? undefined : `${set.speedKmh} km/h`,
+  ];
+  return parts.filter((part) => part !== undefined).join(' · ') || '—';
 }
 
-/** Descreve o alvo de uma série. */
-function describeTarget(target: TargetSnapshot): string {
-  if (target.sec !== undefined && target.reps === undefined) {
-    return `alvo: ${target.sec}s`;
-  }
-  if (target.reps !== undefined && target.weightKg !== undefined) {
-    return `alvo: ${target.reps} × ${target.weightKg} kg`;
-  }
-  if (target.reps !== undefined) {
-    return `alvo: ${target.reps}`;
-  }
-  if (target.sec !== undefined) {
-    return `alvo: ${target.sec}s`;
-  }
-  return '';
+function describeTarget(target: TargetSnapshot, index: number): string {
+  if (target.unknown) return '';
+  const mainSet = target.mainSets?.[index];
+  if (mainSet !== undefined) return `Alvo: ${mainSet.reps}${mainSet.amrap ? '+' : ''} × ${mainSet.weightKg} kg`;
+  const values = [
+    target.reps === undefined ? undefined : `${target.reps} reps`,
+    target.weightKg === undefined ? undefined : `${target.weightKg} kg`,
+    target.sec === undefined ? undefined : `${target.sec} s`,
+    target.distanceM === undefined ? undefined : `${target.distanceM} m`,
+    target.speedKmh === undefined ? undefined : `${target.speedKmh} km/h`,
+  ].filter((value) => value !== undefined);
+  return values.length > 0 ? `Alvo: ${values.join(' · ')}` : '';
 }
 
 // ---------------------------------------------------------------------------
@@ -100,21 +95,22 @@ function ExerciseDetail({ entry, exerciseName }: ExerciseDetailProps) {
     <div className="hist-exercise">
       <div className="hist-exercise-header">
         <span className="hist-exercise-name">{exerciseName}</span>
-        <span className={`hist-ex-badge ${session.hit ? 'hit' : 'miss'}`}>
-          {session.hit ? 'bateu' : 'não bateu'}
+        <span className={`hist-ex-badge ${entry.target.unknown ? '' : session.hit ? 'hit' : 'miss'}`}>
+          {entry.target.unknown ? 'Alvo não importado' : session.hit ? 'Alvo atingido' : 'Abaixo do alvo'}
         </span>
-        <span className="hist-ex-sets-info">{targetDesc}</span>
+        <span className="hist-ex-sets-info">{entry.target.unknown ? `${entry.sets.length} série(s)` : targetDesc}</span>
       </div>
 
       <div className="hist-sets-list">
         {entry.sets.map((set, idx) => (
           <div key={idx} className="hist-set-row">
             <span className="hist-set-idx">{idx + 1}</span>
-            <span className={`hist-set-done-icon ${set.done ? 'ok' : 'miss'}`}>
+            <span className={`hist-set-done-icon ${set.done ? 'ok' : 'miss'}`} role="img" aria-label={set.done ? 'Série concluída' : 'Série não concluída'}>
               {set.done ? <Check size={13} /> : <X size={13} />}
             </span>
-            <span className="hist-set-value">{describeSet(set, entry.target)}</span>
-            <span className="hist-set-target">{describeTarget(entry.target)}</span>
+            <span className="hist-set-value">{describeSet(set)}</span>
+            <span className="hist-set-target">{describeTarget(entry.target, idx)}</span>
+            {set.note && <span className="hist-set-note">{set.note}</span>}
             {describeEffort(set) !== null && (
               <span className="hist-set-effort">{describeEffort(set)}</span>
             )}
@@ -129,6 +125,76 @@ function ExerciseDetail({ entry, exerciseName }: ExerciseDetailProps) {
 // Sub-componente: card de um workout
 // ---------------------------------------------------------------------------
 
+function EditWorkout({ workout, exerciseMap, onClose }: {
+  workout: WorkoutLog; exerciseMap: Map<string, Exercise>; onClose: (saved?: boolean) => void;
+}) {
+  const [entries, setEntries] = useState(workout.entries);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const labels = { reps: 'Repetições', weightKg: 'Carga (kg)', sec: 'Tempo (s)', distanceM: 'Distância (m)', speedKmh: 'Velocidade (km/h)' };
+
+  function patch(entryIndex: number, setIndex: number, change: Partial<SetLog>) {
+    setEntries((current) => current.map((entry, index) => index === entryIndex ? {
+      ...entry, sets: entry.sets.map((set, si) => si === setIndex ? { ...set, ...change } : set),
+    } : entry));
+  }
+
+  async function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await updateWorkoutEntries(workout.id, entries);
+      onClose(true);
+    } catch {
+      setError('Não foi possível salvar a correção. Confira os campos e tente novamente.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="hist-edit" onSubmit={(event) => void save(event)}>
+      <h3>Corrigir séries</h3>
+      <p className="hint">As metas originais permanecem no histórico. Corrija o que você realizou.</p>
+      {entries.map((entry, entryIndex) => {
+        const exercise = exerciseMap.get(entry.exerciseId);
+        return (
+          <section key={entryIndex}>
+            <h4>{exercise?.name ?? entry.exerciseId}</h4>
+            {entry.sets.map((set, setIndex) => {
+              const mode = exercise?.mode ?? (set.distanceM !== undefined || set.speedKmh !== undefined ? 'cardio' : set.sec === undefined ? 'reps' : 'time');
+              const metrics = mode === 'cardio' ? (['sec', 'distanceM', 'speedKmh'] as const)
+                : mode === 'time' ? (['sec'] as const) : (['reps', 'weightKg'] as const);
+              return (
+                <fieldset key={setIndex} className="hist-edit-set" disabled={saving}>
+                  <legend>Série {setIndex + 1}</legend>
+                  {metrics.map((metric) => (
+                    <label key={metric}>{labels[metric]}
+                      <input type="number" min={0} step={metric === 'reps' || metric === 'sec' ? 1 : 'any'}
+                        inputMode={metric === 'reps' || metric === 'sec' ? 'numeric' : 'decimal'}
+                        value={set[metric] ?? ''} onChange={(event) => patch(entryIndex, setIndex, {
+                          [metric]: Number.isFinite(event.target.valueAsNumber) ? event.target.valueAsNumber : undefined,
+                        })} />
+                    </label>
+                  ))}
+                  <label className="hist-edit-done"><input type="checkbox" checked={set.done}
+                    onChange={(event) => patch(entryIndex, setIndex, { done: event.target.checked })} /> Concluída</label>
+                </fieldset>
+              );
+            })}
+          </section>
+        );
+      })}
+      {error && <p className="feedback error" role="alert">{error}</p>}
+      <div className="btn-row">
+        <button type="button" className="btn ghost" disabled={saving} onClick={() => onClose()}>Cancelar edição</button>
+        <button type="submit" className="btn" disabled={saving}>{saving ? 'Salvando…' : 'Salvar séries'}</button>
+      </div>
+    </form>
+  );
+}
+
 interface WorkoutCardProps {
   workout: WorkoutLog;
   routineName: string;
@@ -139,6 +205,8 @@ interface WorkoutCardProps {
 
 function WorkoutCard({ workout, routineName, categoryColor, exerciseMap, onDelete }: WorkoutCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [status, setStatus] = useState('');
 
   // Calcula o resumo de hits por exercício
   const hitsCount = useMemo(
@@ -147,7 +215,8 @@ function WorkoutCard({ workout, routineName, categoryColor, exerciseMap, onDelet
   );
   const totalExercises = workout.entries.length;
   const durationText = formatDuration(workout.durationSec);
-  const allHit = hitsCount === totalExercises && totalExercises > 0;
+  const evaluated = workout.entries.filter((entry) => !entry.target.unknown).length;
+  const allHit = hitsCount === evaluated;
 
   function handleDelete() {
     const confirmado = window.confirm(`Excluir o treino "${routineName}"? Esta ação não pode ser desfeita.`);
@@ -157,7 +226,7 @@ function WorkoutCard({ workout, routineName, categoryColor, exerciseMap, onDelet
   return (
     <div className="hist-card">
       {/* Cabeçalho clicável */}
-      <div className="hist-card-header" onClick={() => setExpanded((v) => !v)}>
+      <button type="button" className="hist-card-header" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
         {categoryColor !== undefined && (
           <div
             className="hist-cat-dot"
@@ -180,9 +249,9 @@ function WorkoutCard({ workout, routineName, categoryColor, exerciseMap, onDelet
                 {totalExercises} exerc.
               </span>
             )}
-            {totalExercises > 0 && (
+            {evaluated > 0 && (
               <span className={`hist-hits-badge ${allHit ? '' : 'miss'}`}>
-                {hitsCount}/{totalExercises} bateram
+                {hitsCount}/{evaluated} alvos
               </span>
             )}
           </div>
@@ -192,7 +261,7 @@ function WorkoutCard({ workout, routineName, categoryColor, exerciseMap, onDelet
           size={18}
           className={`hist-chevron ${expanded ? 'open' : ''}`}
         />
-      </div>
+      </button>
 
       {/* Detalhe expansível */}
       <AnimatePresence initial={false}>
@@ -205,7 +274,12 @@ function WorkoutCard({ workout, routineName, categoryColor, exerciseMap, onDelet
             transition={{ duration: 0.22, ease: 'easeInOut' }}
           >
             <div className="hist-detail-inner">
-              {workout.entries.length === 0 ? (
+              {editing ? <EditWorkout workout={workout} exerciseMap={exerciseMap} onClose={(saved) => {
+                setEditing(false);
+                if (saved) setStatus('Séries atualizadas. O progresso usa os valores corrigidos.');
+              }} /> : null}
+              {status && <p className="feedback" role="status">{status}</p>}
+              {!editing && (workout.entries.length === 0 ? (
                 <p className="hint">Nenhum exercício registrado neste treino.</p>
               ) : (
                 workout.entries.map((entry) => {
@@ -218,15 +292,21 @@ function WorkoutCard({ workout, routineName, categoryColor, exerciseMap, onDelet
                     />
                   );
                 })
-              )}
+              ))}
+
+              {workout.prs?.length ? <p className="feedback">Recordes registrados: {workout.prs.length}</p> : null}
 
               {/* Rodapé com botão excluir */}
-              <div className="hist-card-footer">
+              {!editing && <div className="hist-card-footer">
+                {totalExercises > 0 && <button className="btn ghost" onClick={() => {
+                  setStatus('');
+                  setEditing(true);
+                }}>Corrigir séries</button>}
                 <button className="hist-delete-btn" onClick={handleDelete}>
                   <Trash2 size={14} />
                   Excluir
                 </button>
-              </div>
+              </div>}
             </div>
           </motion.div>
         )}

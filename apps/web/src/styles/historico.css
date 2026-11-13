@@ -246,3 +246,16 @@
 .hist-delete-btn:active {
   background: color-mix(in srgb, var(--danger) 20%, transparent);
 }
+
+
+.hist-card-header { width: 100%; min-height: 44px; text-align: start; }
+.hist-card-header:focus-visible { outline-offset: -3px; }
+.hist-set-note { color: var(--text-2); }
+
+
+.hist-edit { display: grid; gap: 12px; }
+.hist-edit-set { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; margin-block: 8px; border: 1px solid var(--control-border); border-radius: var(--r-sm); }
+.hist-edit-set label { display: grid; min-width: 92px; flex: 1 1 92px; gap: 4px; font-size: 12px; }
+.hist-edit-set input[type='number'] { width: 100%; min-height: 44px; padding: 6px 8px; background: var(--surface-2); color: var(--text); border: 1px solid var(--control-border); border-radius: var(--r-sm); }
+.hist-edit-set .hist-edit-done { display: flex; align-items: center; min-height: 44px; }
+.hist-card-footer { flex-wrap: wrap; gap: 8px; }

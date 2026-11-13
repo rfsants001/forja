@@ -1,5 +1,6 @@
 import '../styles/setup.css';
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Search, Plus, X, Pencil, Trash2, ChevronRight } from 'lucide-react';
 import type { Exercise, ExerciseMode, MuscleGroup } from '@forja/core';
@@ -50,7 +51,16 @@ export function Exercicios() {
   const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray(), []);
 
   const [query, setQuery] = useState('');
-  const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const muscleParam = searchParams.get('muscle');
+  const muscleFilter = MUSCLE_OPTIONS.find((muscle) => muscle === muscleParam) ?? null;
+  function setMuscleFilter(muscle: MuscleGroup | null) {
+    setSearchParams((params) => {
+      if (muscle === null) params.delete('muscle');
+      else params.set('muscle', muscle);
+      return params;
+    }, { replace: true });
+  }
   const [equipFilter, setEquipFilter] = useState<string | null>(null);
   // Paginação — reset quando filtros mudam
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -204,6 +214,7 @@ export function Exercicios() {
         <input
           type="text"
           placeholder="Buscar exercício…"
+          aria-label="Buscar exercício"
           value={query}
           onChange={(e) => { setQuery(e.target.value); resetPaging(); }}
         />

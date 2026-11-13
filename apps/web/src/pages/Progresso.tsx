@@ -11,6 +11,7 @@
 import '../styles/progresso.css';
 
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { TrendingUp, Dumbbell, User, Users, Zap, Ruler, Trash2 } from 'lucide-react';
 import type { BodyMeasurement, Exercise, MuscleGroup, WorkoutLog } from '@forja/core';
@@ -23,6 +24,7 @@ import {
   computePRs,
   computeVolumeByMuscle,
   workoutDates,
+  trainedMuscles,
   effortByWeek,
   effortSpread,
   topSetEffortCurve,
@@ -865,6 +867,7 @@ function MeasurementsSection() {
 // ---------------------------------------------------------------------------
 
 export function Progresso() {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>(loadPeriod);
 
   // ---- dados reativos ----
@@ -898,6 +901,8 @@ export function Progresso() {
     [workouts],
   );
 
+  const musclesWithSets = useMemo(() => trainedMuscles(workouts ?? [], exerciseMap, period), [workouts, exerciseMap, period]);
+
   const volumeByMuscleMap = useMemo(
     () => computeVolumeByMuscle(workouts ?? [], exerciseMap, period),
     [workouts, exerciseMap, period],
@@ -930,7 +935,7 @@ export function Progresso() {
 
   function handleUntrainedClick(muscle: MuscleGroup) {
     // Deep link para biblioteca filtrada por músculo
-    window.location.hash = `#/biblioteca?muscle=${muscle}`;
+    navigate(`/exercicios?muscle=${muscle}`);
   }
 
   // ---- render ----
@@ -1038,6 +1043,7 @@ export function Progresso() {
                   volumeByMuscle={volumeByMuscle}
                   figure={figure}
                   showUntrained
+                  trainedMuscles={musclesWithSets}
                   onUntrainedClick={handleUntrainedClick}
                 />
               )}

@@ -1,194 +1,178 @@
-/**
- * backup.ts — Export/import completo dos dados locais do Forja.
- * Fase 4: "dono dos seus dados". Sem libs externas — Blob + FileReader nativos.
- */
-
+import type { Table } from 'dexie';
 import { db } from '../db/db';
 
-// ---------------------------------------------------------------------------
-// Formato do arquivo de backup
-// ---------------------------------------------------------------------------
-
 const BACKUP_APP = 'forja';
-const BACKUP_VERSION = 1;
+const BACKUP_VERSION = 2;
 
-interface BackupMeta {
-  app: typeof BACKUP_APP;
-  version: typeof BACKUP_VERSION;
-  exportedAt: string; // ISO 8601
-}
+const backupTables = {
+  categories: db.categories,
+  exercises: db.exercises,
+  routines: db.routines,
+  weekPlan: db.weekPlan,
+  dayOverrides: db.dayOverrides,
+  workouts: db.workouts,
+  bodyweight: db.bodyweight,
+  settings: db.settings,
+  measurements: db.measurements,
+};
 
-interface BackupData {
-  categories?: unknown[];
-  exercises?: unknown[];
-  routines?: unknown[];
-  weekPlan?: unknown[];
-  dayOverrides?: unknown[];
-  workouts?: unknown[];
-  bodyweight?: unknown[];
-  settings?: unknown[];
-}
+type TableName = keyof typeof backupTables;
+type Row = Record<string, unknown>;
+type BackupData = Partial<Record<TableName, Row[]>>;
+export type BackupMode = 'replace' | 'merge';
+const tableNames = Object.keys(backupTables) as TableName[];
 
-interface BackupFile {
-  _meta: BackupMeta;
+export interface ParsedBackup {
+  version: 1 | 2;
   data: BackupData;
 }
 
-// ---------------------------------------------------------------------------
-// Export
-// ---------------------------------------------------------------------------
+const isRow = (value: unknown): value is Row => typeof value === 'object' && value !== null && !Array.isArray(value);
+const string = (value: unknown): value is string => typeof value === 'string';
+const id = (value: unknown): value is string => string(value) && value.trim().length > 0;
+const number = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const nonnegative = (value: unknown): value is number => number(value) && value >= 0;
+const integer = (value: unknown): value is number => nonnegative(value) && Number.isInteger(value);
+const positiveInteger = (value: unknown): value is number => integer(value) && value > 0;
+const weekday = (value: unknown): value is number => integer(value) && value <= 6;
+const date = (value: unknown): value is string => {
+  if (!string(value) || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+};
+const optional = (test: (value: unknown) => boolean) => (value: unknown) => value === undefined || test(value);
+const oneOf = (...options: unknown[]) => (value: unknown) => options.includes(value);
+const list = (test: (value: unknown) => boolean) => (value: unknown) => Array.isArray(value) && value.every(test);
+const fields = (rules: Record<string, (value: unknown) => boolean>) => (value: unknown): value is Row =>
+  isRow(value) && Object.entries(rules).every(([name, test]) => test(value[name]));
 
-/** Lê todas as 8 tabelas e retorna JSON formatado. */
-export async function exportAll(): Promise<string> {
-  const [
-    categories,
-    exercises,
-    routines,
-    weekPlan,
-    dayOverrides,
-    workouts,
-    bodyweight,
-    settings,
-  ] = await Promise.all([
-    db.categories.toArray(),
-    db.exercises.toArray(),
-    db.routines.toArray(),
-    db.weekPlan.toArray(),
-    db.dayOverrides.toArray(),
-    db.workouts.toArray(),
-    db.bodyweight.toArray(),
-    db.settings.toArray(),
-  ]);
+const optString = optional(string);
+const optNumber = optional(nonnegative);
+const policy = optional(oneOf('off', 'linear', 'greyskull', 'double', 'time', '531'));
+const muscle = oneOf('chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'quads', 'hamstrings',
+  'glutes', 'calves', 'abs', 'obliques', 'traps', 'lats', 'fullbody', 'cardio', 'other');
+const boolean = oneOf(true, false);
+const demo = (value: unknown) => {
+  if (!isRow(value)) return false;
+  switch (value.kind) {
+    case 'none': return true;
+    case 'asset': return positiveInteger(value.frames);
+    case 'custom': return id(value.svg);
+    case 'cdn': {
+      const imageUrl = optional((url) => string(url) && url.startsWith('https://'));
+      return fields({ image: imageUrl, gif: imageUrl })(value);
+    }
+    default: return false;
+  }
+};
+const target = fields({
+  sets: integer, reps: optString, sec: optNumber, weightKg: optNumber, policy,
+  distanceM: optNumber, speedKmh: optNumber, unknown: optional(oneOf(true)),
+  cycleWeek: optional(oneOf(1, 2, 3, 4)), baseTrainingMaxKg: optNumber, trainingMaxKg: optNumber,
+  mainSets: optional(list(fields({ percentOfTM: nonnegative, weightKg: nonnegative, reps: positiveInteger, amrap: boolean }))),
+});
+const set = fields({
+  reps: optNumber, weightKg: optNumber, sec: optNumber, distanceM: optNumber, speedKmh: optNumber, done: boolean, note: optString,
+  effort: optional(fields({ rir: optNumber, rpe: optNumber })),
+});
+const settings = fields({
+  unit: optional(oneOf('kg', 'lb')), theme: optional(oneOf('dark', 'light', 'system')), defaultRestSec: optNumber,
+  trackEffort: optional(boolean), weekStartsOn: optional(oneOf(0, 1)), bodyWeightGoalKg: optNumber,
+  muscleFigure: optional(oneOf('male', 'female')), accent: optString, lang: optional(oneOf('pt', 'en')),
+});
+const validRow: Record<TableName, (value: unknown) => boolean> = {
+  categories: fields({ id, name: id, slug: id, color: string, order: number, createdAt: number, updatedAt: number }),
+  exercises: fields({ id, name: id, mode: oneOf('reps', 'time', 'cardio'), primaryMuscle: muscle,
+    secondaryMuscles: list(muscle), equipment: list(string), demo, instructions: optString, note: optString }),
+  routines: fields({ id, name: id, categoryId: id, note: optString, createdAt: number, updatedAt: number,
+    exercises: list(fields({ exerciseId: id, sets: integer, targetReps: optString, targetSec: optNumber,
+      restSec: optNumber, progression: policy, incrementKg: optNumber, targetDistanceM: optNumber,
+      targetSpeedKmh: optNumber, supersetGroup: optional(integer), trainingMaxKg: optNumber, trainingMaxIncrementKg: optNumber })) }),
+  weekPlan: fields({ weekday, routineId: (value) => value === null || id(value) }),
+  dayOverrides: fields({ dateISO: date, routine: (value) => value === null || id(value) }),
+  workouts: fields({ id, dateISO: date, createdAt: number, durationSec: optNumber, routineId: optional(id),
+    categoryId: optional(id), note: optString, entries: list(fields({ exerciseId: id, sets: list(set), target })),
+    prs: optional(list(fields({ exerciseId: id, kind: oneOf('1rm', 'weight', 'reps'), value: nonnegative }))) }),
+  bodyweight: fields({ dateISO: date, kg: nonnegative }),
+  settings: (value) => isRow(value) && (value.id === 'app' && settings(value)
+    || value.id === 'datasetVersion' && id(value.version)),
+  measurements: fields({ dateISO: date, waistCm: optNumber, chestCm: optNumber, hipsCm: optNumber,
+    leftArmCm: optNumber, rightArmCm: optNumber, leftThighCm: optNumber, rightThighCm: optNumber,
+    neckCm: optNumber, calfCm: optNumber, note: optString }),
+};
 
-  const backup: BackupFile = {
-    _meta: {
-      app: BACKUP_APP,
-      version: BACKUP_VERSION,
-      exportedAt: new Date().toISOString(),
-    },
-    data: {
-      categories,
-      exercises,
-      routines,
-      weekPlan,
-      dayOverrides,
-      workouts,
-      bodyweight,
-      settings,
-    },
-  };
-
-  return JSON.stringify(backup, null, 2);
+export function isBackupExercise(value: unknown): boolean {
+  return validRow.exercises(value);
 }
 
-/** Dispara download do JSON com nome forja-backup-AAAA-MM-DD.json. */
+export function isBackupRoutine(value: unknown): boolean {
+  return validRow.routines(value);
+}
+
+export function isBackupCategory(value: unknown): boolean {
+  return validRow.categories(value);
+}
+
+export function isBackupWeekday(value: unknown): boolean {
+  return validRow.weekPlan(value);
+}
+
+export function parseBackup(json: string): ParsedBackup {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    throw new Error('O arquivo não contém JSON válido. Escolha um backup exportado pela Forja.');
+  }
+  if (!isRow(parsed) || !isRow(parsed._meta) || parsed._meta.app !== BACKUP_APP || !isRow(parsed.data)) {
+    throw new Error('Escolha um arquivo de backup da Forja. Arquivos de plano são importados em Compartilhar plano.');
+  }
+  const { version } = parsed._meta;
+  if (version !== 1 && version !== BACKUP_VERSION) {
+    throw new Error('Esta versão do backup não é compatível com a Forja instalada.');
+  }
+  const data: BackupData = {};
+  for (const name of tableNames) {
+    const rows = parsed.data[name];
+    // O formato v1 não exportava medidas. Preservá-las no destino permite restaurar arquivos antigos.
+    if (version === 1 && name === 'measurements' && rows === undefined) continue;
+    if (!Array.isArray(rows)) throw new Error(`O backup está incompleto. Falta a tabela ${name}.`);
+    const invalidIndex = rows.findIndex((row: unknown) => !validRow[name](row));
+    if (invalidIndex !== -1) throw new Error(`O backup contém um registro inválido em ${name} (linha ${invalidIndex + 1}).`);
+    data[name] = rows as Row[];
+  }
+  return { version, data };
+}
+
+export async function exportAll(): Promise<string> {
+  const data = await db.transaction('r', db.tables, async () => {
+    const rows = await Promise.all(tableNames.map(async (name) => [name, await backupTables[name].toArray()] as const));
+    return Object.fromEntries(rows);
+  });
+  return JSON.stringify({ _meta: { app: BACKUP_APP, version: BACKUP_VERSION, exportedAt: new Date().toISOString() }, data }, null, 2);
+}
+
 export async function downloadBackup(): Promise<void> {
   const json = await exportAll();
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-
-  const dateStr = new Date().toISOString().slice(0, 10); // AAAA-MM-DD
-  const filename = `forja-backup-${dateStr}.json`;
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-
-  // Libera o object URL logo depois do click
+  const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `forja-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-// ---------------------------------------------------------------------------
-// Import
-// ---------------------------------------------------------------------------
-
-export interface ImportResult {
-  counts: Record<string, number>;
-}
-
-/**
- * Importa dados de um JSON de backup.
- *
- * - `replace`: limpa cada tabela e insere todos os registros do arquivo.
- * - `merge`: insere por cima (bulkPut) — itens com mesmo id são sobrescritos,
- *   novos são adicionados, existentes sem conflito ficam intactos.
- *
- * Tabelas ausentes no arquivo são ignoradas sem erro.
- */
-export async function importAll(
-  json: string,
-  mode: 'replace' | 'merge',
-): Promise<ImportResult> {
-  // Parse
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(json) as unknown;
-  } catch {
-    throw new Error('Arquivo inválido: não é um JSON válido.');
-  }
-
-  // Validação mínima da estrutura
-  if (
-    typeof parsed !== 'object' ||
-    parsed === null ||
-    !('_meta' in parsed) ||
-    !('data' in parsed)
-  ) {
-    throw new Error('Arquivo inválido: estrutura inesperada (falta _meta ou data).');
-  }
-
-  const file = parsed as { _meta: unknown; data: unknown };
-
-  if (
-    typeof file._meta !== 'object' ||
-    file._meta === null ||
-    !('app' in file._meta) ||
-    (file._meta as { app: unknown }).app !== BACKUP_APP
-  ) {
-    throw new Error(
-      'Arquivo inválido: este backup não pertence ao Forja (_meta.app incorreto).',
-    );
-  }
-
-  const data = (typeof file.data === 'object' && file.data !== null
-    ? file.data
-    : {}) as BackupData;
-
-  // Mapeamento tabela → dados do arquivo
-  const tableMap = [
-    { table: db.categories,  key: 'categories'  as const },
-    { table: db.exercises,   key: 'exercises'   as const },
-    { table: db.routines,    key: 'routines'    as const },
-    { table: db.weekPlan,    key: 'weekPlan'    as const },
-    { table: db.dayOverrides,key: 'dayOverrides' as const },
-    { table: db.workouts,    key: 'workouts'    as const },
-    { table: db.bodyweight,  key: 'bodyweight'  as const },
-    { table: db.settings,    key: 'settings'    as const },
-  ] as const;
-
-  const counts: Record<string, number> = {};
-
-  await db.transaction('rw', db.tables, async () => {
-    for (const { table, key } of tableMap) {
-      const rows = data[key];
-
-      // Tabela ausente no arquivo → pula
-      if (!Array.isArray(rows)) continue;
-
-      if (mode === 'replace') {
-        await table.clear();
-      }
-
-      // bulkPut funciona em ambos os modos: insert ou upsert
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (table as any).bulkPut(rows);
-      counts[key] = rows.length;
+export async function restoreBackup({ data }: ParsedBackup, mode: BackupMode): Promise<Record<string, number>> {
+  return db.transaction('rw', db.tables, async () => {
+    const counts: Record<string, number> = {};
+    for (const name of tableNames) {
+      const rows = data[name];
+      if (rows === undefined) continue;
+      const table = backupTables[name] as unknown as Table<Row>;
+      if (mode === 'replace') await table.clear();
+      await table.bulkPut(rows);
+      counts[name] = rows.length;
     }
+    return counts;
   });
-
-  return { counts };
 }

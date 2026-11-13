@@ -21,7 +21,6 @@
   flex: 1;
   background: none;
   border: none;
-  outline: none;
   color: var(--text);
   font-family: var(--font-body);
   font-size: 14px;
@@ -62,7 +61,7 @@
 .chip.active {
   background: color-mix(in srgb, var(--flame) 20%, var(--surface-2));
   border-color: var(--flame);
-  color: var(--flame-2);
+  color: var(--accent);
 }
 
 /* ---- lista de exercícios ---- */
@@ -132,7 +131,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--flame-2);
+  color: var(--accent);
   background: color-mix(in srgb, var(--flame) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--flame) 30%, transparent);
   padding: 3px 8px;
@@ -203,7 +202,6 @@
   color: var(--text);
   font-family: var(--font-body);
   font-size: 14px;
-  outline: none;
   transition: border-color 0.15s;
   width: 100%;
 }
@@ -334,7 +332,7 @@
 }
 
 .week-row .wd-label.today {
-  color: var(--flame-2);
+  color: var(--accent);
 }
 
 .week-row select {
@@ -346,7 +344,6 @@
   color: var(--text);
   font-family: var(--font-body);
   font-size: 13px;
-  outline: none;
   transition: border-color 0.15s;
 }
 
@@ -680,3 +677,20 @@
 .btn.ghost-accent:hover {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
+
+
+.starter-replace { display: flex; align-items: center; min-height: 44px; gap: 10px; margin: 8px 0; }
+.week-row select { min-height: 44px; border-color: var(--control-border); }
+
+.starter-dialog {
+  position: fixed;
+  inset: auto 0 0;
+  width: min(100%, 560px);
+  max-width: 100%;
+  max-height: min(88vh, 100% - 24px);
+  margin-inline: auto;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.starter-dialog::backdrop { background: rgb(0 0 0 / 66%); }

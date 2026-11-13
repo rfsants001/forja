@@ -200,9 +200,9 @@ describe('progressão greyskull', () => {
     const entry: WorkoutEntry = {
       exerciseId: 'squat',
       sets: [
-        { reps: 5, done: true },
-        { reps: 5, done: true },
-        { reps: 6, done: true }, // AMRAP: 6 < 10 (dobro de 5)
+        { reps: 5, weightKg: 100, done: true },
+        { reps: 5, weightKg: 100, done: true },
+        { reps: 6, weightKg: 100, done: true }, // AMRAP: 6 < 10 (dobro de 5)
       ],
       target: { sets: 3, reps: '5', weightKg: 100 },
     };
@@ -217,9 +217,9 @@ describe('progressão greyskull', () => {
     const entry: WorkoutEntry = {
       exerciseId: 'squat',
       sets: [
-        { reps: 5, done: true },
-        { reps: 5, done: true },
-        { reps: 10, done: true }, // AMRAP folgado
+        { reps: 5, weightKg: 100, done: true },
+        { reps: 5, weightKg: 100, done: true },
+        { reps: 10, weightKg: 100, done: true }, // AMRAP folgado
       ],
       target: { sets: 3, reps: '5', weightKg: 100 },
     };
@@ -267,9 +267,9 @@ describe('progressão double', () => {
     const entry: WorkoutEntry = {
       exerciseId: 'squat',
       sets: [
-        { reps: 10, done: true },
-        { reps: 10, done: true },
-        { reps: 10, done: true },
+        { reps: 10, weightKg: 60, done: true },
+        { reps: 10, weightKg: 60, done: true },
+        { reps: 10, weightKg: 60, done: true },
       ],
       target: { sets: 3, reps: '10', weightKg: 60 },
     };
@@ -284,9 +284,9 @@ describe('progressão double', () => {
     const entry: WorkoutEntry = {
       exerciseId: 'squat',
       sets: [
-        { reps: 12, done: true },
-        { reps: 12, done: true },
-        { reps: 12, done: true },
+        { reps: 12, weightKg: 60, done: true },
+        { reps: 12, weightKg: 60, done: true },
+        { reps: 12, weightKg: 60, done: true },
       ],
       target: { sets: 3, reps: '12', weightKg: 60 },
     };
@@ -429,5 +429,28 @@ describe('garantias gerais', () => {
       const p = nextPrescription({ workouts: [], config: cfg });
       expect(p.kind).toBe('fresh');
     }
+  });
+});
+
+describe('carga registrada e prescrição', () => {
+  it('reutiliza a carga da primeira sessão sem alvo como referência', () => {
+    const entry = makeEntry('squat', 5, 50);
+    delete entry.target.weightKg;
+    const p = nextPrescription({ workouts: [makeWorkout('2026-11-13', entry)], config: makeConfig() });
+    expect(p.weightKg).toBe(50);
+  });
+
+  it('não sobe carga se todas as reps foram feitas abaixo da carga-alvo', () => {
+    const entry = makeEntry('squat', 5, 50, '5', 3, 80);
+    const p = nextPrescription({ workouts: [makeWorkout('2026-11-13', entry)], config: makeConfig() });
+    expect(p.weightKg).toBe(80);
+  });
+
+  it('separa a progressão de rotinas e ordena treinos do mesmo dia pelo horário', () => {
+    const first = { ...makeWorkout('2026-11-13', makeEntry('squat', 5, 50, '5', 3, 50)), id: 'w1', routineId: 'a', createdAt: 1000 };
+    const second = { ...makeWorkout('2026-11-13', makeEntry('squat', 5, 55, '5', 3, 55)), id: 'w2', routineId: 'a', createdAt: 2000 };
+    const other = { ...makeWorkout('2026-11-13', makeEntry('squat', 5, 80, '5', 3, 80)), id: 'w3', routineId: 'b', createdAt: 3000 };
+    const p = nextPrescription({ workouts: [other, second, first], config: makeConfig(), routineId: 'a' });
+    expect(p.weightKg).toBe(57.5);
   });
 });

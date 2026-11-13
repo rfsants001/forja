@@ -221,6 +221,24 @@ export function computeVolumeByMuscle(
   return result;
 }
 
+export function trainedMuscles(
+  workouts: WorkoutLog[],
+  exerciseMap: Map<string, Exercise>,
+  days: number | null,
+): Set<MuscleGroup> {
+  const groups = new Set<MuscleGroup>();
+  for (const workout of filterByPeriod(workouts, days)) {
+    for (const entry of workout.entries) {
+      if (!entry.sets.some((set) => set.done)) continue;
+      const exercise = exerciseMap.get(entry.exerciseId);
+      if (exercise === undefined) continue;
+      groups.add(exercise.primaryMuscle);
+      for (const muscle of exercise.secondaryMuscles) groups.add(muscle);
+    }
+  }
+  return groups;
+}
+
 /**
  * Extrai as datas ISO de todos os workouts num período.
  * Útil para o heatmap (pode ter duplicatas quando há >1 treino por dia).

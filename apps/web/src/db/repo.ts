@@ -196,7 +196,11 @@ export async function upsertRoutine(
 
 /** Remove uma rotina pelo id. */
 export async function deleteRoutine(id: string): Promise<void> {
-  await db.routines.delete(id);
+  await db.transaction('rw', [db.routines, db.weekPlan, db.dayOverrides], async () => {
+    await db.routines.delete(id);
+    await db.weekPlan.filter((row) => row.routineId === id).modify({ routineId: null });
+    await db.dayOverrides.filter((row) => row.routine === id).delete();
+  });
 }
 
 /**
@@ -291,7 +295,19 @@ export async function addWorkout(log: WorkoutLog): Promise<WorkoutLog> {
   return log;
 }
 
+/** Atualiza o realizado e preserva o alvo registrado no início da sessão. */
+export async function updateWorkoutEntries(id: string, entries: WorkoutLog['entries']): Promise<void> {
+  const updated = await db.workouts.update(id, { entries, prs: undefined });
+  if (updated === 0) throw new Error('Este treino não está mais no histórico.');
+}
+
 /** Remove um workout pelo id. */
+export async function saveFinishedWorkout(log: WorkoutLog): Promise<void> {
+  await db.transaction('rw', db.workouts, async () => {
+    if (await db.workouts.get(log.id) === undefined) await db.workouts.add(log);
+  });
+}
+
 export async function deleteWorkout(id: string): Promise<void> {
   await db.workouts.delete(id);
 }

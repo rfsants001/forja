@@ -56,17 +56,17 @@ export async function ensureSeed(): Promise<void> {
         if (exercicios.length === 0) return; // import falhou (offline) — tentar novamente na próxima abertura
 
         const now = Date.now();
-        // bulkPut é idempotente: sobrescreve se o id já existir (exercícios com prefixo 'ds-')
-        await db.exercises.bulkPut(
-          exercicios.map((ex) => ({ ...ex, createdAt: now, updatedAt: now })),
-        );
-
-        // Registra a versão do dataset inserido
-        await db.settings.put({
-          id: DATASET_VERSION_KEY as 'app',
-          ...DEFAULT_SETTINGS, // necessário para satisfazer o schema da tabela
-          // @ts-expect-error — campo extra para versionamento do dataset
-          version: DATASET_VERSION,
+        await db.transaction('rw', [db.exercises, db.settings], async () => {
+          const existing = await db.exercises.bulkGet(exercicios.map((ex) => ex.id));
+          await db.exercises.bulkPut(exercicios.map((ex, index) => ({
+            ...ex, note: existing[index]?.note, createdAt: existing[index]?.createdAt ?? now, updatedAt: now,
+          })));
+          await db.settings.put({
+            id: DATASET_VERSION_KEY as 'app',
+            ...DEFAULT_SETTINGS,
+            // @ts-expect-error — campo extra para versionamento do dataset
+            version: DATASET_VERSION,
+          });
         });
 
         console.info(`[seed] Dataset inserido: ${exercicios.length} exercícios (${DATASET_VERSION.slice(0, 7)})`);

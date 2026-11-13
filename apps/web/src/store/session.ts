@@ -14,24 +14,23 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { uid } from '../db/db';
-import { addWorkout } from '../db/repo';
-import type { SetLog, WorkoutLog, WorkoutEntry } from '@forja/core';
+import { saveFinishedWorkout } from '../db/repo';
+import type { ExerciseMode, PR, Prescription, SetLog, TargetSnapshot, WorkoutLog, WorkoutEntry } from '@forja/core';
+export type { TargetSnapshot } from '@forja/core';
 
 // ---------------------------------------------------------------------------
 // Tipos do estado interno
 // ---------------------------------------------------------------------------
 
 /** Snapshot do alvo de um exercício no momento em que o treino começou. */
-export interface TargetSnapshot {
-  sets: number;
-  reps?: string;
-  sec?: number;
-  weightKg?: number;
-}
-
 /** Um exercício ativo na sessão em andamento. */
 export interface ActiveExercise {
   exerciseId: string;
+  name?: string;
+  mode?: ExerciseMode;
+  restSec?: number;
+  supersetGroup?: number;
+  prescription?: Prescription;
   /** Target que valia quando o treino foi iniciado (imutável durante a sessão). */
   target: TargetSnapshot;
   /**
@@ -59,6 +58,8 @@ export interface ActiveSession {
   /** Índice do exercício sendo exibido no momento. */
   currentIndex: number;
   rest: RestState;
+  work?: { exerciseIndex: number; setIndex: number; startedAt: number };
+  routineName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -67,6 +68,7 @@ export interface ActiveSession {
 
 interface SessionState {
   active: ActiveSession | null;
+  saving: boolean;
 
   /**
    * Inicia uma nova sessão. Se já houver uma ativa, ela é substituída.
@@ -99,6 +101,8 @@ interface SessionState {
 
   /** Para o timer de descanso (seta endsAt = null). */
   stopRest: () => void;
+  startWork: (exerciseIndex: number, setIndex: number) => void;
+  stopWork: () => void;
 
   /** Cancela a sessão sem gravar nada. */
   cancel: () => void;
@@ -110,13 +114,14 @@ interface SessionState {
    * 3. Limpa o estado active.
    * @returns Promise<WorkoutLog> — o log gravado.
    */
-  finish: () => Promise<WorkoutLog>;
+  finish: (prs?: PR[]) => Promise<WorkoutLog>;
 }
 
 export const useSessionStore = create<SessionState>()(
   persist(
     (set, get) => ({
       active: null,
+      saving: false,
 
       start(session) {
         set({
@@ -132,7 +137,7 @@ export const useSessionStore = create<SessionState>()(
 
       logSet(exIndex, setIndex, patch) {
         set((state) => {
-          if (state.active === null) return state;
+          if (state.active === null || state.saving) return state;
 
           const exercises = state.active.exercises.map((ex, ei) => {
             if (ei !== exIndex) return ex;
@@ -148,7 +153,7 @@ export const useSessionStore = create<SessionState>()(
 
       toggleSetDone(exIndex, setIndex) {
         set((state) => {
-          if (state.active === null) return state;
+          if (state.active === null || state.saving) return state;
 
           const exercises = state.active.exercises.map((ex, ei) => {
             if (ei !== exIndex) return ex;
@@ -164,7 +169,7 @@ export const useSessionStore = create<SessionState>()(
 
       goToExercise(i) {
         set((state) => {
-          if (state.active === null) return state;
+          if (state.active === null || state.saving) return state;
           return { active: { ...state.active, currentIndex: i } };
         });
       },
@@ -188,12 +193,25 @@ export const useSessionStore = create<SessionState>()(
         });
       },
 
-      cancel() {
-        set({ active: null });
+      startWork(exerciseIndex, setIndex) {
+        const { active, saving } = get();
+        if (active === null || active.work !== undefined || saving) return;
+        set({ active: { ...active, rest: { endsAt: null }, work: { exerciseIndex, setIndex, startedAt: Date.now() } } });
       },
 
-      async finish() {
+      stopWork() {
         const { active } = get();
+        if (active === null) return;
+        set({ active: { ...active, work: undefined } });
+      },
+
+      cancel() {
+        if (!get().saving) set({ active: null });
+      },
+
+      async finish(prs) {
+        const { active, saving } = get();
+        if (saving) throw new Error('O treino já está sendo salvo.');
         if (active === null) {
           throw new Error('Nenhuma sessão ativa para finalizar.');
         }
@@ -215,13 +233,17 @@ export const useSessionStore = create<SessionState>()(
           entries,
           durationSec,
           createdAt: active.startedAt,
+          prs: prs?.length ? prs : undefined,
         };
 
-        // Limpa o estado ANTES de gravar (evita dupla gravação se finish for chamado duas vezes)
-        set({ active: null });
-
-        await addWorkout(log);
-        return log;
+        set({ saving: true });
+        try {
+          await saveFinishedWorkout(log);
+          if (get().active?.id === log.id) set({ active: null });
+          return log;
+        } finally {
+          set({ saving: false });
+        }
       },
     }),
     {

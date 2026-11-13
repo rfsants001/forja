@@ -57,13 +57,25 @@ function minRepsFromTarget(targetReps: string | undefined): number {
  * Para modo time (target.sec definido e target.reps ausente), compara sec.
  * Para modo reps, compara reps.
  */
-function setHit(set: SetLog, target: TargetSnapshot): boolean {
+function setHit(set: SetLog, target: TargetSnapshot, index: number): boolean {
   if (!set.done) return false;
+
+  const mainSet = target.mainSets?.[index];
+  const weightKg = mainSet?.weightKg ?? target.weightKg;
+  if (weightKg !== undefined && (set.weightKg ?? 0) + 1e-6 < weightKg) return false;
+  if (mainSet !== undefined) return (set.reps ?? 0) >= mainSet.reps;
 
   const isTimeMode = target.sec !== undefined && target.reps === undefined;
 
   if (isTimeMode) {
-    return (set.sec ?? 0) >= (target.sec ?? 0);
+    return (set.sec ?? 0) >= (target.sec ?? 0)
+      && (set.distanceM ?? 0) >= (target.distanceM ?? 0)
+      && (set.speedKmh ?? 0) >= (target.speedKmh ?? 0);
+  }
+
+  if (target.distanceM !== undefined || target.speedKmh !== undefined) {
+    return (set.distanceM ?? 0) >= (target.distanceM ?? 0)
+      && (set.speedKmh ?? 0) >= (target.speedKmh ?? 0);
   }
 
   const minReps = minRepsFromTarget(target.reps);
@@ -78,12 +90,16 @@ function setHit(set: SetLog, target: TargetSnapshot): boolean {
  * Retorna a entrada mais recente (por dateISO) de um dado exercício em todo o histórico.
  * Devolve undefined quando o exercício nunca foi logado.
  */
+export function compareWorkouts(a: WorkoutLog, b: WorkoutLog): number {
+  return a.dateISO.localeCompare(b.dateISO) || a.createdAt - b.createdAt || a.id.localeCompare(b.id);
+}
+
 export function lastEntryFor(
   workouts: WorkoutLog[],
   exerciseId: string,
 ): WorkoutEntry | undefined {
   // Ordena decrescente por data e pega o primeiro match.
-  const sorted = [...workouts].sort((a, b) => (a.dateISO > b.dateISO ? -1 : 1));
+  const sorted = [...workouts].sort((a, b) => compareWorkouts(b, a));
 
   for (const workout of sorted) {
     const entry = workout.entries.find((e) => e.exerciseId === exerciseId);
@@ -113,13 +129,13 @@ export function readSession(entry: WorkoutEntry): SessionRead {
   let setsHit = 0;
   for (let i = 0; i < setsTotal; i++) {
     const set = setLogs[i];
-    if (set !== undefined && setHit(set, target)) {
+    if (!target.unknown && set !== undefined && setHit(set, target, i)) {
       setsHit++;
     }
     // set undefined ou done=false → não incrementa setsHit
   }
 
-  const hit = setsHit === setsTotal;
+  const hit = setsTotal > 0 && setsHit === setsTotal;
 
   // Estatísticas extras (modo reps).
   const doneSetsWithReps = doneSets.filter((s) => s.reps !== undefined);
@@ -150,7 +166,7 @@ export function lastNEntriesFor(
   exerciseId: string,
   n: number,
 ): WorkoutEntry[] {
-  const sorted = [...workouts].sort((a, b) => (a.dateISO > b.dateISO ? 1 : -1));
+  const sorted = [...workouts].sort(compareWorkouts);
 
   const entries: WorkoutEntry[] = [];
   for (const workout of sorted) {
@@ -172,12 +188,12 @@ export function consecutiveMisses(
   exerciseId: string,
 ): number {
   // Ordena da mais recente pra mais antiga.
-  const sorted = [...workouts].sort((a, b) => (a.dateISO > b.dateISO ? -1 : 1));
+  const sorted = [...workouts].sort((a, b) => compareWorkouts(b, a));
 
   let count = 0;
   for (const workout of sorted) {
     const entry = workout.entries.find((e) => e.exerciseId === exerciseId);
-    if (entry === undefined) continue; // sessão sem esse exercício, ignora
+    if (entry === undefined || entry.target.unknown) continue;
 
     const { hit } = readSession(entry);
     if (!hit) {

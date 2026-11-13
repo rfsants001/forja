@@ -96,6 +96,8 @@ export interface NextPrescriptionArgs {
   workouts: WorkoutLog[];
   /** Configuração do exercício na rotina. */
   config: RoutineExercise;
+  /** Quando conhecida, a rotina separa cargas de programas diferentes. */
+  routineId?: string;
   /**
    * Número de misses consecutivos para disparar deload.
    * Usa o default por política quando não informado.
@@ -112,6 +114,7 @@ export interface NextPrescriptionArgs {
 export function nextPrescription({
   workouts,
   config,
+  routineId,
   stallThresholdOverride,
 }: NextPrescriptionArgs): Prescription {
   const policy: ProgressionPolicy = config.progression ?? 'off';
@@ -125,21 +128,44 @@ export function nextPrescription({
   // com 0 sessões (semana 1 do ciclo). Tem sua própria lógica de "sem TM".
   // ---------------------------------------------------------------------------
   if (policy === '531') {
-    return apply531Policy({ workouts, config });
+    const cycleWorkouts = routineId === undefined ? workouts : workouts.filter((w) => w.routineId === routineId);
+    return apply531Policy({ workouts: cycleWorkouts, config });
   }
 
-  const lastEntry = lastEntryFor(workouts, config.exerciseId);
+  const scopedWorkouts = routineId === undefined
+    ? workouts
+    : workouts.filter((w) => w.routineId === routineId);
+  const policyWorkouts = scopedWorkouts.map((workout) => ({
+    ...workout,
+    entries: workout.entries.filter((entry) =>
+      entry.target.policy === undefined || entry.target.policy === policy,
+    ),
+  }));
+  const lastEntry = lastEntryFor(policyWorkouts, config.exerciseId);
+  const reference = lastEntry ?? lastEntryFor(
+    routineId === undefined ? workouts : workouts.filter((w) => w.routineId === undefined),
+    config.exerciseId,
+  );
 
   // Sem histórico: prescrição fresh (os campos ficam indefinidos — o app usa os defaults da rotina).
-  if (lastEntry === undefined) {
+  if (lastEntry === undefined || lastEntry.target.unknown ||
+      (lastEntry.target.weightKg === undefined && policy !== 'time')) {
+    const measured = reference?.sets.find((set) => set.done && set.weightKg !== undefined);
+    const timed = reference?.sets.find((set) => set.done && set.sec !== undefined);
+    const weightKg = measured?.weightKg;
+    const sec = config.targetSec ?? timed?.sec;
+    const reps = config.targetReps === undefined ? undefined : parseRepsRange(config.targetReps).min;
     return {
-      why: 'Nenhum histórico encontrado para este exercício. Primeira sessão.',
-      kind: 'fresh',
+      ...(reference === undefined ? {} : { weightKg, sec, reps }),
+      why: reference === undefined
+        ? 'Primeira sessão. Defina os valores iniciais.'
+        : 'Use o último registro como referência e confirme o alvo desta sessão.',
+      kind: reference === undefined ? 'fresh' : 'prefill',
     };
   }
 
   const session = readSession(lastEntry);
-  const misses = consecutiveMisses(workouts, config.exerciseId);
+  const misses = consecutiveMisses(policyWorkouts, config.exerciseId);
   const lastWeight = lastEntry.target.weightKg;
   const lastSec = lastEntry.target.sec;
 
@@ -147,7 +173,8 @@ export function nextPrescription({
   // Política OFF → repete o último target sem modificação.
   // ---------------------------------------------------------------------------
   if (policy === 'off') {
-    return prescribePrefill(lastEntry.target.weightKg, lastEntry.target.reps, lastEntry.target.sec);
+    const measured = lastEntry.sets.find((set) => set.done && set.weightKg !== undefined);
+    return prescribePrefill(measured?.weightKg ?? lastWeight, config.targetReps ?? lastEntry.target.reps, config.targetSec ?? lastSec);
   }
 
   // ---------------------------------------------------------------------------
@@ -371,7 +398,7 @@ function applyDoublePolicy({
     return relevantSets.every((s) => (s.reps ?? 0) >= range.max);
   })();
 
-  if (hittingTop) {
+  if (session.hit && hittingTop) {
     const newWeight = base + incrementKg;
     return {
       weightKg: newWeight,
@@ -466,19 +493,25 @@ interface Args531 {
  * O TM vem de `config.trainingMaxKg`. Sem TM definido, devolve 'fresh' com orientação.
  */
 function apply531Policy({ workouts, config }: Args531): Prescription {
-  const tmKg = config.trainingMaxKg;
+  const baseTmKg = config.trainingMaxKg;
 
-  if (tmKg === undefined || tmKg <= 0) {
+  if (baseTmKg === undefined || baseTmKg <= 0) {
     return {
       why: '5/3/1: Training max não definido. Configure o TM no editor de rotina (ou derive do seu 1RM × 90%).',
       kind: 'fresh',
     };
   }
 
-  // Conta quantas sessões deste exercício já foram logadas.
-  // Usamos lastNEntriesFor com N grande para obter o total completo.
-  const allSessions = lastNEntriesFor(workouts, config.exerciseId, 10_000);
-  const sessionCount = allSessions.length;
+  const cycleEntries = lastNEntriesFor(workouts, config.exerciseId, Infinity).filter(
+    (entry) => entry.target.policy === '531' &&
+      entry.target.baseTrainingMaxKg === baseTmKg && entry.target.mainSets?.length === 3,
+  );
+  let sessionCount = 0;
+  for (const entry of cycleEntries) {
+    const expectedWeek = sessionCount % 4 + 1;
+    if (entry.target.cycleWeek === expectedWeek && readSession(entry).hit) sessionCount++;
+  }
+  const tmKg = baseTmKg + Math.floor(sessionCount / 4) * (config.trainingMaxIncrementKg ?? 2.5);
 
   // Semana do ciclo: posição dentro do bloco de 4 sessões.
   const weekIndex = sessionCount % 4; // 0, 1, 2, 3

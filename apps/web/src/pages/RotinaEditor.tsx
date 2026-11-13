@@ -450,7 +450,15 @@ function RexRow({
               />
             </div>
             <div className="field">
-              <label style={{ visibility: 'hidden' }}>Derivar</label>
+              <label>
+                Aumento do TM por ciclo (kg)
+                <input type="number" min={0} step="any" placeholder="2,5" value={rex.trainingMaxIncrementKg ?? ''}
+                  onChange={(event) => onChange(rex._key, {
+                    trainingMaxIncrementKg: event.target.value === '' ? undefined : Math.max(0, Number(event.target.value)),
+                  })} />
+              </label>
+            </div>
+            <div className="field">
               <button
                 type="button"
                 className="btn ghost"
@@ -718,7 +726,7 @@ export function RotinaEditor() {
 
   async function handleSave() {
     const trimmed = name.trim();
-    if (trimmed.length === 0 || categoryId === '') return;
+    if (!canSave) return;
 
     setSaving(true);
     try {
@@ -748,7 +756,9 @@ export function RotinaEditor() {
   // Render
   // ---------------------------------------------------------------------------
 
-  const canSave = name.trim().length > 0 && categoryId !== '';
+  const validExercises = rexList.length > 0 && rexList.every((rex) => Number.isInteger(rex.sets) && rex.sets > 0
+    && exerciseMap.has(rex.exerciseId) && (rex.progression !== '531' || (rex.trainingMaxKg ?? 0) > 0));
+  const canSave = name.trim().length > 0 && categoryId !== '' && validExercises;
   const canGroup = selectedKeys.size >= 2;
 
   return (
@@ -867,6 +877,7 @@ export function RotinaEditor() {
         })}
       </div>
 
+      {!validExercises && rexList.length > 0 && <p className="feedback error">Revise os exercícios, o número de séries e o training max dos exercícios 5/3/1.</p>}
       {rexList.length === 0 && (
         <div className="empty" style={{ padding: '24px 0' }}>
           <p>Nenhum exercício adicionado ainda.</p>

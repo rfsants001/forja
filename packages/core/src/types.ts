@@ -93,6 +93,8 @@ export interface RoutineExercise {
    * `estimate1RM × 0.9`. Não é o 1RM — é a carga de trabalho que gera as séries principais.
    */
   trainingMaxKg?: number;
+  /** Aumento do TM ao concluir quatro sessões 5/3/1 válidas. Padrão: 2,5 kg. */
+  trainingMaxIncrementKg?: number;
 }
 
 /** Rotina nomeada (um "treino") dentro de uma categoria. */
@@ -135,6 +137,7 @@ export interface SetLog {
   speedKmh?: number;
   done: boolean;
   effort?: Effort;
+  note?: string;
 }
 
 /**
@@ -178,6 +181,14 @@ export interface TargetSnapshot {
   sec?: number;
   weightKg?: number;
   policy?: ProgressionPolicy;
+  distanceM?: number;
+  speedKmh?: number;
+  mainSets?: MainSet531[];
+  cycleWeek?: 1 | 2 | 3 | 4;
+  baseTrainingMaxKg?: number;
+  trainingMaxKg?: number;
+  /** Importações sem acesso à prescrição original. */
+  unknown?: true;
 }
 
 /** Um exercício dentro de um workout logado. */
@@ -242,6 +253,8 @@ export interface Settings {
   muscleFigure?: 'male' | 'female';
   /** Nome da paleta de acento global (ex. 'flame', 'blue'). */
   accent?: string;
+  /** Idioma da interface. Desacoplado do web via union inline. */
+  lang?: 'pt' | 'en';
 }
 
 /** Estado derivado de streak (nunca persistido como contador — calculado do histórico). */
@@ -260,4 +273,5 @@ export const DEFAULT_SETTINGS: Settings = {
   trackEffort: false,
   weekStartsOn: 1,
   accent: 'flame',
+  lang: 'pt',
 };

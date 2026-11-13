@@ -1,11 +1,13 @@
 import '../styles/setup.css';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Dumbbell, CalendarDays, Library, Sparkles, X } from 'lucide-react';
-import type { Weekday } from '@forja/core';
+import { toISO } from '@forja/core';
+import type { Routine, Weekday } from '@forja/core';
 import { db } from '../db/db';
-import { setWeekday } from '../db/repo';
+import { clearDayOverride, setDayOverride, setWeekday } from '../db/repo';
+import { useSessionStore } from '../store/session';
 import { STARTER_PLANS, applyStarterPlan } from '../lib/starter-plans';
 import type { ApplyResult } from '../lib/starter-plans';
 
@@ -43,6 +45,9 @@ const WEEKDAY_SHORT_LABELS: Record<Weekday, string> = {
 
 function StarterPlansSheet({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [replaceDays, setReplaceDays] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { dialog.current?.showModal(); }, []);
   const [applying, setApplying] = useState(false);
   const [result, setResult] = useState<ApplyResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +57,7 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
     setApplying(true);
     setError(null);
     try {
-      const res = await applyStarterPlan(selected);
+      const res = await applyStarterPlan(selected, replaceDays);
       setResult(res);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao aplicar plano.');
@@ -62,15 +67,18 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="sheet-overlay" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+    <dialog ref={dialog} className="sheet starter-dialog" aria-labelledby="starter-plans-title" onCancel={(event) => {
+      event.preventDefault();
+      if (!applying) onClose();
+    }}>
         <div className="sheet-handle" />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h2 style={{ margin: 0 }}>Planos prontos</h2>
+          <h2 id="starter-plans-title" style={{ margin: 0 }}>Planos prontos</h2>
           <button
             className="btn ghost"
             style={{ padding: '8px', borderRadius: '50%' }}
             onClick={onClose}
+            disabled={applying}
             aria-label="Fechar"
           >
             <X size={18} strokeWidth={2.4} />
@@ -85,6 +93,7 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
                 <button
                   key={plan.id}
                   className={`sp-plan-card${selected === plan.id ? ' selected' : ''}`}
+                  aria-pressed={selected === plan.id}
                   onClick={() => setSelected(plan.id)}
                 >
                   <div className="sp-plan-card-header">
@@ -104,12 +113,16 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
               ))}
             </div>
 
+            <label className="starter-replace">
+              <input type="checkbox" checked={replaceDays} onChange={(event) => setReplaceDays(event.target.checked)} />
+              Substituir treinos nos dias já ocupados
+            </label>
             {error !== null && (
-              <div className="sp-feedback warn">{error}</div>
+              <div className="sp-feedback warn" role="alert">{error}</div>
             )}
 
             <div className="btn-row">
-              <button className="btn ghost" onClick={onClose}>Cancelar</button>
+              <button className="btn ghost" disabled={applying} onClick={onClose}>Cancelar</button>
               <button
                 className="btn"
                 disabled={selected === null || applying}
@@ -122,7 +135,7 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
         ) : (
           /* Feedback pós-aplicação */
           <>
-            <div className="sp-feedback">
+            <div className="sp-feedback" role="status">
               {result.created > 0
                 ? `${result.created} rotina${result.created > 1 ? 's' : ''} criada${result.created > 1 ? 's' : ''} com sucesso!`
                 : 'Plano já aplicado — rotinas existentes foram mantidas.'}
@@ -130,6 +143,7 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
                 <span> ({result.skipped} já existia{result.skipped > 1 ? 'm' : ''})</span>
               )}
             </div>
+            {result.preservedDays > 0 && <p className="feedback">{result.preservedDays} dia(s) ocupados foram mantidos.</p>}
             {result.unresolved.length > 0 && (
               <div className="sp-feedback warn" style={{ marginTop: 8 }}>
                 Exercícios não encontrados no catálogo:{' '}
@@ -141,8 +155,7 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </dialog>
   );
 }
 
@@ -150,7 +163,72 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
 // Componente
 // ---------------------------------------------------------------------------
 
+function RoutineRow({ routine, color, activeId }: { routine: Routine; color?: string; activeId: string | null | undefined }) {
+  const resume = activeId === routine.id;
+  return (
+    <div className="routine-list-row">
+      <Link to={`/treinos/rotina/${encodeURIComponent(routine.id)}`} className="routine-item"
+        style={color ? { borderLeftColor: color, borderLeftWidth: 3 } : undefined} aria-label={`Editar ${routine.name}`}>
+        <div className="routine-info">
+          <div className="routine-name">{routine.name}</div>
+          <div className="routine-meta">{routine.exercises.length} exercício(s){routine.note ? ` · ${routine.note}` : ''}</div>
+        </div>
+      </Link>
+      {routine.exercises.length > 0 && (activeId === null || resume) && (
+        <Link className="btn ghost" to={`/treino?routineId=${encodeURIComponent(routine.id)}`}
+          aria-label={`${resume ? 'Continuar' : 'Treinar agora'} · ${routine.name}`}>
+          {resume ? 'Continuar' : 'Treinar agora'}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function DateOverrideEditor({ routines }: { routines: Routine[] }) {
+  const [date, setDate] = useState(() => toISO(new Date()));
+  const [choice, setChoice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<{ text: string; error?: boolean } | null>(null);
+  const row = useLiveQuery(async () => (await db.dayOverrides.get(date)) ?? null, [date]);
+  const value = choice ?? (row?.dateISO === date ? row.routine : null) ?? '';
+
+  async function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setFeedback(null);
+    try {
+      if (value === '') await clearDayOverride(date);
+      else await setDayOverride(date, value);
+      setFeedback({ text: 'Agenda desta data atualizada.' });
+    } catch {
+      setFeedback({ text: 'Não foi possível alterar a data. Tente novamente.', error: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="card date-override" onSubmit={(event) => void save(event)}>
+      <h2>Mudar só um dia</h2>
+      <p className="hint">Troque a rotina ou marque descanso para uma data. Seu plano semanal continua valendo nos outros dias.</p>
+      <label>Data<input type="date" required value={date} disabled={busy} onChange={(event) => {
+        setDate(event.target.value); setChoice(null); setFeedback(null);
+      }} /></label>
+      <label>Treino desta data<select value={value} disabled={busy} onChange={(event) => setChoice(event.target.value)}>
+        <option value="">Seguir plano semanal</option>
+        <option value="rest">Descanso</option>
+        {routines.map((routine) => <option key={routine.id} value={routine.id}>{routine.name}</option>)}
+      </select></label>
+      <button className="btn ghost" disabled={busy || !date || row === undefined}>{busy ? 'Salvando…' : 'Salvar data'}</button>
+      {feedback !== null && <p className={`feedback${feedback.error ? ' error' : ''}`} role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
+    </form>
+  );
+}
+
 export function Treinos() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const active = useSessionStore((state) => state.active);
+  const activeId = active === null ? null : active.routineId;
   // Dados reativos
   const categories = useLiveQuery(
     () => db.categories.orderBy('order').toArray(),
@@ -214,7 +292,14 @@ export function Treinos() {
   const [saving, setSaving] = useState<Weekday | null>(null);
 
   // Sheet de planos prontos
-  const [showStarterPlans, setShowStarterPlans] = useState(false);
+  const showStarterPlans = searchParams.get('planos') === '1';
+  function setShowStarterPlans(show: boolean) {
+    setSearchParams((params) => {
+      if (show) params.set('planos', '1');
+      else params.delete('planos');
+      return params;
+    }, { replace: true });
+  }
 
   async function handleWeekdayChange(day: Weekday, value: string) {
     setSaving(day);
@@ -314,22 +399,7 @@ export function Treinos() {
                   <span className="cat-name">{cat.name}</span>
                 </div>
                 <div className="routine-list">
-                  {rots.map((r) => (
-                    <Link
-                      key={r.id}
-                      to={`/treinos/rotina/${r.id}`}
-                      className="routine-item"
-                      style={{ borderLeftColor: cat.color, borderLeftWidth: 3 }}
-                    >
-                      <div className="routine-info">
-                        <div className="routine-name">{r.name}</div>
-                        <div className="routine-meta">
-                          {r.exercises.length} exercício{r.exercises.length !== 1 ? 's' : ''}
-                          {r.note ? ` · ${r.note}` : ''}
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                  {rots.map((routine) => <RoutineRow key={routine.id} routine={routine} color={cat.color} activeId={activeId} />)}
                 </div>
               </div>
             );
@@ -347,20 +417,7 @@ export function Treinos() {
                   <span className="cat-name">Sem categoria</span>
                 </div>
                 <div className="routine-list">
-                  {orphans.map((r) => (
-                    <Link
-                      key={r.id}
-                      to={`/treinos/rotina/${r.id}`}
-                      className="routine-item"
-                    >
-                      <div className="routine-info">
-                        <div className="routine-name">{r.name}</div>
-                        <div className="routine-meta">
-                          {r.exercises.length} exercício{r.exercises.length !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                  {orphans.map((routine) => <RoutineRow key={routine.id} routine={routine} activeId={activeId} />)}
                 </div>
               </div>
             );
@@ -412,6 +469,7 @@ export function Treinos() {
       <p className="hint" style={{ textAlign: 'center', marginTop: 24 }}>
         O plano semanal é uma sugestão — você pode alterar qualquer dia antes de treinar.
       </p>
+      {totalRoutines > 0 && <DateOverrideEditor routines={(routines ?? []).filter((routine) => routine.exercises.length > 0)} />}
     </>
   );
 }

@@ -12,6 +12,7 @@
 import { useState, useCallback } from 'react';
 import { Dumbbell } from 'lucide-react';
 import type { DemoSource } from '@forja/core';
+import { useT } from '../lib/i18n';
 import './Media.css';
 
 export type MediaSize = 'sm' | 'md' | 'lg' | 'xl';
@@ -33,6 +34,7 @@ export interface MediaProps {
  * o GIF só é requisitado ao tocar/expandir o componente.
  */
 export function Media({ demo, name, size = 'md', staticOnly = false, className }: MediaProps) {
+  const t = useT();
   // Estado para controle do GIF (só carrega ao tocar)
   const [gifAtivo, setGifAtivo] = useState(false);
   // Fallback: se gif falhar, mostrar imagem; se imagem falhar, mostrar placeholder
@@ -64,28 +66,23 @@ export function Media({ demo, name, size = 'md', staticOnly = false, className }
       src = demo.image;
     }
 
+    const media = src ? (
+      <img src={src} alt={name} className="media-img" loading="lazy"
+        onError={gifAtivo && !gifErro ? handleGifErro : handleImagemErro} />
+    ) : <Placeholder />;
+
     return (
       <div
         className={['media-root', className].filter(Boolean).join(' ')}
         data-size={size}
-        onClick={temGif ? handleToggleGif : undefined}
-        role={temGif ? 'button' : undefined}
-        aria-label={temGif ? (gifAtivo ? `Parar demo de ${name}` : `Ver demo de ${name}`) : undefined}
-        style={temGif ? { cursor: 'pointer' } : undefined}
       >
-        {src ? (
-          <img
-            src={src}
-            alt={name}
-            className="media-img"
-            loading="lazy"
-            onError={gifAtivo && !gifErro ? handleGifErro : handleImagemErro}
-          />
-        ) : (
-          <Placeholder />
-        )}
-        {/* Atribuição obrigatória — só visível em lg/xl via CSS */}
-        <span className="media-attribution">© Gym visual</span>
+        {temGif ? (
+          <button type="button" className="media-play" onClick={handleToggleGif} aria-pressed={gifAtivo}
+            aria-label={t(gifAtivo ? 'media.stopDemo' : 'media.viewDemo', [name])}>
+            {media}
+          </button>
+        ) : media}
+        <a href="https://gymvisual.com/" className="media-attribution" target="_blank" rel="noreferrer">© Gym visual</a>
       </div>
     );
   }
@@ -96,10 +93,9 @@ export function Media({ demo, name, size = 'md', staticOnly = false, className }
       <div
         className={['media-root', className].filter(Boolean).join(' ')}
         data-size={size}
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG curado internamente
-        dangerouslySetInnerHTML={{ __html: demo.svg }}
-        aria-label={name}
-      />
+      >
+        <img src={`data:image/svg+xml,${encodeURIComponent(demo.svg)}`} alt={name} className="media-img" loading="lazy" />
+      </div>
     );
   }
 

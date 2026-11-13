@@ -19,8 +19,10 @@ import { Check, ChevronLeft, ChevronRight, X, Timer, Zap, Play, Square, Trophy }
 import {
   effectiveRoutine,
   nextPrescription,
+  parseRepsRange,
   toISO,
-  estimate1RM,
+  detectPRs,
+  detectAllPRs,
   round1,
   computePlates,
   DEFAULT_BAR_KG,
@@ -40,7 +42,7 @@ import type {
 import { db } from '../db/db';
 import { getWeekPlan, listOverrides, getSettings } from '../db/repo';
 import { useSessionStore } from '../store/session';
-import type { ActiveExercise, TargetSnapshot } from '../store/session';
+import type { ActiveExercise } from '../store/session';
 import { useWakeLock } from '../lib/useWakeLock';
 
 // ---------------------------------------------------------------------------
@@ -55,44 +57,37 @@ function fmtSecs(total: number): string {
   return `${m}:${String(r).padStart(2, '0')}`;
 }
 
-/** Monta os sets pré-preenchidos de um exercício dado a prescrição e a config da rotina. */
-function buildSets(config: RoutineExercise, workouts: WorkoutLog[]): SetLog[] {
-  const prescription = nextPrescription({ workouts, config });
-
-  return Array.from({ length: config.sets }, (): SetLog => {
-    // Modo time
-    if (config.targetSec !== undefined) {
-      return {
-        sec: prescription.sec ?? config.targetSec,
-        done: false,
-      };
-    }
-    // Modo cardio
-    if (config.targetDistanceM !== undefined || config.targetSpeedKmh !== undefined) {
-      return {
-        sec: prescription.sec ?? config.targetSec,
-        distanceM: config.targetDistanceM,
-        speedKmh: config.targetSpeedKmh,
-        done: false,
-      };
-    }
-    // Modo reps (padrão)
-    return {
-      reps: prescription.reps,
-      weightKg: prescription.weightKg,
-      done: false,
-    };
-  });
-}
-
-/** Monta o TargetSnapshot a partir da config e da prescrição calculada. */
-function buildTarget(config: RoutineExercise, workouts: WorkoutLog[]): TargetSnapshot {
-  const prescription = nextPrescription({ workouts, config });
+function buildActiveExercise(config: RoutineExercise, exercise: Exercise, workouts: WorkoutLog[], routineId: string): ActiveExercise {
+  const prescription = nextPrescription({ workouts, config, routineId });
+  const mainSets = prescription.mainSets;
+  const isReps = exercise.mode === 'reps';
+  const reps = isReps ? prescription.reps ?? (config.targetReps ? parseRepsRange(config.targetReps).min : undefined) : undefined;
+  const sec = isReps ? undefined : prescription.sec ?? config.targetSec;
+  const distanceM = exercise.mode === 'cardio' ? config.targetDistanceM : undefined;
+  const speedKmh = exercise.mode === 'cardio' ? config.targetSpeedKmh : undefined;
+  const weightKg = isReps && mainSets === undefined ? prescription.weightKg : undefined;
+  const count = mainSets?.length ?? config.sets;
   return {
-    sets: config.sets,
-    reps: config.targetReps,
-    sec: config.targetSec,
-    weightKg: prescription.weightKg,
+    exerciseId: exercise.id,
+    name: exercise.name,
+    mode: exercise.mode,
+    restSec: config.restSec,
+    supersetGroup: config.supersetGroup,
+    prescription,
+    target: {
+      sets: count,
+      policy: config.progression ?? 'off',
+      reps: mainSets === undefined && reps !== undefined ? String(reps) : undefined,
+      sec, distanceM, speedKmh, weightKg, mainSets,
+      cycleWeek: prescription.cycleWeek,
+      baseTrainingMaxKg: config.trainingMaxKg,
+      trainingMaxKg: prescription.trainingMaxKg,
+    },
+    sets: Array.from({ length: count }, (_, index) => ({
+      reps: mainSets?.[index]?.reps ?? reps,
+      weightKg: mainSets?.[index]?.weightKg ?? weightKg,
+      sec, distanceM, speedKmh, done: false,
+    })),
   };
 }
 
@@ -105,7 +100,7 @@ function buildTarget(config: RoutineExercise, workouts: WorkoutLog[]): TargetSna
  * de todos os exercícios do mesmo supersetGroup (incluindo o próprio).
  * Se o exercício não tem supersetGroup, devolve apenas [exIndex].
  */
-function getSupersetGroup(exercises: RoutineExercise[], exIndex: number): number[] {
+function getSupersetGroup(exercises: Pick<RoutineExercise, 'supersetGroup'>[], exIndex: number): number[] {
   const cfg = exercises[exIndex];
   if (cfg === undefined || cfg.supersetGroup === undefined) return [exIndex];
   const group = cfg.supersetGroup;
@@ -122,7 +117,7 @@ function getSupersetGroup(exercises: RoutineExercise[], exIndex: number): number
  */
 function isRoundComplete(
   exercises: ActiveExercise[],
-  routineExercises: RoutineExercise[],
+  routineExercises: Pick<RoutineExercise, 'supersetGroup'>[],
   exIndex: number,
   setIndex: number,
 ): boolean {
@@ -133,7 +128,7 @@ function isRoundComplete(
     const ex = exercises[gi];
     if (ex === undefined) return true;
     const set = ex.sets[setIndex];
-    return set !== undefined && set.done;
+    return set === undefined || set.done;
   });
 }
 
@@ -144,7 +139,7 @@ function isRoundComplete(
  */
 function nextInSuperset(
   exercises: ActiveExercise[],
-  routineExercises: RoutineExercise[],
+  routineExercises: Pick<RoutineExercise, 'supersetGroup'>[],
   exIndex: number,
   setIndex: number,
 ): number | null {
@@ -160,7 +155,7 @@ function nextInSuperset(
     const ex = exercises[nextIdx];
     if (ex === undefined) continue;
     const set = ex.sets[setIndex];
-    if (set === undefined || !set.done) return nextIdx;
+    if (set !== undefined && !set.done) return nextIdx;
   }
   return null; // todos já fizeram — round completo
 }
@@ -180,44 +175,6 @@ function supersetLabel(supersetGroup: number): string {
  * Calcula o melhor 1RM e a maior carga já registrados para um exercício
  * a partir de todos os workouts do histórico. Usado para detecção inline.
  */
-function computeHistoricalBestsInline(
-  workouts: WorkoutLog[],
-  exerciseId: string,
-): { best1RM: number; bestWeight: number; hasHistory: boolean } {
-  let best1RM = 0;
-  let bestWeight = 0;
-  let hasHistory = false;
-
-  for (const w of workouts) {
-    for (const entry of w.entries) {
-      if (entry.exerciseId !== exerciseId) continue;
-      hasHistory = true;
-      for (const set of entry.sets) {
-        if (!set.done) continue;
-        if (set.weightKg !== undefined && set.weightKg > bestWeight) {
-          bestWeight = set.weightKg;
-        }
-        if (
-          set.weightKg !== undefined &&
-          set.weightKg > 0 &&
-          set.reps !== undefined &&
-          set.reps >= 1 &&
-          set.reps <= 12
-        ) {
-          const orm = estimate1RM(set.weightKg, set.reps);
-          if (orm > best1RM) best1RM = orm;
-        }
-      }
-    }
-  }
-  return { best1RM, bestWeight, hasHistory };
-}
-
-// ---------------------------------------------------------------------------
-// Sub-componentes
-// ---------------------------------------------------------------------------
-
-/** Toast de PR. */
 function PRToast({ pr, exerciseName }: { pr: PR; exerciseName: string }) {
   const label =
     pr.kind === '1rm'
@@ -256,6 +213,8 @@ function RestOverlay({
     Math.max(0, (endsAt - Date.now()) / 1000),
   );
   const completedRef = useRef(false);
+  const skipRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => { skipRef.current?.focus({ preventScroll: true }); }, []);
 
   useEffect(() => {
     completedRef.current = false;
@@ -303,7 +262,7 @@ function RestOverlay({
       <span className={`tg-rest-countdown${urgent ? ' urgent' : ''}`}>
         {fmtSecs(remaining)}
       </span>
-      <button className="tg-rest-skip" onClick={onSkip}>
+      <button className="tg-rest-skip" ref={skipRef} onClick={onSkip}>
         Pular descanso
       </button>
     </motion.div>
@@ -383,9 +342,12 @@ interface SetRowProps {
   set: SetLog;
   isTime: boolean;
   isCardio: boolean;
+  unit: Unit;
+  disabled: boolean;
+  timerBusy: boolean;
   trackEffort: boolean;
   workTimerSetIndex: number | null; // qual série está com work timer ativo
-  onDone: () => void;
+  onDone: (elapsed?: number) => void;
   onChange: (patch: Partial<SetLog>) => void;
   onStartWork: (setIndex: number) => void;
   onStopWork: (elapsedSec: number) => void;
@@ -399,6 +361,9 @@ function SetRow({
   set,
   isTime,
   isCardio,
+  unit,
+  disabled,
+  timerBusy,
   trackEffort,
   workTimerSetIndex,
   onDone,
@@ -412,7 +377,7 @@ function SetRow({
   const isWorkActive = workTimerSetIndex === setIndex && workStartedAt !== null;
 
   return (
-    <div className={`tg-set-wrap${set.done ? ' done' : ''}`}>
+    <fieldset className={`tg-set-wrap${set.done ? ' done' : ''}`} disabled={disabled} aria-label={`Série ${setIndex + 1}`}>
       <div className="tg-set-row">
         <span className="tg-set-idx">{setIndex + 1}</span>
 
@@ -476,9 +441,12 @@ function SetRow({
               inputMode="decimal"
               min={0}
               step={0.5}
-              value={set.weightKg ?? ''}
-              onChange={(e) => onChange({ weightKg: e.target.value === '' ? undefined : Number(e.target.value) })}
-              aria-label={`Série ${setIndex + 1} — carga kg`}
+              value={set.weightKg === undefined ? '' : unit === 'lb' ? Number((set.weightKg * KG_TO_LB).toFixed(4)) : set.weightKg}
+              onChange={(event) => {
+                const value = event.target.value === '' ? undefined : event.target.valueAsNumber;
+                onChange({ weightKg: value === undefined || !Number.isFinite(value) ? undefined : unit === 'lb' ? value / KG_TO_LB : value });
+              }}
+              aria-label={`Série ${setIndex + 1} — carga em ${unit}`}
             />
           </>
         )}
@@ -489,15 +457,16 @@ function SetRow({
             className={`tg-work-btn${isWorkActive ? ' active' : ''}`}
             onClick={() => isWorkActive ? undefined : onStartWork(setIndex)}
             aria-label={isWorkActive ? 'Série em andamento' : 'Iniciar série'}
-            disabled={isWorkActive}
+            disabled={timerBusy}
           >
             <Play size={18} strokeWidth={2.4} />
           </button>
         ) : (
           <button
             className={`tg-done-btn${set.done ? ' done' : ''}`}
-            onClick={onDone}
+            onClick={() => onDone()}
             aria-label={set.done ? 'Desmarcar série' : 'Marcar série como feita'}
+            aria-pressed={set.done}
           >
             <Check size={20} strokeWidth={2.6} />
           </button>
@@ -505,6 +474,9 @@ function SetRow({
       </div>
 
       {/* Work timer ativo para esta série */}
+      {(isTime || isCardio) && !set.done && !timerBusy && (
+        <button className="tg-manual-done" type="button" onClick={() => onDone()} disabled={set.sec === undefined}>Registrar tempo manualmente</button>
+      )}
       {isWorkActive && workStartedAt !== null && (
         <WorkTimerDisplay
           startedAt={workStartedAt}
@@ -512,7 +484,7 @@ function SetRow({
           onStop={(elapsed) => {
             onStopWork(elapsed);
             onChange({ sec: elapsed });
-            onDone();
+            onDone(elapsed);
           }}
         />
       )}
@@ -556,7 +528,7 @@ function SetRow({
           <span className="tg-rir-hint">reps na reserva</span>
         </div>
       )}
-    </div>
+    </fieldset>
   );
 }
 
@@ -565,7 +537,7 @@ function SetRow({
 // ---------------------------------------------------------------------------
 
 /** Fator de conversão kg → lb. */
-const KG_TO_LB = 2.20462;
+const KG_TO_LB = 1 / 0.45359237;
 
 interface PlateCalcProps {
   /** Carga atual da série (pode ser undefined quando o campo está vazio). */
@@ -648,7 +620,7 @@ function PlateCalc({ weightKg, unit }: PlateCalcProps) {
                 </div>
               </div>
               <div className="tg-plate-achievable">
-                Montável: <strong>{fmt(unit === 'lb' ? result.achievableKg * KG_TO_LB : result.achievableKg)} {unitLabel}</strong>
+                Montável: <strong>{fmt(result.achievableKg)} {unitLabel}</strong>
                 {result.leftover > 0 && (
                   <span className="tg-plate-leftover">
                     {' '}(faltam {fmt(result.leftover)} {unitLabel})
@@ -674,11 +646,11 @@ export function TreinoGuiado() {
   const [searchParams] = useSearchParams();
   const routineIdParam = searchParams.get('routineId');
 
-  const { active, start, logSet, toggleSetDone, goToExercise, startRest, stopRest, cancel, finish } =
+  const { active, saving, start, logSet, toggleSetDone, goToExercise, startRest, stopRest, startWork, stopWork, cancel, finish } =
     useSessionStore();
 
   // Dados do banco (leitura reativa)
-  const workouts = useLiveQuery(() => db.workouts.toArray(), []) ?? [];
+  const workouts = useLiveQuery(() => db.workouts.toArray(), []);
   const exercisesMap = useLiveQuery(
     () => db.exercises.toArray().then((arr) => {
       const m = new Map<string, Exercise>();
@@ -686,7 +658,7 @@ export function TreinoGuiado() {
       return m;
     }),
     [],
-  ) ?? new Map<string, Exercise>();
+  );
 
   const routinesMap = useLiveQuery(
     () => db.routines.toArray().then((arr) => {
@@ -695,7 +667,7 @@ export function TreinoGuiado() {
       return m;
     }),
     [],
-  ) ?? new Map<string, Routine>();
+  );
 
   // Settings reativas
   const settings = useLiveQuery(() => db.settings.get('app'), []);
@@ -712,18 +684,16 @@ export function TreinoGuiado() {
   const [todayRoutineId, setTodayRoutineId] = useState<string | 'rest' | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
 
-  // ---- G3: Work timer — estado local (startedAt por exIndex+setIndex) ----
-  // workTimerKey: `${exIndex}-${setIndex}` ou null
-  const [workTimerKey, setWorkTimerKey] = useState<string | null>(null);
-  const [workTimerStartedAt, setWorkTimerStartedAt] = useState<number | null>(null);
+  const [finishError, setFinishError] = useState<string | null>(null);
+  const initializing = useRef(false);
+  const work = active?.work;
+  const [restAnnouncement, setRestAnnouncement] = useState('');
 
   // ---- G8: PRs detectados — toasts ----
   // Lista de PRs pendentes para exibir. Exibimos um de cada vez, 2.5s cada.
   const [prQueue, setPrQueue] = useState<{ pr: PR; exerciseName: string }[]>([]);
-  // Conjunto de exerciseIds que já geraram toast nesta sessão (máx 1 por exercício)
+  // Uma celebração por exercício e tipo nesta sessão.
   const prToastedRef = useRef<Set<string>>(new Set());
-  // PRs acumulados na sessão para gravar no WorkoutLog ao finalizar
-  const sessionPRsRef = useRef<PR[]>([]);
 
   // Exibe o primeiro toast da fila e remove após 2.5s
   useEffect(() => {
@@ -736,8 +706,9 @@ export function TreinoGuiado() {
 
   // Determina a rotina e inicia a sessão (uma vez, quando os dados do db chegarem)
   useEffect(() => {
-    if (initDone) return;
-    if (exercisesMap.size === 0 && routinesMap.size === 0) return;
+    if (initDone || initializing.current) return;
+    if (workouts === undefined || exercisesMap === undefined || routinesMap === undefined) return;
+    initializing.current = true;
 
     void (async () => {
       try {
@@ -771,17 +742,19 @@ export function TreinoGuiado() {
           return;
         }
 
-        const exercises: ActiveExercise[] = routine.exercises.map((cfg: RoutineExercise) => ({
-          exerciseId: cfg.exerciseId,
-          target: buildTarget(cfg, workouts),
-          sets: buildSets(cfg, workouts),
-        }));
+        if (routine.exercises.length === 0) throw new Error('Adicione um exercício à rotina antes de começar.');
+        const exercises = routine.exercises.map((cfg) => {
+          const exercise = exercisesMap.get(cfg.exerciseId);
+          if (exercise === undefined) throw new Error('A rotina tem um exercício indisponível. Edite a rotina para continuar.');
+          return buildActiveExercise(cfg, exercise, workouts, routine.id);
+        });
 
         const fetchedSettings = await getSettings();
 
         start({
           dateISO: today,
           routineId: routine.id,
+          routineName: routine.name,
           categoryId: routine.categoryId,
           exercises,
         });
@@ -805,78 +778,57 @@ export function TreinoGuiado() {
    */
   const checkForPR = useCallback(
     (exIndex: number, setIndex: number) => {
-      if (active === null) return;
+      if (active === null || workouts === undefined) return;
       const ex = active.exercises[exIndex];
       if (ex === undefined) return;
 
-      const { exerciseId } = ex;
-      const { best1RM, bestWeight, hasHistory } = computeHistoricalBestsInline(workouts, exerciseId);
-      if (!hasHistory) return;
-
       const set = ex.sets[setIndex];
-      if (set === undefined || !set.done) return;
-
-      const exName = exercisesMap.get(exerciseId)?.name ?? exerciseId;
-
-      // PR de carga bruta
-      if (
-        set.weightKg !== undefined &&
-        set.weightKg > bestWeight &&
-        !prToastedRef.current.has(`${exerciseId}-weight`)
-      ) {
-        const pr: PR = { exerciseId, kind: 'weight', value: set.weightKg };
-        sessionPRsRef.current.push(pr);
-        prToastedRef.current.add(`${exerciseId}-weight`);
-        setPrQueue((q) => [...q, { pr, exerciseName: exName }]);
-      }
-
-      // PR de 1RM (série elegível: carga > 0, 1 ≤ reps ≤ 12)
-      if (
-        set.weightKg !== undefined &&
-        set.weightKg > 0 &&
-        set.reps !== undefined &&
-        set.reps >= 1 &&
-        set.reps <= 12 &&
-        !prToastedRef.current.has(`${exerciseId}-1rm`)
-      ) {
-        const orm = estimate1RM(set.weightKg, set.reps);
-        if (orm > best1RM) {
-          const pr: PR = { exerciseId, kind: '1rm', value: orm };
-          sessionPRsRef.current.push(pr);
-          prToastedRef.current.add(`${exerciseId}-1rm`);
-          setPrQueue((q) => [...q, { pr, exerciseName: exName }]);
-        }
+      if (set === undefined) return;
+      const exerciseName = ex.name ?? exercisesMap?.get(ex.exerciseId)?.name ?? ex.exerciseId;
+      const records = detectPRs({ ...ex, sets: [{ ...set, done: true }] }, workouts);
+      for (const pr of records) {
+        if (pr.kind === 'reps') continue;
+        const key = `${pr.exerciseId}-${pr.kind}`;
+        if (prToastedRef.current.has(key)) continue;
+        prToastedRef.current.add(key);
+        setPrQueue((queue) => [...queue, { pr, exerciseName }]);
       }
     },
     [active, workouts, exercisesMap],
   );
 
-  function handleToggleDone(exIndex: number, setIndex: number) {
-    if (active === null) return;
+  function handleToggleDone(exIndex: number, setIndex: number, elapsed?: number) {
+    if (active === null || saving) return;
 
     const ex = active.exercises[exIndex];
     const set = ex?.sets[setIndex];
     if (set === undefined) return;
 
     const wasNotDone = !set.done;
+    const exercise = exercisesMap?.get(ex?.exerciseId ?? '');
+    const mode = ex?.mode ?? exercise?.mode;
+    if (wasNotDone && (mode === 'time' || mode === 'cardio'
+      ? (elapsed ?? set.sec ?? 0) <= 0 || (set.distanceM ?? 0) < 0 || (set.speedKmh ?? 0) < 0
+      : !Number.isInteger(set.reps) || (set.reps ?? 0) <= 0 || (set.weightKg ?? 0) < 0)) {
+      setFinishError('Confira os valores realizados. Use repetições inteiras, tempo maior que zero e medidas positivas.');
+      return;
+    }
+    setFinishError(null);
+    setRestAnnouncement('');
     toggleSetDone(exIndex, setIndex);
 
     if (!wasNotDone) return; // estava done → desmarcou, nada mais
 
     // Cancela work timer se estava rodando para esta série
-    if (workTimerKey === `${exIndex}-${setIndex}`) {
-      setWorkTimerKey(null);
-      setWorkTimerStartedAt(null);
-    }
-
-    // Detecta PR (após toggle, o set agora está done=true)
-    // Usamos o estado do store que ainda reflete o set atualizado via Immer-like
-    // Precisamos checar depois que o estado propagou — usamos um setTimeout(0) leve
-    setTimeout(() => checkForPR(exIndex, setIndex), 0);
+    if (work?.exerciseIndex === exIndex && work.setIndex === setIndex) stopWork();
+    checkForPR(exIndex, setIndex);
 
     // ---- G2: lógica de superset ----
-    const routine = active.routineId !== undefined ? routinesMap.get(active.routineId) : undefined;
-    const routineExercises = routine?.exercises ?? [];
+    const routine = active.routineId !== undefined ? routinesMap?.get(active.routineId) : undefined;
+    const routineExercises = active.exercises.map((item, index) => ({
+      supersetGroup: item.mode === undefined ? routine?.exercises[index]?.supersetGroup : item.supersetGroup,
+      restSec: item.restSec ?? (item.mode === undefined ? routine?.exercises[index]?.restSec : undefined),
+    }));
 
     const cfg = routineExercises[exIndex];
     const isInSuperset = cfg !== undefined && cfg.supersetGroup !== undefined;
@@ -917,16 +869,22 @@ export function TreinoGuiado() {
   }
 
   async function handleFinish() {
+    if (useSessionStore.getState().saving) return;
+    if (!active?.exercises.some((exercise) => exercise.sets.some((set) => set.done))) {
+      setFinishError('Registre pelo menos uma série antes de finalizar.');
+      return;
+    }
+    if (active.work !== undefined) {
+      setFinishError('Pare o cronômetro da série antes de finalizar.');
+      return;
+    }
+    setFinishError(null);
     try {
-      // Injeta os PRs acumulados no WorkoutLog via finish() do store
-      // O store não aceita prFlags diretamente, então usamos o retorno
-      const log: WorkoutLog = await finish();
-      // Se há PRs, poderíamos persistir de volta — mas o spec diz que é derivável.
-      // Aqui apenas descartamos (já foi detectado e exibido).
-      void log;
+      const records = detectAllPRs(active.exercises, workouts ?? []).filter((pr) => pr.kind !== 'reps');
+      await finish(records);
       navigate('/historico');
     } catch {
-      navigate('/');
+      setFinishError('Não foi possível salvar. Seu treino continua aberto. Tente finalizar novamente.');
     }
   }
 
@@ -938,15 +896,11 @@ export function TreinoGuiado() {
 
   // ---- G3: Work timer handlers ----
   function handleStartWork(exIndex: number, setIndex: number) {
-    // Cancela rest timer se houver (os dois são mutuamente exclusivos)
-    stopRest();
-    setWorkTimerKey(`${exIndex}-${setIndex}`);
-    setWorkTimerStartedAt(Date.now());
+    startWork(exIndex, setIndex);
   }
 
   function handleStopWork(_elapsedSec: number) {
-    setWorkTimerKey(null);
-    setWorkTimerStartedAt(null);
+    stopWork();
   }
 
   // ---- Guard: aguarda inicialização ----
@@ -960,7 +914,7 @@ export function TreinoGuiado() {
   }
 
   // ---- Sem treino hoje ----
-  if (active === null && (todayRoutineId === null || todayRoutineId === 'rest')) {
+  if (active === null && initError === null && (todayRoutineId === 'rest' || todayRoutineId === null)) {
     return (
       <div className="tg-empty">
         <Timer size={36} color="var(--text-muted)" strokeWidth={1.5} />
@@ -992,25 +946,24 @@ export function TreinoGuiado() {
   const currentEx = active.exercises[active.currentIndex];
   if (currentEx === undefined) return null;
 
-  const exData = exercisesMap.get(currentEx.exerciseId);
-  const exName = exData?.name ?? currentEx.exerciseId;
-  const isCardio = exData?.mode === 'cardio';
-  const isTime = exData?.mode === 'time';
+  const exData = exercisesMap?.get(currentEx.exerciseId);
+  const exName = currentEx.name ?? exData?.name ?? currentEx.exerciseId;
+  const mode = currentEx.mode ?? exData?.mode;
+  const isCardio = mode === 'cardio';
+  const isTime = mode === 'time';
   const isTimedMode = isTime || isCardio;
   const totalExercises = active.exercises.length;
 
-  const routine = active.routineId !== undefined ? routinesMap.get(active.routineId) : undefined;
-  const currentCfg = routine?.exercises[active.currentIndex];
-  const prescription =
-    currentCfg !== undefined
-      ? nextPrescription({ workouts, config: currentCfg })
-      : null;
+  const routine = active.routineId !== undefined ? routinesMap?.get(active.routineId) : undefined;
+  const prescription = currentEx.prescription;
 
   // ---- G2: informações de superset ----
-  const routineExercises = routine?.exercises ?? [];
+  const routineExercises = active.exercises.map((item, index) => ({
+    supersetGroup: item.mode === undefined ? routine?.exercises[index]?.supersetGroup : item.supersetGroup,
+  }));
   const supersetGroupIndices = getSupersetGroup(routineExercises, active.currentIndex);
   const isInSuperset = supersetGroupIndices.length > 1;
-  const supersetGroupNum = currentCfg?.supersetGroup;
+  const supersetGroupNum = routineExercises[active.currentIndex]?.supersetGroup;
 
   // Calcula o round atual do superset (quantas séries completas o primeiro do grupo já tem)
   const firstGroupIdx = supersetGroupIndices[0] ?? active.currentIndex;
@@ -1021,10 +974,7 @@ export function TreinoGuiado() {
   const restActive = active.rest.endsAt !== null && active.rest.endsAt > Date.now();
 
   // Work timer ativo para o exercício atual
-  const activeWorkKey = workTimerKey;
-  const activeWorkSetIndex = activeWorkKey?.startsWith(`${active.currentIndex}-`)
-    ? Number(activeWorkKey.split('-')[1])
-    : null;
+  const activeWorkSetIndex = work?.exerciseIndex === active.currentIndex ? work.setIndex : null;
 
   return (
     <>
@@ -1046,15 +996,16 @@ export function TreinoGuiado() {
             key="rest"
             endsAt={active.rest.endsAt}
             onSkip={stopRest}
-            onComplete={stopRest}
+            onComplete={() => { stopRest(); setRestAnnouncement('Descanso concluído. Próxima série disponível.'); }}
           />
         )}
       </AnimatePresence>
 
+      <p className="sr-only" role="status">{restAnnouncement}</p>
       {/* Topbar */}
       <div className="tg-topbar">
         <span className="tg-title">
-          {routine?.name ?? 'Treino livre'}
+          {active.routineName ?? routine?.name ?? 'Treino livre'}
         </span>
         <span className="tg-progress">
           {active.currentIndex + 1}/{totalExercises}
@@ -1084,26 +1035,21 @@ export function TreinoGuiado() {
               ? ` · ${currentEx.target.reps} reps`
               : ''}
           {currentEx.target.weightKg !== undefined
-            ? ` · ${currentEx.target.weightKg}kg`
+            ? ` · ${unit === 'lb' ? round1(currentEx.target.weightKg * KG_TO_LB) : currentEx.target.weightKg} ${unit}`
             : ''}
-          {isCardio && currentCfg?.targetDistanceM !== undefined
-            ? ` · ${currentCfg.targetDistanceM}m`
+          {isCardio && currentEx.target.distanceM !== undefined
+            ? ` · ${currentEx.target.distanceM}m`
             : ''}
-          {isCardio && currentCfg?.targetSpeedKmh !== undefined
-            ? ` · ${currentCfg.targetSpeedKmh}km/h`
+          {isCardio && currentEx.target.speedKmh !== undefined
+            ? ` · ${currentEx.target.speedKmh}km/h`
             : ''}
         </div>
 
         {/* Dica discreta de prescrição */}
-        {prescription !== null && prescription.kind !== 'fresh' && (
-          <div className="tg-why">{prescription.why}</div>
-        )}
-        {prescription !== null && prescription.kind === 'fresh' && (
-          <div className="tg-why">Primeira vez com este exercício — defina os valores iniciais.</div>
-        )}
+        {prescription !== undefined && <p className="tg-why">{prescription.why}</p>}
 
         {/* Sets principais do 5/3/1 — guia visual de %, carga e reps */}
-        {prescription !== null && prescription.kind === '531' && prescription.mainSets !== undefined && (
+        {prescription?.kind === '531' && prescription.mainSets !== undefined && (
           <div className="tg-531-sets">
             {prescription.mainSets.map((ms: MainSet531, i: number) => {
               const displayW = unit === 'lb' ? (ms.weightKg * 2.20462).toFixed(1) : ms.weightKg.toFixed(1);
@@ -1126,7 +1072,7 @@ export function TreinoGuiado() {
         <div className="tg-col-labels">
           <span />
           <span className="tg-col-label">{isCardio ? 'Seg' : isTime ? 'Seg' : 'Reps'}</span>
-          <span className="tg-col-label">{isCardio ? 'Dist (m)' : isTime ? '' : 'Kg'}</span>
+          <span className="tg-col-label">{isCardio ? 'Dist (m)' : isTime ? '' : unit}</span>
           <span className="tg-col-label">OK</span>
         </div>
 
@@ -1140,13 +1086,16 @@ export function TreinoGuiado() {
               set={set}
               isTime={isTime}
               isCardio={isCardio}
+              unit={unit}
+              disabled={saving || restActive}
+              timerBusy={work !== undefined}
               trackEffort={trackEffort}
               workTimerSetIndex={activeWorkSetIndex}
               workStartedAt={
-                activeWorkSetIndex === si ? workTimerStartedAt : null
+                activeWorkSetIndex === si ? (work?.startedAt ?? null) : null
               }
-              targetSec={currentCfg?.targetSec}
-              onDone={() => handleToggleDone(active.currentIndex, si)}
+              targetSec={currentEx.target.sec}
+              onDone={(elapsed) => handleToggleDone(active.currentIndex, si, elapsed)}
               onChange={(patch) => logSet(active.currentIndex, si, patch)}
               onStartWork={(setIdx) => handleStartWork(active.currentIndex, setIdx)}
               onStopWork={handleStopWork}
@@ -1163,11 +1112,13 @@ export function TreinoGuiado() {
         )}
       </div>
 
+      {finishError !== null && <p className="feedback error" role="alert">{finishError}</p>}
+
       {/* Navegação entre exercícios */}
       <div className="tg-ex-nav">
         <button
           className="btn ghost"
-          disabled={active.currentIndex === 0}
+          disabled={saving || restActive || work !== undefined || active.currentIndex === 0}
           onClick={() => goToExercise(active.currentIndex - 1)}
           aria-label="Exercício anterior"
         >
@@ -1177,6 +1128,7 @@ export function TreinoGuiado() {
         {active.currentIndex < totalExercises - 1 ? (
           <button
             className="btn"
+            disabled={saving || restActive || work !== undefined}
             onClick={() => goToExercise(active.currentIndex + 1)}
             aria-label="Próximo exercício"
           >
@@ -1186,10 +1138,11 @@ export function TreinoGuiado() {
         ) : (
           <button
             className="btn"
+            disabled={saving || restActive}
             onClick={() => void handleFinish()}
             aria-label="Finalizar treino"
           >
-            Finalizar
+            {saving ? 'Salvando…' : 'Finalizar'}
             <Check size={18} />
           </button>
         )}
@@ -1199,6 +1152,7 @@ export function TreinoGuiado() {
       <div className="tg-footer">
         <button
           className="btn ghost"
+          disabled={saving || restActive}
           onClick={handleCancel}
           aria-label="Cancelar treino"
           style={{ flex: 'unset', padding: '12px 16px' }}
@@ -1209,11 +1163,12 @@ export function TreinoGuiado() {
         {active.currentIndex < totalExercises - 1 && (
           <button
             className="btn"
+            disabled={saving || restActive}
             onClick={() => void handleFinish()}
             aria-label="Finalizar treino agora"
           >
             <Check size={16} />
-            Finalizar treino
+            {saving ? 'Salvando…' : 'Finalizar treino'}
           </button>
         )}
       </div>

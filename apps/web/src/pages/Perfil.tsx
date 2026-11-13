@@ -2,6 +2,7 @@ import '../styles/perfil.css';
 import '../styles/print.css';
 
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   User, Trash2, CheckCircle2, TrendingUp, Download, Upload,
@@ -11,10 +12,11 @@ import { DEFAULT_SETTINGS } from '@forja/core';
 import type { Settings, BodyWeight } from '@forja/core';
 import { db } from '../db/db';
 import { updateSettings, addBodyWeight, deleteBodyWeight } from '../db/repo';
-import { downloadBackup, importAll } from '../lib/backup';
+import { downloadBackup, parseBackup, restoreBackup } from '../lib/backup';
+import type { BackupMode, ParsedBackup } from '../lib/backup';
 import {
   parseFitNotes, parseStrong, parseHevy, parseAppleHealthWeight,
-  applyImport,
+  applyImport, previewImport,
 } from '../lib/importers';
 import type { ImportResult } from '../lib/importers';
 import { downloadPlan, importPlan, printPlan } from '../lib/plan-share';
@@ -650,13 +652,16 @@ function SeusDadosSection() {
   const [status, setStatus] = useState<'idle' | 'busy' | 'ok' | 'error'>('idle');
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  const [pending, setPending] = useState<{ name: string; backup: ParsedBackup } | null>(null);
+  const [replacing, setReplacing] = useState(false);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const importButton = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => { if (pending !== null) heading.current?.focus(); }, [pending]);
+
   function showFeedback(msg: string, type: 'ok' | 'error') {
     setFeedback(msg);
     setStatus(type);
-    window.setTimeout(() => {
-      setFeedback(null);
-      setStatus('idle');
-    }, 4000);
   }
 
   async function handleExport() {
@@ -676,34 +681,29 @@ function SeusDadosSection() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Limpa o input para permitir re-importar o mesmo arquivo
     e.target.value = '';
-
-    const mode = window.confirm(
-      'Substituir todos os dados locais pelo backup?\n\n' +
-      'OK = Substituir (apaga tudo e importa o arquivo)\n' +
-      'Cancelar = Mesclar (mantém os dados atuais e adiciona/atualiza pelo backup)',
-    )
-      ? 'replace'
-      : 'merge';
-
+    setPending(null);
     setStatus('busy');
+    setFeedback(null);
+    setReplacing(false);
     try {
-      const json = await file.text();
-      const result = await importAll(json, mode);
-
-      const linhas = Object.entries(result.counts)
-        .map(([tabela, n]) => `${tabela}: ${n}`)
-        .join(', ');
-      showFeedback(
-        `Importado (${mode === 'replace' ? 'substituição' : 'mesclagem'}): ${linhas}`,
-        'ok',
-      );
+      setPending({ name: file.name, backup: parseBackup(await file.text()) });
+      setStatus('idle');
     } catch (err) {
-      showFeedback(
-        err instanceof Error ? err.message : 'Erro ao importar.',
-        'error',
-      );
+      showFeedback(err instanceof Error ? err.message : 'Não foi possível ler o backup.', 'error');
+    }
+  }
+
+  async function handleRestore(mode: BackupMode) {
+    if (pending === null) return;
+    setStatus('busy');
+    setFeedback(null);
+    try {
+      const counts = await restoreBackup(pending.backup, mode);
+      setPending(null);
+      showFeedback(`Backup restaurado. ${counts.workouts ?? 0} treino(s) no arquivo.`, 'ok');
+    } catch {
+      showFeedback('Não foi possível restaurar o backup. Tente novamente.', 'error');
     }
   }
 
@@ -734,13 +734,14 @@ function SeusDadosSection() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="application/json"
+          accept=".json,application/json"
           style={{ display: 'none' }}
           onChange={(e) => { void handleFileChange(e); }}
         />
         <button
           className="btn ghost"
           disabled={status === 'busy'}
+          ref={importButton}
           onClick={() => fileInputRef.current?.click()}
           style={{ flex: '1 1 auto' }}
         >
@@ -749,15 +750,33 @@ function SeusDadosSection() {
         </button>
       </div>
 
-      {/* Aviso sobre replace */}
-      <p className="hint" style={{ marginTop: 10 }}>
-        Na importação, você escolhe entre <em>substituir</em> (apaga os dados atuais)
-        ou <em>mesclar</em> (sobrescreve apenas os itens em conflito).
-      </p>
+      {pending !== null && (
+        <section className="restore-options" aria-labelledby="restore-title" aria-busy={status === 'busy'}>
+          <h3 id="restore-title" tabIndex={-1} ref={heading}>Restaurar backup</h3>
+          <p>{pending.name} · {pending.backup.data.workouts?.length ?? 0} treino(s)</p>
+          {pending.backup.version === 1 && <p className="hint">Este formato antigo não inclui medidas corporais. As medidas locais serão mantidas.</p>}
+          <p className="hint">Mesclar atualiza registros com a mesma identificação. Substituir troca os dados locais pelos do arquivo.</p>
+          <div className="btn-row">
+            <button className="btn ghost" disabled={status === 'busy'} onClick={() => {
+              setPending(null); setReplacing(false); importButton.current?.focus();
+            }}>Cancelar</button>
+            <button className="btn" disabled={status === 'busy'} onClick={() => void handleRestore('merge')}>Mesclar dados</button>
+            <button className="btn danger" disabled={status === 'busy'} onClick={() => setReplacing(true)}>Substituir dados</button>
+          </div>
+          {replacing && (
+            <div className="feedback error">
+              <p>Confirme para remover os registros locais que não estão no backup.</p>
+              <button className="btn danger" disabled={status === 'busy'} onClick={() => void handleRestore('replace')}>Confirmar substituição</button>
+            </div>
+          )}
+        </section>
+      )}
+      {status === 'busy' && <p role="status" className="feedback">Processando backup…</p>}
 
       {/* Feedback */}
       {feedback !== null && (
         <p
+          role={status === 'error' ? 'alert' : 'status'}
           style={{
             marginTop: 10,
             fontSize: 13,
@@ -834,11 +853,12 @@ function ImportarAppSection() {
       else if (source === 'hevy')   result = parseHevy(text);
       else                          result = parseAppleHealthWeight(text);
 
+      const unrecognized = await previewImport(result);
       setPreview({
         workouts: result.workouts.length,
-        exercises: result.exercises.length,
+        exercises: unrecognized.length,
         bodyweight: result.bodyweight.length,
-        unrecognized: result.unrecognized,
+        unrecognized,
         result,
       });
       setStatus('preview');
@@ -856,7 +876,7 @@ function ImportarAppSection() {
       setFeedback(
         `Importado: ${counts.workouts} treino(s), ${counts.exercises} exercício(s) novo(s)` +
         (counts.bodyweight > 0 ? `, ${counts.bodyweight} registro(s) de peso` : '') +
-        '.',
+        (counts.duplicates > 0 ? `, ${counts.duplicates} treino(s) já presente(s)` : '') + '.',
       );
       setStatus('done');
       setPreview(null);
@@ -874,8 +894,7 @@ function ImportarAppSection() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <FileInput size={15} style={{ opacity: 0.6, flexShrink: 0 }} />
         <p className="hint" style={{ lineHeight: 1.5 }}>
-          Importe treinos de outros apps. Exercícios não reconhecidos são criados como personalizados
-          — nenhum dado é descartado.
+          Importe treinos de outros apps. Revise a prévia antes de criar exercícios personalizados e salvar o histórico.
         </p>
       </div>
 
@@ -926,6 +945,7 @@ function ImportarAppSection() {
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
             <li><span style={{ color: 'var(--text-muted)' }}>Treinos:</span> <strong>{preview.workouts}</strong></li>
             <li><span style={{ color: 'var(--text-muted)' }}>Exercícios novos:</span> <strong>{preview.exercises}</strong></li>
+            {(preview.result.skippedRows ?? 0) > 0 && <li>{preview.result.skippedRows} linha(s) ignorada(s) por falta de data ou exercício válido.</li>}
             {preview.bodyweight > 0 && (
               <li><span style={{ color: 'var(--text-muted)' }}>Pesos:</span> <strong>{preview.bodyweight}</strong></li>
             )}
@@ -989,6 +1009,7 @@ function CompartilharPlanoSection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<'idle' | 'busy' | 'ok' | 'error'>('idle');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [replacePlanDays, setReplacePlanDays] = useState(false);
 
   function showFeedback(msg: string, type: 'ok' | 'error') {
     setFeedback(msg);
@@ -1024,9 +1045,10 @@ function CompartilharPlanoSection() {
     setStatus('busy');
     try {
       const json = await file.text();
-      const counts = await importPlan(json);
+      const counts = await importPlan(json, replacePlanDays);
       showFeedback(
-        `Plano importado: ${counts.categories} categoria(s), ${counts.routines} rotina(s), ${counts.weekPlan} dia(s).`,
+        `Plano importado: ${counts.categories} categoria(s), ${counts.routines} rotina(s), ${counts.weekPlan} dia(s) atualizado(s).` +
+        (counts.preservedDays > 0 ? ` ${counts.preservedDays} dia(s) ocupados foram mantidos.` : ''),
         'ok',
       );
     } catch (err) {
@@ -1043,6 +1065,10 @@ function CompartilharPlanoSection() {
         </p>
       </div>
 
+      <label className="starter-replace">
+        <input type="checkbox" checked={replacePlanDays} onChange={(event) => setReplacePlanDays(event.target.checked)} />
+        Substituir dias ocupados ao importar um plano
+      </label>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <button
           className="btn"
@@ -1111,6 +1137,13 @@ function CompartilharPlanoSection() {
 // ---------------------------------------------------------------------------
 
 export function Perfil() {
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash !== '#importar-historico') return;
+    const heading = document.getElementById('importar-historico');
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView();
+  }, [hash]);
   const rawSettings = useLiveQuery(() => db.settings.get('app'), []);
 
   // Funde com DEFAULT_SETTINGS para garantir que todos os campos existam
@@ -1176,13 +1209,12 @@ export function Perfil() {
       <div className="section-title perfil-section">Seus dados</div>
       <SeusDadosSection />
 
-      {/* Seção 5 — Importar de outro app (G5) */}
-      <div className="section-title perfil-section">
+      <h2 className="section-title perfil-section" id="importar-historico" tabIndex={-1}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <FileInput size={15} style={{ opacity: 0.7 }} />
           Importar de outro app
         </span>
-      </div>
+      </h2>
       <ImportarAppSection />
 
       {/* Seção 6 — Compartilhar plano (G6) */}

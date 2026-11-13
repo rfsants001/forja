@@ -8,7 +8,7 @@
  *   1. Normaliza nome (lowercase, sem acentos, sem pontuação).
  *   2. Busca correspondência exata no catálogo local.
  *   3. Se não encontrar → exercício custom (custom: true).
- *   4. Nada é descartado.
+ *   4. A prévia informa as linhas ignoradas e as referências novas.
  */
 
 import type { WorkoutLog, Exercise, BodyWeight, SetLog, WorkoutEntry } from '@forja/core';
@@ -26,12 +26,15 @@ export interface ImportResult {
   bodyweight: BodyWeight[];
   /** Nomes de exercício que não foram reconhecidos (viraram custom). */
   unrecognized: string[];
+  skippedRows?: number;
+  _exerciseNameById?: Map<string, string>;
 }
 
 export interface ImportCounts {
   workouts: number;
   exercises: number;
   bodyweight: number;
+  duplicates: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -87,10 +90,13 @@ function parseCSV(csv: string): string[][] {
 }
 
 /** Remove linhas vazias e retorna header + dados. */
-function csvToObjects(csv: string): Array<Record<string, string>> {
+function csvToObjects(csv: string, required: string[]): Array<Record<string, string>> {
   const rows = parseCSV(csv).filter((r) => r.some((c) => c.trim() !== ''));
-  if (rows.length < 2) return [];
-  const header = rows[0]?.map((h) => h.trim()) ?? [];
+  if (rows.length === 0) throw new Error('O CSV está vazio. Escolha um arquivo exportado pelo app.');
+  const header = rows[0]?.map((h) => h.replace(/^\uFEFF/, '').trim()) ?? [];
+  if (!required.every((field) => header.includes(field))) {
+    throw new Error('As colunas do CSV não correspondem ao app selecionado. Confira a origem do arquivo.');
+  }
   return rows.slice(1).map((row) => {
     const obj: Record<string, string> = {};
     header.forEach((key, i) => {
@@ -104,35 +110,15 @@ function csvToObjects(csv: string): Array<Record<string, string>> {
 // Casamento de exercício com o catálogo local
 // ---------------------------------------------------------------------------
 
-/** Cache em memória de um exercício por nome normalizado. Carregado uma vez por chamada de applyImport. */
-let _exerciseCacheMap: Map<string, Exercise> | null = null;
-
-async function getExerciseCacheMap(): Promise<Map<string, Exercise>> {
-  if (_exerciseCacheMap !== null) return _exerciseCacheMap;
-  const all = await db.exercises.toArray();
-  const map = new Map<string, Exercise>();
-  for (const ex of all) {
-    map.set(normalizeExName(ex.name), ex);
-  }
-  _exerciseCacheMap = map;
-  return map;
-}
-
-/** Invalida o cache (use após gravar novos exercícios). */
-function invalidateExerciseCache(): void {
-  _exerciseCacheMap = null;
-}
-
 /**
  * Encontra o id do exercício pelo nome normalizado.
  * Se não encontrar, cria um exercício custom e devolve o id novo.
  */
-async function resolveExerciseId(
+function resolveExerciseId(
   rawName: string,
   cacheMap: Map<string, Exercise>,
-  unrecognized: Set<string>,
   newExercises: Map<string, Exercise>,
-): Promise<string> {
+): string {
   const norm = normalizeExName(rawName);
 
   // 1. Catálogo local
@@ -144,7 +130,6 @@ async function resolveExerciseId(
   if (inNew !== undefined) return inNew.id;
 
   // 3. Criar exercício custom
-  unrecognized.add(rawName);
   const newEx: Exercise = {
     id: uid('ex_'),
     name: rawName,
@@ -167,9 +152,9 @@ async function resolveExerciseId(
 // ---------------------------------------------------------------------------
 
 function parseNum(s: string | undefined): number | undefined {
-  if (s === undefined || s === '') return undefined;
-  const n = parseFloat(s);
-  return isNaN(n) ? undefined : n;
+  if (s === undefined || s.trim() === '') return undefined;
+  const n = Number(s.trim().replace(',', '.'));
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
 }
 
 function parsePosInt(s: string | undefined): number | undefined {
@@ -188,7 +173,8 @@ function parsePosInt(s: string | undefined): number | undefined {
 // "2024-01-15","Bench Press","Chest",80,8,"","",""
 
 export function parseFitNotes(csv: string): ImportResult {
-  const rows = csvToObjects(csv);
+  const rows = csvToObjects(csv, ['Date', 'Exercise']);
+  let skippedRows = 0;
   const workoutsMap = new Map<string, WorkoutLog>();
   const unrecognizedSet = new Set<string>();
   const newExercises = new Map<string, Exercise>();
@@ -199,27 +185,36 @@ export function parseFitNotes(csv: string): ImportResult {
   for (const row of rows) {
     const dateISO = row['Date'] ?? '';
     const exName = (row['Exercise'] ?? '').trim();
-    if (!dateISO || !exName) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO) || !exName) {
+      skippedRows++;
+      continue;
+    }
 
     const exId = uid('ex_');
     exerciseNameById.set(exId, exName);
 
     const weightKg = parseNum(row['Weight (kgs)'] ?? row['Weight']);
     const reps = parsePosInt(row['Reps']);
-    const timeSec = parseNum(row['Time']); // em segundos se vier
-    const distM = parseNum(row['Distance']);
+    const rawTime = row['Time'];
+    const timeSec = rawTime?.includes(':')
+      ? rawTime.split(':').reduce((total, part) => total * 60 + Number(part), 0)
+      : parseNum(rawTime);
+    const distance = parseNum(row['Distance']);
+    const distanceUnit = row['Distance Unit']?.toLowerCase();
+    const distM = distance === undefined ? undefined : distance *
+      (distanceUnit === 'km' ? 1000 : /^(mi|mile|miles)$/.test(distanceUnit ?? '') ? 1609.344 : 1);
 
     const setLog: SetLog = {
       reps,
       weightKg,
-      sec: timeSec !== undefined ? Math.round(timeSec) : undefined,
+      sec: timeSec !== undefined && Number.isFinite(timeSec) ? Math.round(timeSec) : undefined,
       distanceM: distM,
       done: true,
     };
 
     if (!workoutsMap.has(dateISO)) {
       workoutsMap.set(dateISO, {
-        id: uid('wk_'),
+        id: `import-fitnotes:${dateISO}`,
         dateISO,
         entries: [],
         createdAt: Date.now(),
@@ -239,7 +234,7 @@ export function parseFitNotes(csv: string): ImportResult {
       wk.entries.push({
         exerciseId: exId,
         sets: [setLog],
-        target: { sets: 1 },
+        target: { sets: 1, unknown: true },
       });
     }
   }
@@ -252,6 +247,7 @@ export function parseFitNotes(csv: string): ImportResult {
     // exerciseNameById é passado internamente via workouts.entries[].exerciseId
     // A resolução real acontece em applyImport.
     // Guardamos o mapa na closure do resultado para uso interno.
+    skippedRows,
     _exerciseNameById: exerciseNameById,
   } as ImportResult & { _exerciseNameById: Map<string, string> };
 }
@@ -265,7 +261,8 @@ export function parseFitNotes(csv: string): ImportResult {
 // "2024-01-15 07:00:00","Chest Day","1h 10m","Bench Press",1,80,8,"","","","",8
 
 export function parseStrong(csv: string): ImportResult {
-  const rows = csvToObjects(csv);
+  const rows = csvToObjects(csv, ['Date', 'Workout Name', 'Exercise Name']);
+  let skippedRows = 0;
   const workoutsMap = new Map<string, { wk: WorkoutLog; name: string }>();
   const exerciseNameById = new Map<string, string>();
 
@@ -273,15 +270,20 @@ export function parseStrong(csv: string): ImportResult {
     const rawDate = row['Date'] ?? '';
     const dateISO = rawDate.slice(0, 10); // "YYYY-MM-DD HH:MM:SS" → "YYYY-MM-DD"
     const exName = (row['Exercise Name'] ?? '').trim();
-    if (!dateISO || !exName) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO) || !exName) {
+      skippedRows++;
+      continue;
+    }
 
     const workoutName = (row['Workout Name'] ?? '').trim();
-    const mapKey = `${dateISO}_${workoutName}`;
+    const mapKey = `${rawDate}_${workoutName}`;
 
     const exId = uid('ex_');
     exerciseNameById.set(exId, exName);
 
-    const weightKg = parseNum(row['Weight']);
+    const weight = parseNum(row['Weight'] ?? row['Weight (kg)'] ?? row['Weight (lbs)']);
+    const weightUnit = (row['Weight Unit'] ?? (row['Weight (lbs)'] !== undefined ? 'lb' : 'kg')).toLowerCase();
+    const weightKg = weight === undefined ? undefined : /^(lb|lbs)$/.test(weightUnit) ? weight * 0.45359237 : weight;
     const reps = parsePosInt(row['Reps']);
     const sec = parsePosInt(row['Seconds']);
     const distM = parseNum(row['Distance']);
@@ -293,17 +295,18 @@ export function parseStrong(csv: string): ImportResult {
       sec,
       distanceM: distM,
       done: true,
+      note: row['Notes']?.trim() || undefined,
       effort: rpe !== undefined ? { rpe } : undefined,
     };
 
     if (!workoutsMap.has(mapKey)) {
       workoutsMap.set(mapKey, {
         wk: {
-          id: uid('wk_'),
+          id: `import-strong:${encodeURIComponent(mapKey)}`,
           dateISO,
           entries: [],
-          createdAt: Date.now(),
-          note: workoutName || undefined,
+          createdAt: Date.parse(rawDate.replace(' ', 'T')) || Date.now(),
+          note: row['Workout Notes']?.trim() || workoutName || undefined,
         },
         name: workoutName,
       });
@@ -321,7 +324,7 @@ export function parseStrong(csv: string): ImportResult {
       wk.entries.push({
         exerciseId: exId,
         sets: [setLog],
-        target: { sets: 1 },
+        target: { sets: 1, unknown: true },
       });
     }
   }
@@ -331,6 +334,7 @@ export function parseStrong(csv: string): ImportResult {
     exercises: [],
     bodyweight: [],
     unrecognized: [],
+    skippedRows,
     _exerciseNameById: exerciseNameById,
   } as ImportResult & { _exerciseNameById: Map<string, string> };
 }
@@ -346,7 +350,8 @@ export function parseStrong(csv: string): ImportResult {
 // Workout = agrupado por (title + start_time). Set_type: "normal","warmup","failure","dropset"
 
 export function parseHevy(csv: string): ImportResult {
-  const rows = csvToObjects(csv);
+  const rows = csvToObjects(csv, ['start_time', 'exercise_title']);
+  let skippedRows = 0;
   const workoutsMap = new Map<string, WorkoutLog>();
   const exerciseNameById = new Map<string, string>();
 
@@ -354,7 +359,10 @@ export function parseHevy(csv: string): ImportResult {
     const startRaw = row['start_time'] ?? '';
     const dateISO = startRaw.slice(0, 10);
     const exName = (row['exercise_title'] ?? '').trim();
-    if (!dateISO || !exName) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO) || !exName) {
+      skippedRows++;
+      continue;
+    }
 
     const mapKey = `${dateISO}_${startRaw}`;
 
@@ -378,11 +386,12 @@ export function parseHevy(csv: string): ImportResult {
       sec,
       distanceM: distM,
       done: true,
+      note: row['exercise_notes']?.trim() || undefined,
       effort: effortObj,
     };
 
     if (!workoutsMap.has(mapKey)) {
-      const wkNote = (row['description'] ?? '').trim() || undefined;
+      const wkNote = (row['description'] ?? '').trim() || row['title']?.trim() || undefined;
       // duração: end_time - start_time em segundos
       let durationSec: number | undefined;
       const endRaw = row['end_time'] ?? '';
@@ -394,10 +403,10 @@ export function parseHevy(csv: string): ImportResult {
         }
       }
       workoutsMap.set(mapKey, {
-        id: uid('wk_'),
+        id: `import-hevy:${encodeURIComponent(mapKey)}`,
         dateISO,
         entries: [],
-        createdAt: Date.now(),
+        createdAt: Date.parse(startRaw.replace(' ', 'T')) || Date.now(),
         note: wkNote,
         durationSec,
       });
@@ -415,7 +424,7 @@ export function parseHevy(csv: string): ImportResult {
       wk.entries.push({
         exerciseId: exId,
         sets: [setLog],
-        target: { sets: 1 },
+        target: { sets: 1, unknown: true },
       });
     }
   }
@@ -425,6 +434,7 @@ export function parseHevy(csv: string): ImportResult {
     exercises: [],
     bodyweight: [],
     unrecognized: [],
+    skippedRows,
     _exerciseNameById: exerciseNameById,
   } as ImportResult & { _exerciseNameById: Map<string, string> };
 }
@@ -500,69 +510,37 @@ export function parseAppleHealthWeight(xml: string): ImportResult {
  *
  * Retorna contagens de itens gravados.
  */
+export async function previewImport(result: ImportResult): Promise<string[]> {
+  const known = new Set((await db.exercises.toArray()).map((exercise) => normalizeExName(exercise.name)));
+  const names = [...(result._exerciseNameById?.values() ?? [])];
+  return [...new Map(names.filter((name) => !known.has(normalizeExName(name)))
+    .map((name) => [normalizeExName(name), name])).values()];
+}
+
 export async function applyImport(result: ImportResult): Promise<ImportCounts> {
-  invalidateExerciseCache();
-  const cacheMap = await getExerciseCacheMap();
-  const unrecognizedSet = new Set<string>(result.unrecognized);
-  const newExercises = new Map<string, Exercise>();
+  return db.transaction('rw', [db.exercises, db.workouts, db.bodyweight], async () => {
+    const catalog = await db.exercises.toArray();
+    const byName = new Map(catalog.map((exercise) => [normalizeExName(exercise.name), exercise]));
+    const newExercises = new Map<string, Exercise>();
+    let workouts = 0;
+    let duplicates = 0;
 
-  // Mapa de exerciseId antigo (do parser) → id real no banco
-  const idRemap = new Map<string, string>();
-
-  // Coleta todos os exerciseIds referenciados nos workouts
-  const internal = result as ImportResult & { _exerciseNameById?: Map<string, string> };
-  const nameById: Map<string, string> = internal._exerciseNameById ?? new Map();
-
-  // Resolve exercícios referenciados nos workouts
-  for (const wk of result.workouts) {
-    for (const entry of wk.entries) {
-      const tempId = entry.exerciseId;
-      if (idRemap.has(tempId)) continue;
-
-      const rawName = nameById.get(tempId) ?? tempId;
-      const realId = await resolveExerciseId(rawName, cacheMap, unrecognizedSet, newExercises);
-      idRemap.set(tempId, realId);
+    for (const workout of result.workouts) {
+      if (await db.workouts.get(workout.id) !== undefined) {
+        duplicates++;
+        continue;
+      }
+      const entries = workout.entries.map((entry): WorkoutEntry => {
+        const name = result._exerciseNameById?.get(entry.exerciseId) ?? entry.exerciseId;
+        const exerciseId = resolveExerciseId(name, byName, newExercises);
+        return { ...entry, exerciseId, target: { sets: entry.sets.length, unknown: true } };
+      });
+      await addWorkout({ ...workout, entries });
+      workouts++;
     }
-  }
 
-  // Grava exercícios novos (os que não existiam no catálogo)
-  let exercisesCount = 0;
-  for (const ex of newExercises.values()) {
-    await upsertExercise(ex);
-    exercisesCount++;
-  }
-  // Também grava exercícios explicitamente passados no result (parsers que os populam)
-  for (const ex of result.exercises) {
-    // Só grava se não foi já gravado via newExercises
-    const norm = normalizeExName(ex.name);
-    if (!cacheMap.has(norm)) {
-      await upsertExercise(ex);
-      exercisesCount++;
-    }
-  }
-
-  // Grava workouts remanejando os exerciseIds para os reais
-  for (const wk of result.workouts) {
-    const remapped = {
-      ...wk,
-      entries: wk.entries.map((entry): WorkoutEntry => ({
-        ...entry,
-        exerciseId: idRemap.get(entry.exerciseId) ?? entry.exerciseId,
-      })),
-    };
-    await addWorkout(remapped);
-  }
-
-  // Grava peso corporal
-  for (const bw of result.bodyweight) {
-    await addBodyWeight(bw);
-  }
-
-  invalidateExerciseCache();
-
-  return {
-    workouts: result.workouts.length,
-    exercises: exercisesCount,
-    bodyweight: result.bodyweight.length,
-  };
+    for (const exercise of newExercises.values()) await upsertExercise(exercise);
+    for (const weight of result.bodyweight) await addBodyWeight(weight);
+    return { workouts, exercises: newExercises.size, bodyweight: result.bodyweight.length, duplicates };
+  });
 }

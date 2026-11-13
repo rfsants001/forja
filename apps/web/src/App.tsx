@@ -1,3 +1,4 @@
+import { MotionConfig } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
@@ -19,22 +20,24 @@ const LoadingFallback = () => <div className="empty">Carregando…</div>;
 
 export function App() {
   return (
-    <div className="app">
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/treinos" element={<Treinos />} />
-          <Route path="/treinos/rotina/nova" element={<RotinaEditor />} />
-          <Route path="/treinos/rotina/:id" element={<RotinaEditor />} />
-          <Route path="/exercicios" element={<Exercicios />} />
-          <Route path="/treino" element={<TreinoGuiado />} />
-          <Route path="/historico" element={<Historico />} />
-          <Route path="/progresso" element={<Progresso />} />
-          <Route path="/perfil" element={<Perfil />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-      <BottomNav />
-    </div>
+    <MotionConfig reducedMotion="user">
+      <div className="app">
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/treinos" element={<Treinos />} />
+            <Route path="/treinos/rotina/nova" element={<RotinaEditor />} />
+            <Route path="/treinos/rotina/:id" element={<RotinaEditor />} />
+            <Route path="/exercicios" element={<Exercicios />} />
+            <Route path="/treino" element={<TreinoGuiado />} />
+            <Route path="/historico" element={<Historico />} />
+            <Route path="/progresso" element={<Progresso />} />
+            <Route path="/perfil" element={<Perfil />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+        <BottomNav />
+      </div>
+    </MotionConfig>
   );
 }

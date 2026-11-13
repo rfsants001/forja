@@ -15,16 +15,16 @@ function makeWorkout(
   return { id, dateISO, entries: [entry], createdAt: 0 };
 }
 
-/** Entrada 5/3/1 mínima: todas as séries done. */
-function make531Entry(exerciseId: string, weightKg = 85): WorkoutEntry {
+function make531Entry(exerciseId: string, index = 0): WorkoutEntry {
+  const week = (index % 4 + 1) as 1 | 2 | 3 | 4;
+  const trainingMaxKg = 100 + Math.floor(index / 4) * 2.5;
+  const mainSets = prescribe531(trainingMaxKg, week).map((set, i) => ({
+    ...set, percentOfTM: weekScheme(week)[i]!.percentOfTM,
+  }));
   return {
     exerciseId,
-    sets: [
-      { reps: 5, weightKg, done: true },
-      { reps: 5, weightKg, done: true },
-      { reps: 8, weightKg, done: true }, // AMRAP
-    ],
-    target: { sets: 3, reps: '5', weightKg },
+    sets: mainSets.map(({ reps, weightKg }) => ({ reps, weightKg, done: true })),
+    target: { sets: 3, policy: '531', mainSets, cycleWeek: week, baseTrainingMaxKg: 100, trainingMaxKg },
   };
 }
 
@@ -198,7 +198,7 @@ describe('nextPrescription com policy 531', () => {
   it('2 sessões → semana 3', () => {
     const workouts = [
       makeWorkout('2026-01-01', make531Entry('squat'), 'w1'),
-      makeWorkout('2026-01-08', make531Entry('squat'), 'w2'),
+      makeWorkout('2026-01-08', make531Entry('squat', 1), 'w2'),
     ];
     const p = nextPrescription({ workouts, config });
     expect(p.cycleWeek).toBe(3);
@@ -207,8 +207,8 @@ describe('nextPrescription com policy 531', () => {
   it('3 sessões → semana 4 (deload)', () => {
     const workouts = [
       makeWorkout('2026-01-01', make531Entry('squat'), 'w1'),
-      makeWorkout('2026-01-08', make531Entry('squat'), 'w2'),
-      makeWorkout('2026-01-15', make531Entry('squat'), 'w3'),
+      makeWorkout('2026-01-08', make531Entry('squat', 1), 'w2'),
+      makeWorkout('2026-01-15', make531Entry('squat', 2), 'w3'),
     ];
     const p = nextPrescription({ workouts, config });
     expect(p.cycleWeek).toBe(4);
@@ -217,17 +217,18 @@ describe('nextPrescription com policy 531', () => {
   it('4 sessões → volta para semana 1 (início do próximo ciclo)', () => {
     const workouts = [
       makeWorkout('2026-01-01', make531Entry('squat'), 'w1'),
-      makeWorkout('2026-01-08', make531Entry('squat'), 'w2'),
-      makeWorkout('2026-01-15', make531Entry('squat'), 'w3'),
-      makeWorkout('2026-01-22', make531Entry('squat'), 'w4'),
+      makeWorkout('2026-01-08', make531Entry('squat', 1), 'w2'),
+      makeWorkout('2026-01-15', make531Entry('squat', 2), 'w3'),
+      makeWorkout('2026-01-22', make531Entry('squat', 3), 'w4'),
     ];
     const p = nextPrescription({ workouts, config });
     expect(p.cycleWeek).toBe(1);
+    expect(p.trainingMaxKg).toBe(102.5);
   });
 
   it('5 sessões → semana 2 do segundo ciclo', () => {
     const workouts = Array.from({ length: 5 }, (_, i) =>
-      makeWorkout(`2026-01-${String(i + 1).padStart(2, '0')}`, make531Entry('squat'), `w${i}`),
+      makeWorkout(`2026-01-${String(i + 1).padStart(2, '0')}`, make531Entry('squat', i), `w${i}`),
     );
     const p = nextPrescription({ workouts, config });
     expect(p.cycleWeek).toBe(2);
@@ -251,4 +252,12 @@ describe('nextPrescription com policy 531', () => {
     // 0 sessões de squat → semana 1
     expect(p.cycleWeek).toBe(1);
   });
+});
+
+it('5/3/1 ignora alvo legado e repete a semana quando uma série fica abaixo da carga', () => {
+  const under = make531Entry('squat');
+  under.sets[0]!.weightKg = 60;
+  const legacy = { ...make531Entry('squat'), target: { sets: 3, reps: '5', weightKg: 85 } };
+  const workouts = [makeWorkout('2026-01-01', legacy), makeWorkout('2026-01-02', under)];
+  expect(nextPrescription({ workouts, config: make531Config(100) }).cycleWeek).toBe(1);
 });
