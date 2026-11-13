@@ -2,6 +2,7 @@
 // cliente passa por aqui. Sync com a api é da Fase 6 — por ora é 100% local e offline.
 import Dexie, { type Table } from 'dexie';
 import type {
+  BodyMeasurement,
   Category,
   Exercise,
   Routine,
@@ -37,9 +38,12 @@ export class ForjaDB extends Dexie {
   workouts!: Table<WorkoutLog, string>;
   bodyweight!: Table<BodyWeight, string>;
   settings!: Table<SettingsRow, string>;
+  /** Medidas corporais (G14) — chave primária: dateISO. */
+  measurements!: Table<BodyMeasurement, string>;
 
   constructor() {
     super('forja');
+    // v1 — esquema original (mantido intacto para migrações seguras)
     this.version(1).stores({
       categories: 'id, slug, order',
       exercises: 'id, name, primaryMuscle, mode, custom',
@@ -49,6 +53,18 @@ export class ForjaDB extends Dexie {
       workouts: 'id, dateISO, routineId, categoryId',
       bodyweight: 'dateISO',
       settings: 'id',
+    });
+    // v2 — adiciona tabela de medidas corporais; repete TODOS os stores (exigência do Dexie)
+    this.version(2).stores({
+      categories: 'id, slug, order',
+      exercises: 'id, name, primaryMuscle, mode, custom',
+      routines: 'id, categoryId, order',
+      weekPlan: 'weekday',
+      dayOverrides: 'dateISO',
+      workouts: 'id, dateISO, routineId, categoryId',
+      bodyweight: 'dateISO',
+      settings: 'id',
+      measurements: 'dateISO',
     });
   }
 }

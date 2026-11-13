@@ -48,6 +48,8 @@ export interface Exercise {
   attribution?: string;
   /** true quando criado pelo usuário (não veio de seed/dataset). */
   custom?: boolean;
+  /** Nota pessoal sobre o exercício (G15 — independente da nota por rotina). */
+  note?: string;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -180,6 +182,21 @@ export interface WorkoutLog {
 export interface BodyWeight {
   dateISO: string;
   kg: number;
+}
+
+/** Registro de medidas corporais por data (G14). Chave primária: dateISO. */
+export interface BodyMeasurement {
+  dateISO: string;
+  waistCm?: number;
+  chestCm?: number;
+  hipsCm?: number;
+  leftArmCm?: number;
+  rightArmCm?: number;
+  leftThighCm?: number;
+  rightThighCm?: number;
+  neckCm?: number;
+  calfCm?: number;
+  note?: string;
 }
 
 /** Preferências do usuário. */

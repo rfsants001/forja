@@ -22,6 +22,9 @@ import {
   toISO,
   estimate1RM,
   round1,
+  computePlates,
+  DEFAULT_BAR_KG,
+  DEFAULT_PLATES_KG,
 } from '@forja/core';
 import type {
   Exercise,
@@ -29,6 +32,7 @@ import type {
   Routine,
   RoutineExercise,
   SetLog,
+  Unit,
   WorkoutLog,
 } from '@forja/core';
 
@@ -556,6 +560,109 @@ function SetRow({
 }
 
 // ---------------------------------------------------------------------------
+// Sub-componente: calculadora de anilhas (G15)
+// ---------------------------------------------------------------------------
+
+/** Fator de conversão kg → lb. */
+const KG_TO_LB = 2.20462;
+
+interface PlateCalcProps {
+  /** Carga atual da série (pode ser undefined quando o campo está vazio). */
+  weightKg: number | undefined;
+  unit: Unit;
+}
+
+/**
+ * Widget compacto: mostra as anilhas por lado para o peso alvo.
+ * Barra padrão 20 kg (44 lb), anilhas padrão do DEFAULT_PLATES_KG.
+ * Aparece apenas no modo reps quando há peso definido.
+ */
+function PlateCalc({ weightKg, unit }: PlateCalcProps) {
+  const [open, setOpen] = useState(false);
+  const [barKg, setBarKg] = useState(DEFAULT_BAR_KG);
+
+  // Nenhum peso definido → nada a mostrar
+  if (weightKg === undefined || weightKg <= 0) return null;
+
+  // Converte para a unidade de exibição
+  const displayWeight = unit === 'lb' ? weightKg * KG_TO_LB : weightKg;
+  const displayBar    = unit === 'lb' ? barKg * KG_TO_LB : barKg;
+  const unitLabel     = unit === 'lb' ? 'lb' : 'kg';
+
+  // Cálculo sempre em kg internamente
+  const result = computePlates(weightKg, barKg, DEFAULT_PLATES_KG);
+
+  // Formata número: remove .0 desnecessário
+  function fmt(n: number): string {
+    const v = unit === 'lb' ? n * KG_TO_LB : n;
+    return v % 1 === 0 ? String(v) : v.toFixed(1);
+  }
+
+  return (
+    <div className="tg-plate-calc">
+      <button
+        className="tg-plate-toggle"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label="Calculadora de anilhas"
+      >
+        🏋 Anilhas — {fmt(displayWeight)} {unitLabel}
+        <span className="tg-plate-toggle-arrow">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="tg-plate-body">
+          {/* Seletor de barra */}
+          <div className="tg-plate-bar-row">
+            <span className="tg-plate-label">Barra</span>
+            <select
+              className="tg-plate-select"
+              value={barKg}
+              onChange={(e) => setBarKg(Number(e.target.value))}
+              aria-label="Peso da barra"
+            >
+              <option value={20}>20 kg{unit === 'lb' ? ' (44 lb)' : ''}</option>
+              <option value={15}>15 kg{unit === 'lb' ? ' (33 lb)' : ''}</option>
+              <option value={10}>10 kg{unit === 'lb' ? ' (22 lb)' : ''}</option>
+            </select>
+          </div>
+
+          {/* Resultado */}
+          {weightKg <= barKg ? (
+            <p className="tg-plate-info">
+              Alvo ≤ barra ({fmt(displayBar)} {unitLabel}) — sem anilhas necessárias.
+            </p>
+          ) : result.perSide.length === 0 ? (
+            <p className="tg-plate-info">Sem anilhas disponíveis para este peso.</p>
+          ) : (
+            <>
+              <div className="tg-plate-result">
+                <span className="tg-plate-label">Por lado:</span>
+                <div className="tg-plate-chips">
+                  {result.perSide.map((p, i) => (
+                    <span key={i} className="tg-plate-chip">
+                      {fmt(p)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="tg-plate-achievable">
+                Montável: <strong>{fmt(unit === 'lb' ? result.achievableKg * KG_TO_LB : result.achievableKg)} {unitLabel}</strong>
+                {result.leftover > 0 && (
+                  <span className="tg-plate-leftover">
+                    {' '}(faltam {fmt(result.leftover)} {unitLabel})
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Tela principal
 // ---------------------------------------------------------------------------
 
@@ -592,6 +699,7 @@ export function TreinoGuiado() {
   // Settings reativas
   const settings = useLiveQuery(() => db.settings.get('app'), []);
   const trackEffort = settings?.trackEffort ?? false;
+  const unit: Unit = settings?.unit ?? 'kg';
 
   const defaultRestSecRef = useRef<number>(90);
   if (settings !== undefined) {
@@ -1024,6 +1132,14 @@ export function TreinoGuiado() {
             />
           ))}
         </div>
+
+        {/* Calculadora de anilhas (G15) — só no modo reps com peso */}
+        {!isTimedMode && (
+          <PlateCalc
+            weightKg={currentEx.sets[0]?.weightKg}
+            unit={unit}
+          />
+        )}
       </div>
 
       {/* Navegação entre exercícios */}

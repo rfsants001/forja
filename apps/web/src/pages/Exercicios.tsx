@@ -63,6 +63,9 @@ export function Exercicios() {
 
   // Detalhe / modal de visualização (G1)
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
+  // Nota por exercício (G15) — estado local dentro do modal de detalhe
+  const [noteText, setNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
 
   // Confirmação de exclusão
   const [deleteTarget, setDeleteTarget] = useState<Exercise | null>(null);
@@ -166,6 +169,18 @@ export function Exercicios() {
     setDeleteTarget(null);
   }
 
+  /** Salva a nota pessoal do exercício (G15). */
+  async function handleSaveNote(ex: Exercise) {
+    setSavingNote(true);
+    try {
+      await upsertExercise({ ...ex, note: noteText.trim() || undefined });
+      // Atualiza o estado local do modal com a nota salva
+      setDetailEx((prev) => (prev !== null ? { ...prev, note: noteText.trim() || undefined } : prev));
+    } finally {
+      setSavingNote(false);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
@@ -262,10 +277,10 @@ export function Exercicios() {
               <div
                 key={ex.id}
                 className="ex-item"
-                onClick={() => setDetailEx(ex)}
+                onClick={() => { setDetailEx(ex); setNoteText(ex.note ?? ''); }}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter') setDetailEx(ex); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { setDetailEx(ex); setNoteText(ex.note ?? ''); } }}
               >
                 {/* G1: miniatura da demo */}
                 <Media demo={ex.demo} name={ex.name} size="sm" staticOnly />
@@ -280,6 +295,9 @@ export function Exercicios() {
                 </div>
                 {ex.custom === true && (
                   <span className="ex-badge">Custom</span>
+                )}
+                {ex.note !== undefined && ex.note.length > 0 && (
+                  <span className="ex-badge" title={ex.note}>Nota</span>
                 )}
                 <ChevronRight size={16} color="var(--text-muted)" />
               </div>
@@ -351,6 +369,27 @@ export function Exercicios() {
                 {detailEx.attribution}
               </p>
             )}
+
+            {/* Nota pessoal (G15) */}
+            <div className="field" style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12 }}>Nota pessoal</label>
+              <textarea
+                placeholder="Dicas, ajustes de execução, observações…"
+                value={noteText}
+                rows={3}
+                onChange={(e) => setNoteText(e.target.value)}
+              />
+              {noteText !== (detailEx.note ?? '') && (
+                <button
+                  className="btn"
+                  style={{ marginTop: 6, padding: '7px 14px', fontSize: 12 }}
+                  onClick={() => { void handleSaveNote(detailEx); }}
+                  disabled={savingNote}
+                >
+                  {savingNote ? 'Salvando…' : 'Salvar nota'}
+                </button>
+              )}
+            </div>
 
             <div className="btn-row">
               <button className="btn ghost" onClick={() => setDetailEx(null)}>

@@ -383,3 +383,78 @@
   background: var(--border-soft);
   margin: 12px 0;
 }
+
+/* ---- medidas corporais (G14) ---- */
+
+/* grade 2 colunas para os campos do formulário */
+.prog-measure-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  margin-bottom: 8px;
+}
+
+/* formulário de entrada */
+.prog-measure-form {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  margin-bottom: 12px;
+}
+
+/* lista de registros */
+.prog-measure-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.prog-measure-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+}
+
+.prog-measure-date {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--flame-2);
+  flex-shrink: 0;
+  min-width: 36px;
+  padding-top: 1px;
+}
+
+.prog-measure-values {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: 1.5;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.prog-measure-note {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.prog-measure-del {
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border-radius: var(--r-sm);
+  flex-shrink: 0;
+  transition: color 0.1s ease;
+}
+
+.prog-measure-del:hover {
+  color: var(--danger, #e55);
+}

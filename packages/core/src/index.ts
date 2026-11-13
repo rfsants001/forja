@@ -7,3 +7,4 @@ export * from './history.js';
 export * from './progression.js';
 export * from './schedule.js';
 export * from './pr.js';
+export * from './plates.js';

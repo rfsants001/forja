@@ -12,8 +12,8 @@ import '../styles/progresso.css';
 
 import { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { TrendingUp, Dumbbell, User, Users, Zap } from 'lucide-react';
-import type { Exercise, MuscleGroup, WorkoutLog } from '@forja/core';
+import { TrendingUp, Dumbbell, User, Users, Zap, Ruler, Trash2 } from 'lucide-react';
+import type { BodyMeasurement, Exercise, MuscleGroup, WorkoutLog } from '@forja/core';
 import { db } from '../db/db';
 import * as repo from '../db/repo';
 import { Heatmap } from '../components/Heatmap';
@@ -547,6 +547,320 @@ function EffortSection({ workouts, exerciseMap, period, trackEffort }: EffortSec
 }
 
 // ---------------------------------------------------------------------------
+// Sub-componente: seção de medidas corporais (G14)
+// ---------------------------------------------------------------------------
+
+/** Campos disponíveis para gráfico — label curto e chave do BodyMeasurement. */
+const MEASURE_FIELDS: { key: keyof BodyMeasurement; label: string }[] = [
+  { key: 'waistCm',      label: 'Cintura' },
+  { key: 'chestCm',      label: 'Peitoral' },
+  { key: 'hipsCm',       label: 'Quadril' },
+  { key: 'leftArmCm',    label: 'Braço E' },
+  { key: 'rightArmCm',   label: 'Braço D' },
+  { key: 'leftThighCm',  label: 'Coxa E' },
+  { key: 'rightThighCm', label: 'Coxa D' },
+  { key: 'neckCm',       label: 'Pescoço' },
+  { key: 'calfCm',       label: 'Panturrilha' },
+];
+
+/** Rótulo curto dd/mm para o eixo X. */
+function fmtDateShort(iso: string): string {
+  const [, m, d] = iso.split('-');
+  return `${d}/${m}`;
+}
+
+interface MeasureChartProps {
+  data: BodyMeasurement[];
+  field: keyof BodyMeasurement;
+}
+
+/** Gráfico de linha SVG puro para uma medida ao longo do tempo — mesmo padrão do EffortLineChart. */
+function MeasureChart({ data, field }: MeasureChartProps) {
+  // Filtra e ordena pontos com valor para este campo
+  const points = data
+    .filter((m) => m[field] !== undefined)
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
+    .map((m) => ({ date: m.dateISO, value: m[field] as number }));
+
+  if (points.length < 2) {
+    return (
+      <p className="hint" style={{ textAlign: 'center', padding: '4px 0' }}>
+        São necessários ao menos 2 registros para exibir o gráfico.
+      </p>
+    );
+  }
+
+  const W_PER_POINT = 44;
+  const PAD_LEFT = 36;
+  const PAD_RIGHT = 12;
+  const PAD_TOP = 8;
+  const PAD_BOT = 20;
+  const SVG_H = 72;
+  const innerH = SVG_H - PAD_TOP - PAD_BOT;
+  const totalPoints = points.length;
+  const svgW = Math.max(240, PAD_LEFT + PAD_RIGHT + totalPoints * W_PER_POINT);
+
+  const vals = points.map((p) => p.value);
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const rangeV = maxV - minV || 1;
+
+  const yScale = (v: number) => PAD_TOP + innerH * (1 - (v - minV) / rangeV);
+  const xScale = (i: number) =>
+    PAD_LEFT +
+    (totalPoints === 1
+      ? (svgW - PAD_LEFT - PAD_RIGHT) / 2
+      : (i / (totalPoints - 1)) * (svgW - PAD_LEFT - PAD_RIGHT));
+
+  const linePoints = points
+    .map((p, i) => `${xScale(i).toFixed(1)},${yScale(p.value).toFixed(1)}`)
+    .join(' ');
+
+  return (
+    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <svg
+        className="prog-effort-svg"
+        width={svgW}
+        height={SVG_H}
+        aria-label="Evolução da medida ao longo do tempo"
+        role="img"
+      >
+        {/* Rótulos Y mín/máx */}
+        <text x={PAD_LEFT - 4} y={PAD_TOP + 4} textAnchor="end" fontSize={9} fill="var(--text-muted)">{maxV}</text>
+        <text x={PAD_LEFT - 4} y={PAD_TOP + innerH + 4} textAnchor="end" fontSize={9} fill="var(--text-muted)">{minV}</text>
+
+        {/* Linha */}
+        <polyline
+          points={linePoints}
+          fill="none"
+          stroke="var(--flame)"
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Pontos e rótulos */}
+        {points.map((p, i) => {
+          const cx = xScale(i);
+          const cy = yScale(p.value);
+          return (
+            <g key={p.date}>
+              <circle cx={cx} cy={cy} r={3.5} fill="var(--flame)" />
+              <text x={cx} y={cy - 7} textAnchor="middle" fontSize={9} fontWeight={600} fill="var(--flame-2)">
+                {p.value}
+              </text>
+              {(totalPoints <= 8 || i % Math.ceil(totalPoints / 8) === 0) && (
+                <text x={cx} y={SVG_H - 4} textAnchor="middle" fontSize={9} fill="var(--text-muted)">
+                  {fmtDateShort(p.date)}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+/** Formulário de entrada de medidas. Campos opcionais — só envia os preenchidos. */
+interface MeasureFormState {
+  dateISO: string;
+  waistCm: string; chestCm: string; hipsCm: string;
+  leftArmCm: string; rightArmCm: string;
+  leftThighCm: string; rightThighCm: string;
+  neckCm: string; calfCm: string;
+  note: string;
+}
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function emptyMeasureForm(): MeasureFormState {
+  return {
+    dateISO: todayISO(),
+    waistCm: '', chestCm: '', hipsCm: '',
+    leftArmCm: '', rightArmCm: '',
+    leftThighCm: '', rightThighCm: '',
+    neckCm: '', calfCm: '',
+    note: '',
+  };
+}
+
+function parseCm(v: string): number | undefined {
+  const n = parseFloat(v);
+  return isNaN(n) || n <= 0 ? undefined : n;
+}
+
+function MeasurementsSection() {
+  const measurements = useLiveQuery(() => db.measurements.orderBy('dateISO').toArray(), []);
+  const [form, setForm] = useState<MeasureFormState>(emptyMeasureForm);
+  const [formOpen, setFormOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [chartField, setChartField] = useState<keyof BodyMeasurement>('waistCm');
+
+  // Campos com ao menos um dado (para o seletor do gráfico)
+  const fieldsWithData = useMemo(() => {
+    const data = measurements ?? [];
+    return MEASURE_FIELDS.filter((f) => data.some((m) => m[f.key] !== undefined));
+  }, [measurements]);
+
+  async function handleSave() {
+    const dateISO = form.dateISO.trim();
+    if (!dateISO) return;
+    setSaving(true);
+    try {
+      const m: BodyMeasurement = {
+        dateISO,
+        waistCm:      parseCm(form.waistCm),
+        chestCm:      parseCm(form.chestCm),
+        hipsCm:       parseCm(form.hipsCm),
+        leftArmCm:    parseCm(form.leftArmCm),
+        rightArmCm:   parseCm(form.rightArmCm),
+        leftThighCm:  parseCm(form.leftThighCm),
+        rightThighCm: parseCm(form.rightThighCm),
+        neckCm:       parseCm(form.neckCm),
+        calfCm:       parseCm(form.calfCm),
+        note: form.note.trim() || undefined,
+      };
+      await repo.addMeasurement(m);
+      setForm(emptyMeasureForm());
+      setFormOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(dateISO: string) {
+    await repo.deleteMeasurement(dateISO);
+  }
+
+  const data = measurements ?? [];
+
+  return (
+    <div className="card" style={{ marginBottom: 'var(--gap)' }}>
+      {/* Cabeçalho */}
+      <div className="prog-effort-header" style={{ justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Ruler size={15} strokeWidth={2.2} style={{ color: 'var(--flame)' }} />
+          <div className="section-title">Medidas corporais</div>
+        </div>
+        <button
+          className="btn"
+          style={{ padding: '6px 12px', fontSize: 12 }}
+          onClick={() => setFormOpen((o) => !o)}
+        >
+          {formOpen ? 'Cancelar' : '+ Registrar'}
+        </button>
+      </div>
+
+      {/* Formulário de entrada */}
+      {formOpen && (
+        <div className="prog-measure-form">
+          <div className="field" style={{ marginBottom: 8 }}>
+            <label>Data</label>
+            <input
+              type="date"
+              value={form.dateISO}
+              onChange={(e) => setForm((f) => ({ ...f, dateISO: e.target.value }))}
+            />
+          </div>
+          <div className="prog-measure-grid">
+            {MEASURE_FIELDS.map(({ key, label }) => (
+              <div key={key} className="field" style={{ marginBottom: 6 }}>
+                <label style={{ fontSize: 11 }}>{label} (cm)</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step={0.1}
+                  placeholder="—"
+                  value={(form as unknown as Record<string, string>)[key] ?? ''}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, [key]: e.target.value }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+          <div className="field" style={{ marginBottom: 8 }}>
+            <label>Nota (opcional)</label>
+            <textarea
+              placeholder="Observações…"
+              value={form.note}
+              onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+              rows={2}
+            />
+          </div>
+          <div className="btn-row">
+            <button
+              className="btn"
+              onClick={() => { void handleSave(); }}
+              disabled={saving || form.dateISO.trim().length === 0}
+            >
+              {saving ? 'Salvando…' : 'Salvar'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Gráfico com seletor de campo */}
+      {fieldsWithData.length > 0 && (
+        <div style={{ marginTop: formOpen ? 16 : 0 }}>
+          <div className="prog-effort-curve-header">
+            <div className="prog-effort-curve-title">Evolução</div>
+            <select
+              className="prog-effort-curve-select"
+              value={String(chartField)}
+              onChange={(e) => setChartField(e.target.value as keyof BodyMeasurement)}
+              aria-label="Selecionar medida para o gráfico"
+            >
+              {fieldsWithData.map((f) => (
+                <option key={String(f.key)} value={String(f.key)}>{f.label}</option>
+              ))}
+            </select>
+          </div>
+          <MeasureChart data={data} field={chartField} />
+        </div>
+      )}
+
+      {/* Lista de registros */}
+      {data.length === 0 && !formOpen ? (
+        <p className="hint" style={{ textAlign: 'center', padding: '8px 0' }}>
+          Nenhuma medida registrada ainda.
+        </p>
+      ) : data.length > 0 && (
+        <div className="prog-measure-list">
+          {[...data].reverse().map((m) => {
+            const filled = MEASURE_FIELDS
+              .filter((f) => m[f.key] !== undefined)
+              .map((f) => `${f.label}: ${String(m[f.key])} cm`);
+            return (
+              <div key={m.dateISO} className="prog-measure-item">
+                <div className="prog-measure-date">{fmtDateShort(m.dateISO)}</div>
+                <div className="prog-measure-values">
+                  {filled.length > 0 ? filled.join(' · ') : '—'}
+                  {m.note !== undefined && (
+                    <span className="prog-measure-note"> · {m.note}</span>
+                  )}
+                </div>
+                <button
+                  className="prog-measure-del"
+                  onClick={() => { void handleDelete(m.dateISO); }}
+                  aria-label={`Apagar medida de ${m.dateISO}`}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Página principal
 // ---------------------------------------------------------------------------
 
@@ -771,6 +1085,9 @@ export function Progresso() {
           />
         </>
       )}
+
+      {/* Medidas corporais (G14) — sempre visível, independente do histórico de treinos */}
+      {!isLoading && <MeasurementsSection />}
     </>
   );
 }

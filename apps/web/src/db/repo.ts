@@ -17,6 +17,7 @@ import {
   DEFAULT_SETTINGS,
 } from '@forja/core';
 import type {
+  BodyMeasurement,
   Category,
   Exercise,
   MuscleGroup,
@@ -311,6 +312,24 @@ export async function addBodyWeight(point: BodyWeight): Promise<BodyWeight> {
 /** Remove o registro de peso de uma data ISO. */
 export async function deleteBodyWeight(dateISO: string): Promise<void> {
   await db.bodyweight.delete(dateISO);
+}
+
+// ---------------------------------------------------------------------------
+// Medidas corporais (G14)
+// ---------------------------------------------------------------------------
+
+/**
+ * Adiciona (ou substitui) um registro de medidas corporais.
+ * A chave primária é dateISO, então dois registros no mesmo dia sobrescrevem.
+ */
+export async function addMeasurement(m: BodyMeasurement): Promise<BodyMeasurement> {
+  await db.measurements.put(m);
+  return m;
+}
+
+/** Remove o registro de medidas de uma data ISO. */
+export async function deleteMeasurement(dateISO: string): Promise<void> {
+  await db.measurements.delete(dateISO);
 }
 
 // ---------------------------------------------------------------------------
