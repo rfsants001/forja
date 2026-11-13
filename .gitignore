@@ -10,5 +10,4 @@ coverage/
 # dado self-hosted / runtime (não o código-fonte em apps/web/src/data)
 forja.db
 /data/
-.specs/
 docs/
