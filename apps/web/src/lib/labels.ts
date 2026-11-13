@@ -35,6 +35,7 @@ export const PROGRESSION_LABEL: Record<ProgressionPolicy, string> = {
   greyskull: 'Greyskull',
   double: 'Double progression',
   time: 'Progressão por tempo',
+  '531': '5/3/1 (Wendler)',
 };
 
 /** Lista ordenada de MuscleGroups para uso em selects. */
@@ -49,5 +50,5 @@ export const MODE_OPTIONS: ExerciseMode[] = ['reps', 'time', 'cardio'];
 
 /** Lista de ProgressionPolicies para uso em selects. */
 export const PROGRESSION_OPTIONS: ProgressionPolicy[] = [
-  'off', 'linear', 'greyskull', 'double', 'time',
+  'off', 'linear', 'greyskull', 'double', 'time', '531',
 ];

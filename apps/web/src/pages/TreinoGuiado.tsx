@@ -28,6 +28,7 @@ import {
 } from '@forja/core';
 import type {
   Exercise,
+  MainSet531,
   PR,
   Routine,
   RoutineExercise,
@@ -1099,6 +1100,26 @@ export function TreinoGuiado() {
         )}
         {prescription !== null && prescription.kind === 'fresh' && (
           <div className="tg-why">Primeira vez com este exercício — defina os valores iniciais.</div>
+        )}
+
+        {/* Sets principais do 5/3/1 — guia visual de %, carga e reps */}
+        {prescription !== null && prescription.kind === '531' && prescription.mainSets !== undefined && (
+          <div className="tg-531-sets">
+            {prescription.mainSets.map((ms: MainSet531, i: number) => {
+              const displayW = unit === 'lb' ? (ms.weightKg * 2.20462).toFixed(1) : ms.weightKg.toFixed(1);
+              const unitLabel = unit === 'lb' ? 'lb' : 'kg';
+              return (
+                <div key={i} className={`tg-531-set${ms.amrap ? ' tg-531-set--amrap' : ''}`}>
+                  <span className="tg-531-pct">{ms.percentOfTM}%</span>
+                  <span className="tg-531-weight">{displayW} {unitLabel}</span>
+                  <span className="tg-531-reps">
+                    {ms.reps} rep{ms.reps !== 1 ? 's' : ''}
+                    {ms.amrap ? <span className="tg-531-amrap-badge"> AMRAP</span> : null}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {/* Labels de coluna */}

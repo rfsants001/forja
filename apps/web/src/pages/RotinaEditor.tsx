@@ -14,7 +14,8 @@ import {
   Link2,
   Unlink2,
 } from 'lucide-react';
-import type { RoutineExercise, ProgressionPolicy, ExerciseMode, MuscleGroup, Exercise } from '@forja/core';
+import type { RoutineExercise, ProgressionPolicy, ExerciseMode, MuscleGroup, Exercise, WorkoutLog } from '@forja/core';
+import { estimate1RM } from '@forja/core';
 import { db } from '../db/db';
 import { upsertRoutine, deleteRoutine } from '../db/repo';
 import {
@@ -237,12 +238,14 @@ interface RexRowProps {
   onMoveDown: (key: string) => void;
   onRemove: (key: string) => void;
   onUngroup: (key: string) => void;
+  /** Calcula o TM a partir do melhor set histórico (90% do 1RM estimado). */
+  onDeriveTM: (key: string) => void;
 }
 
 function RexRow({
   rex, mode, exName, demo, index, total,
   selected, onToggleSelect,
-  onChange, onMoveUp, onMoveDown, onRemove, onUngroup,
+  onChange, onMoveUp, onMoveDown, onRemove, onUngroup, onDeriveTM,
 }: RexRowProps) {
   const hasGroup = rex.supersetGroup !== undefined;
   const color = hasGroup ? supersetColor(rex.supersetGroup!) : undefined;
@@ -427,6 +430,39 @@ function RexRow({
             ))}
           </select>
         </div>
+
+        {/* Training max — só para 5/3/1 */}
+        {rex.progression === '531' && (
+          <>
+            <div className="field">
+              <label>Training max (kg)</label>
+              <input
+                type="number"
+                min={1}
+                step={2.5}
+                placeholder="Ex.: 100"
+                value={rex.trainingMaxKg ?? ''}
+                onChange={(e) =>
+                  onChange(rex._key, {
+                    trainingMaxKg: e.target.value === '' ? undefined : parseFloat(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div className="field">
+              <label style={{ visibility: 'hidden' }}>Derivar</label>
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ fontSize: '0.78rem', padding: '4px 10px' }}
+                onClick={() => onDeriveTM(rex._key)}
+                title="Calcula o TM como 90% do seu melhor 1RM estimado no histórico"
+              >
+                Derivar do 1RM
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Ações da linha */}
@@ -480,6 +516,7 @@ export function RotinaEditor() {
 
   const categories = useLiveQuery(() => db.categories.orderBy('order').toArray(), []);
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
+  const workouts = useLiveQuery<WorkoutLog[]>(() => db.workouts.toArray(), []) ?? [];
 
   // Map exerciseId → Exercise completo para lookup rápido (G1 + G7)
   const exerciseMap = useMemo(() => {
@@ -592,6 +629,39 @@ export function RotinaEditor() {
   function removeRex(key: string) {
     setRexList((l) => l.filter((r) => r._key !== key));
     setSelectedKeys((s) => { const next = new Set(s); next.delete(key); return next; });
+  }
+
+  /**
+   * 5/3/1: Deriva o TM a partir do melhor set histórico do exercício.
+   * TM ≈ 90% do melhor 1RM estimado (fórmula Epley) em qualquer sessão logada.
+   * Arredondado para o múltiplo de 2.5 mais próximo.
+   */
+  function deriveTM(key: string) {
+    const rex = rexList.find((r) => r._key === key);
+    if (rex === undefined) return;
+
+    // Varre todos os sets logados para encontrar o melhor 1RM estimado.
+    let best1RM = 0;
+    for (const wo of workouts) {
+      for (const entry of wo.entries) {
+        if (entry.exerciseId !== rex.exerciseId) continue;
+        for (const s of entry.sets) {
+          if (!s.done || s.weightKg === undefined || s.reps === undefined) continue;
+          const rm = estimate1RM(s.weightKg, s.reps);
+          if (rm > best1RM) best1RM = rm;
+        }
+      }
+    }
+
+    if (best1RM <= 0) {
+      alert('Nenhum histórico encontrado para este exercício. Informe o TM manualmente.');
+      return;
+    }
+
+    // TM = 90% do 1RM, arredondado para 2.5 kg.
+    const roundKg = rex.incrementKg ?? 2.5;
+    const tm = Math.round((best1RM * 0.9) / roundKg) * roundKg;
+    patchRex(key, { trainingMaxKg: tm });
   }
 
   // G2: toggle seleção para superset
@@ -791,6 +861,7 @@ export function RotinaEditor() {
               onMoveDown={moveDown}
               onRemove={removeRex}
               onUngroup={ungroupRex}
+              onDeriveTM={deriveTM}
             />
           );
         })}

@@ -12,7 +12,7 @@ export type ExerciseMode = 'reps' | 'time' | 'cardio';
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 /** Políticas de progressão de carga (motor da Fase 5). */
-export type ProgressionPolicy = 'off' | 'linear' | 'greyskull' | 'double' | 'time';
+export type ProgressionPolicy = 'off' | 'linear' | 'greyskull' | 'double' | 'time' | '531';
 
 /** Unidade de carga. */
 export type Unit = 'kg' | 'lb';
@@ -87,6 +87,12 @@ export interface RoutineExercise {
   note?: string;
   /** Exercícios no mesmo grupo formam um superset (Fase 5). */
   supersetGroup?: number;
+  /**
+   * Training max (TM) do exercício em kg.
+   * Usado pela política 5/3/1: ~90% do 1RM. Definido pelo usuário ou derivado de
+   * `estimate1RM × 0.9`. Não é o 1RM — é a carga de trabalho que gera as séries principais.
+   */
+  trainingMaxKg?: number;
 }
 
 /** Rotina nomeada (um "treino") dentro de uma categoria. */
@@ -131,6 +137,21 @@ export interface SetLog {
   effort?: Effort;
 }
 
+/**
+ * Um set principal do esquema 5/3/1 com carga calculada.
+ * Carregado em `Prescription.mainSets` quando `kind === '531'`.
+ */
+export interface MainSet531 {
+  /** Percentual do TM aplicado (ex.: 85). */
+  percentOfTM: number;
+  /** Carga calculada e arredondada (kg). */
+  weightKg: number;
+  /** Reps-alvo. */
+  reps: number;
+  /** Último set é AMRAP (as many reps as possible). */
+  amrap: boolean;
+}
+
 /** Prescrição derivada do histórico pro próximo treino. */
 export interface Prescription {
   weightKg?: number;
@@ -139,6 +160,15 @@ export interface Prescription {
   /** Explicação legível do porquê desta prescrição (auditável). */
   why: string;
   kind: ProgressionPolicy | 'prefill' | 'fresh';
+  /**
+   * Sets principais do esquema 5/3/1, presentes apenas quando `kind === '531'`.
+   * A UI usa isso para renderizar as 3 séries com %, carga e flag AMRAP.
+   */
+  mainSets?: MainSet531[];
+  /** Semana do ciclo 5/3/1 (1–4), presente quando `kind === '531'`. */
+  cycleWeek?: 1 | 2 | 3 | 4;
+  /** Training max usado para calcular as cargas (kg), presente quando `kind === '531'`. */
+  trainingMaxKg?: number;
 }
 
 /** Snapshot do target que valia quando o exercício foi logado. */
