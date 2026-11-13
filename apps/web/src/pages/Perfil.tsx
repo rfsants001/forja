@@ -347,7 +347,19 @@ function BodyWeightList({ entries }: { entries: BodyWeight[] }) {
 // ---------------------------------------------------------------------------
 
 /** Chave usada para feedback de "salvo" */
-type SettingKey = 'unit' | 'defaultRestSec' | 'theme' | 'weekStartsOn' | 'trackEffort' | 'bodyWeightGoalKg';
+type SettingKey = 'unit' | 'defaultRestSec' | 'theme' | 'accent' | 'weekStartsOn' | 'trackEffort' | 'bodyWeightGoalKg';
+
+/** Paletas de acento disponíveis */
+const ACCENT_PALETTES: { name: string; label: string; color: string }[] = [
+  { name: 'flame',   label: 'Chama',   color: '#ff7a1a' },
+  { name: 'blue',    label: 'Azul',    color: '#3b8ff5' },
+  { name: 'violet',  label: 'Violeta', color: '#9b5de5' },
+  { name: 'green',   label: 'Verde',   color: '#22c55e' },
+  { name: 'amber',   label: 'Âmbar',   color: '#f5a623' },
+  { name: 'rose',    label: 'Rosa',    color: '#f43f5e' },
+  { name: 'cyan',    label: 'Ciano',   color: '#06b6d4' },
+  { name: 'magenta', label: 'Magenta', color: '#d946ef' },
+];
 
 function SettingsSection({ settings }: { settings: Settings }) {
   // Estados locais sincronizados com a setting reativa
@@ -416,14 +428,28 @@ function SettingsSection({ settings }: { settings: Settings }) {
 
   // Aplica o tema no documento
   function applyTheme(theme: Settings['theme']) {
-    document.documentElement.dataset['theme'] = theme === 'system' ? '' : theme;
+    if (theme === 'system') {
+      delete document.documentElement.dataset['theme'];
+    } else {
+      document.documentElement.dataset['theme'] = theme;
+    }
   }
 
-  // Aplica tema no mount conforme setting salva
+  // Aplica o acento no documento
+  function applyAccent(accent: string) {
+    document.documentElement.dataset['accent'] = accent;
+  }
+
+  // Aplica tema e acento no mount conforme settings salvas
   useEffect(() => {
     applyTheme(settings.theme);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.theme]);
+
+  useEffect(() => {
+    applyAccent(settings.accent ?? 'flame');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.accent]);
 
   async function handleUnit(unit: Settings['unit']) {
     await updateSettings({ unit });
@@ -434,6 +460,12 @@ function SettingsSection({ settings }: { settings: Settings }) {
     applyTheme(theme);
     await updateSettings({ theme });
     flashSaved('theme');
+  }
+
+  async function handleAccent(accent: string) {
+    applyAccent(accent);
+    await updateSettings({ accent });
+    flashSaved('accent');
   }
 
   async function handleWeekStartsOn(day: 0 | 1) {
@@ -515,6 +547,30 @@ function SettingsSection({ settings }: { settings: Settings }) {
           <option value="light">Claro</option>
           <option value="system">Sistema</option>
         </select>
+      </div>
+
+      {/* Cor de acento */}
+      <div className="setting-row accent-row">
+        <div className="setting-label">
+          <span className="lbl">Cor de acento</span>
+          <SavedBadge k="accent" />
+        </div>
+        <div className="accent-swatches" role="radiogroup" aria-label="Cor de acento">
+          {ACCENT_PALETTES.map((p) => {
+            const active = (settings.accent ?? 'flame') === p.name;
+            return (
+              <button
+                key={p.name}
+                className={`accent-swatch${active ? ' active' : ''}`}
+                style={{ '--swatch-color': p.color } as React.CSSProperties}
+                aria-label={p.label}
+                aria-pressed={active}
+                title={p.label}
+                onClick={() => { void handleAccent(p.name); }}
+              />
+            );
+          })}
+        </div>
       </div>
 
       {/* Início da semana */}

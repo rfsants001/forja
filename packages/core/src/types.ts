@@ -193,6 +193,8 @@ export interface Settings {
   bodyWeightGoalKg?: number;
   /** Figura usada no mapa muscular. */
   muscleFigure?: 'male' | 'female';
+  /** Nome da paleta de acento global (ex. 'flame', 'blue'). */
+  accent?: string;
 }
 
 /** Estado derivado de streak (nunca persistido como contador — calculado do histórico). */
@@ -210,4 +212,5 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
   trackEffort: false,
   weekStartsOn: 1,
+  accent: 'flame',
 };

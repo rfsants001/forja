@@ -31,7 +31,7 @@
   --warn: #e8a838;
   --danger: #e05c4a;
 
-  /* acento ativo (sobrescrito por categoria via --accent) */
+  /* acento ativo (padrão flame; sobrescrito por [data-accent] ou categoria via inline style) */
   --accent: var(--flame);
   --on-accent: #0e0f13;
 
@@ -59,9 +59,29 @@
   --nav-h: 64px;
 }
 
+/* ---------------------------------------------------------------------------
+   Tema claro — [data-theme='light'] sempre aplica (escolha explícita do usuário).
+   O sistema respeita @media abaixo; aqui o valor vence independente do SO.
+   --------------------------------------------------------------------------- */
+[data-theme='light'] {
+  --bg: #f5f6f9;
+  --bg-2: #eceef3;
+  --surface: #ffffff;
+  --surface-2: #f2f4f8;
+  --surface-3: #e7eaf1;
+  --border: #d9dee8;
+  --border-soft: #e7eaf1;
+  --text: #15171e;
+  --text-2: #3a4150;
+  --text-muted: #6b7486;
+  --on-accent: #ffffff;
+  --shadow: 0 6px 24px rgba(20, 22, 29, 0.12);
+  --shadow-lg: 0 14px 40px rgba(20, 22, 29, 0.18);
+}
+
+/* dataset vazio = "system": respeita a preferência do SO */
 @media (prefers-color-scheme: light) {
-  /* tema claro opcional (Settings) — v1 foca no escuro; tokens prontos pro toggle */
-  :root[data-theme='light'] {
+  :root:not([data-theme]) {
     --bg: #f5f6f9;
     --bg-2: #eceef3;
     --surface: #ffffff;
@@ -76,4 +96,66 @@
     --shadow: 0 6px 24px rgba(20, 22, 29, 0.12);
     --shadow-lg: 0 14px 40px rgba(20, 22, 29, 0.18);
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Paletas de acento — 8 opções nomeadas.
+   Cada uma sobrescreve --accent e --on-accent. Funciona em dark E light.
+   O acento por categoria (Home.tsx via inline style) continua valendo por cima.
+   --------------------------------------------------------------------------- */
+
+/* flame — laranja fogo, padrão */
+:root[data-accent='flame'],
+[data-accent='flame'] {
+  --accent: #ff7a1a;
+  --on-accent: #1a0a00;
+}
+
+/* blue — azul vivo */
+:root[data-accent='blue'],
+[data-accent='blue'] {
+  --accent: #3b8ff5;
+  --on-accent: #ffffff;
+}
+
+/* violet — roxo vibrante */
+:root[data-accent='violet'],
+[data-accent='violet'] {
+  --accent: #9b5de5;
+  --on-accent: #ffffff;
+}
+
+/* green — verde fresco */
+:root[data-accent='green'],
+[data-accent='green'] {
+  --accent: #22c55e;
+  --on-accent: #052010;
+}
+
+/* amber — âmbar quente */
+:root[data-accent='amber'],
+[data-accent='amber'] {
+  --accent: #f5a623;
+  --on-accent: #1a0f00;
+}
+
+/* rose — rosa intenso */
+:root[data-accent='rose'],
+[data-accent='rose'] {
+  --accent: #f43f5e;
+  --on-accent: #ffffff;
+}
+
+/* cyan — ciano elétrico */
+:root[data-accent='cyan'],
+[data-accent='cyan'] {
+  --accent: #06b6d4;
+  --on-accent: #001a1f;
+}
+
+/* magenta — magenta energético */
+:root[data-accent='magenta'],
+[data-accent='magenta'] {
+  --accent: #d946ef;
+  --on-accent: #ffffff;
 }
