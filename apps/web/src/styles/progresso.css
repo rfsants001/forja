@@ -224,3 +224,162 @@
   opacity: 0.35;
   margin-bottom: 12px;
 }
+
+/* ---- seção de esforço (G4) ---- */
+
+/* gráfico de linha (média semanal) */
+.prog-effort-chart {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+}
+
+.prog-effort-svg {
+  display: block;
+}
+
+/* spread (histograma de barras) */
+.prog-effort-spread {
+  margin-top: 4px;
+}
+
+.prog-effort-spread-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.prog-effort-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.prog-effort-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prog-effort-bar-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.prog-effort-bar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--surface-2);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.prog-effort-bar-fill {
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--flame) 80%, var(--flame-2));
+  transition: width 0.3s ease;
+}
+
+.prog-effort-bar-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 24px;
+  flex-shrink: 0;
+}
+
+/* curva do top-set (seletor + gráfico) */
+.prog-effort-curve {
+  margin-top: 14px;
+}
+
+.prog-effort-curve-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.prog-effort-curve-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.prog-effort-curve-select {
+  flex: 1;
+  min-width: 0;
+  max-width: 220px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  truncate: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.prog-effort-curve-select:focus {
+  border-color: color-mix(in srgb, var(--flame) 50%, transparent);
+}
+
+/* hint para ativar trackEffort */
+.prog-effort-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 0 8px;
+  text-align: center;
+}
+
+.prog-effort-hint p {
+  margin: 0;
+}
+
+/* cabeçalho do card com ícone de esforço */
+.prog-effort-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.prog-effort-header .section-title {
+  margin: 0;
+}
+
+/* nota de sets avaliados */
+.prog-effort-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+/* divisor entre linha-chart e spread */
+.prog-effort-divider {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 12px 0;
+}

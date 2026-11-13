@@ -12,8 +12,8 @@ import '../styles/progresso.css';
 
 import { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { TrendingUp, Dumbbell, User, Users } from 'lucide-react';
-import type { Exercise, MuscleGroup } from '@forja/core';
+import { TrendingUp, Dumbbell, User, Users, Zap } from 'lucide-react';
+import type { Exercise, MuscleGroup, WorkoutLog } from '@forja/core';
 import { db } from '../db/db';
 import * as repo from '../db/repo';
 import { Heatmap } from '../components/Heatmap';
@@ -23,7 +23,11 @@ import {
   computePRs,
   computeVolumeByMuscle,
   workoutDates,
+  effortByWeek,
+  effortSpread,
+  topSetEffortCurve,
 } from '../lib/stats';
+import type { EffortWeek, TopSetPoint } from '../lib/stats';
 
 // ---------------------------------------------------------------------------
 // Tipos e constantes
@@ -115,6 +119,434 @@ function SummaryGrid({ workoutCount, daysCount, totalVolume }: SummaryGridProps)
 }
 
 // ---------------------------------------------------------------------------
+// Sub-componente: gráfico de linha da média semanal de esforço (SVG puro)
+// ---------------------------------------------------------------------------
+
+const CHART_H = 72;
+const CHART_MIN_W = 240;
+
+interface EffortLineChartProps {
+  weeks: EffortWeek[];
+}
+
+function EffortLineChart({ weeks }: EffortLineChartProps) {
+  if (weeks.length === 0) return null;
+
+  const W_PER_POINT = 44;
+  const PAD_LEFT = 28;
+  const PAD_RIGHT = 12;
+  const PAD_TOP = 8;
+  const PAD_BOT = 20;
+  const innerH = CHART_H - PAD_TOP - PAD_BOT;
+
+  const totalPoints = weeks.length;
+  const svgW = Math.max(CHART_MIN_W, PAD_LEFT + PAD_RIGHT + totalPoints * W_PER_POINT);
+
+  // Escala Y: RPE 0–10
+  const yScale = (rpe: number) => PAD_TOP + innerH * (1 - rpe / 10);
+  // Escala X: distribui pontos uniformemente
+  const xScale = (i: number) =>
+    PAD_LEFT + (totalPoints === 1 ? (svgW - PAD_LEFT - PAD_RIGHT) / 2 : (i / (totalPoints - 1)) * (svgW - PAD_LEFT - PAD_RIGHT));
+
+  // Polyline path
+  const points = weeks.map((w, i) => `${xScale(i).toFixed(1)},${yScale(w.avg).toFixed(1)}`).join(' ');
+
+  // Grade Y em 2.5, 5, 7.5
+  const gridLines = [2.5, 5, 7.5];
+
+  // Formato semana curto: semana/mês
+  function fmtWeek(iso: string): string {
+    const [, m, d] = iso.split('-');
+    return `${d}/${m}`;
+  }
+
+  return (
+    <svg
+      className="prog-effort-svg"
+      width={svgW}
+      height={CHART_H}
+      aria-label="Média semanal de esforço (RPE)"
+      role="img"
+    >
+      {/* Grade */}
+      {gridLines.map((v) => (
+        <line
+          key={v}
+          x1={PAD_LEFT}
+          x2={svgW - PAD_RIGHT}
+          y1={yScale(v)}
+          y2={yScale(v)}
+          stroke="var(--border-soft)"
+          strokeWidth={1}
+        />
+      ))}
+
+      {/* Rótulos Y */}
+      {gridLines.map((v) => (
+        <text
+          key={v}
+          x={PAD_LEFT - 5}
+          y={yScale(v) + 4}
+          textAnchor="end"
+          fontSize={9}
+          fill="var(--text-muted)"
+        >
+          {v}
+        </text>
+      ))}
+
+      {/* Linha */}
+      {totalPoints > 1 && (
+        <polyline
+          points={points}
+          fill="none"
+          stroke="var(--flame)"
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      )}
+
+      {/* Pontos e rótulos X */}
+      {weeks.map((w, i) => {
+        const cx = xScale(i);
+        const cy = yScale(w.avg);
+        return (
+          <g key={w.weekISO}>
+            <circle cx={cx} cy={cy} r={3.5} fill="var(--flame)" />
+            {/* Tooltip value acima do ponto */}
+            <text
+              x={cx}
+              y={cy - 7}
+              textAnchor="middle"
+              fontSize={9}
+              fontWeight={600}
+              fill="var(--flame-2)"
+            >
+              {w.avg}
+            </text>
+            {/* Rótulo X embaixo */}
+            {(totalPoints <= 8 || i % Math.ceil(totalPoints / 8) === 0) && (
+              <text
+                x={cx}
+                y={CHART_H - 4}
+                textAnchor="middle"
+                fontSize={9}
+                fill="var(--text-muted)"
+              >
+                {fmtWeek(w.weekISO)}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sub-componente: barras de spread (distribuição por nível RPE)
+// ---------------------------------------------------------------------------
+
+interface EffortSpreadBarsProps {
+  spread: Record<number, number>;
+}
+
+function EffortSpreadBars({ spread }: EffortSpreadBarsProps) {
+  const entries = Object.entries(spread)
+    .map(([k, v]) => ({ level: Number(k), count: v }))
+    .sort((a, b) => a.level - b.level);
+
+  if (entries.length === 0) return null;
+
+  const maxCount = Math.max(...entries.map((e) => e.count));
+
+  return (
+    <div className="prog-effort-spread">
+      <div className="prog-effort-spread-title">Distribuição (RPE)</div>
+      <div className="prog-effort-bars">
+        {entries.map(({ level, count }) => (
+          <div key={level} className="prog-effort-bar-row">
+            <div className="prog-effort-bar-label">{level}</div>
+            <div className="prog-effort-bar-track">
+              <div
+                className="prog-effort-bar-fill"
+                style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
+              />
+            </div>
+            <div className="prog-effort-bar-count">{count}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sub-componente: curva do top-set (SVG puro) com seletor de exercício
+// ---------------------------------------------------------------------------
+
+interface TopSetCurveProps {
+  points: TopSetPoint[];
+}
+
+function TopSetCurve({ points }: TopSetCurveProps) {
+  if (points.length < 2) {
+    return (
+      <p className="hint" style={{ textAlign: 'center', padding: '4px 0' }}>
+        São necessárias ao menos 2 sessões para exibir a curva.
+      </p>
+    );
+  }
+
+  const W_PER_POINT = 44;
+  const PAD_LEFT = 36;
+  const PAD_RIGHT = 12;
+  const PAD_TOP = 8;
+  const PAD_BOT = 20;
+  const SVG_H = 80;
+  const innerH = SVG_H - PAD_TOP - PAD_BOT;
+
+  const totalPoints = points.length;
+  const svgW = Math.max(CHART_MIN_W, PAD_LEFT + PAD_RIGHT + totalPoints * W_PER_POINT);
+
+  const rms = points.map((p) => p.topSet1RM);
+  const minRM = Math.min(...rms);
+  const maxRM = Math.max(...rms);
+  const rangeRM = maxRM - minRM || 1;
+
+  const yScaleRM = (rm: number) => PAD_TOP + innerH * (1 - (rm - minRM) / rangeRM);
+  const xScale = (i: number) =>
+    PAD_LEFT + (totalPoints === 1 ? (svgW - PAD_LEFT - PAD_RIGHT) / 2 : (i / (totalPoints - 1)) * (svgW - PAD_LEFT - PAD_RIGHT));
+
+  // Escala de esforço para raio do círculo: RPE 6=r3, 10=r6
+  const effortRadius = (e: number | undefined): number => {
+    if (e === undefined) return 3.5;
+    return 3 + (e / 10) * 3;
+  };
+
+  const linePoints = points
+    .map((p, i) => `${xScale(i).toFixed(1)},${yScaleRM(p.topSet1RM).toFixed(1)}`)
+    .join(' ');
+
+  function fmtDate(iso: string): string {
+    const [, m, d] = iso.split('-');
+    return `${d}/${m}`;
+  }
+
+  return (
+    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <svg
+        width={svgW}
+        height={SVG_H}
+        aria-label="Curva do top-set com esforço"
+        role="img"
+      >
+        {/* Linha do 1RM */}
+        <polyline
+          points={linePoints}
+          fill="none"
+          stroke="var(--flame)"
+          strokeWidth={1.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          strokeDasharray="4 2"
+        />
+
+        {/* Pontos: raio proporcional ao esforço */}
+        {points.map((p, i) => {
+          const cx = xScale(i);
+          const cy = yScaleRM(p.topSet1RM);
+          const r = effortRadius(p.effort);
+          const hasEffort = p.effort !== undefined;
+          return (
+            <g key={p.dateISO}>
+              <circle
+                cx={cx}
+                cy={cy}
+                r={r}
+                fill={hasEffort ? 'var(--flame)' : 'var(--surface-2)'}
+                stroke="var(--flame)"
+                strokeWidth={1.5}
+              />
+              {/* Rótulo 1RM */}
+              <text
+                x={cx}
+                y={cy - r - 4}
+                textAnchor="middle"
+                fontSize={9}
+                fill="var(--flame-2)"
+                fontWeight={600}
+              >
+                {p.topSet1RM}
+              </text>
+              {/* Rótulo data */}
+              {(totalPoints <= 8 || i % Math.ceil(totalPoints / 8) === 0) && (
+                <text
+                  x={cx}
+                  y={SVG_H - 4}
+                  textAnchor="middle"
+                  fontSize={9}
+                  fill="var(--text-muted)"
+                >
+                  {fmtDate(p.dateISO)}
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Rótulo Y mín/máx */}
+        <text
+          x={PAD_LEFT - 4}
+          y={PAD_TOP + 4}
+          textAnchor="end"
+          fontSize={9}
+          fill="var(--text-muted)"
+        >
+          {maxRM}
+        </text>
+        <text
+          x={PAD_LEFT - 4}
+          y={PAD_TOP + innerH + 4}
+          textAnchor="end"
+          fontSize={9}
+          fill="var(--text-muted)"
+        >
+          {minRM}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sub-componente: seção completa de esforço
+// ---------------------------------------------------------------------------
+
+interface EffortSectionProps {
+  workouts: WorkoutLog[];
+  exerciseMap: Map<string, Exercise>;
+  period: Period;
+  trackEffort: boolean;
+}
+
+function EffortSection({ workouts, exerciseMap, period, trackEffort }: EffortSectionProps) {
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string>('');
+
+  // Calcula semanas e spread para o período selecionado
+  const weeks = useMemo(() => effortByWeek(workouts, period), [workouts, period]);
+  const spread = useMemo(() => effortSpread(workouts, period), [workouts, period]);
+
+  // Exercícios que têm ao menos um set com esforço (em todo o histórico, sem filtro de período)
+  const exercisesWithEffort = useMemo(() => {
+    const ids = new Set<string>();
+    for (const w of workouts) {
+      for (const entry of w.entries) {
+        for (const set of entry.sets) {
+          if (set.done && set.effort !== undefined) {
+            ids.add(entry.exerciseId);
+          }
+        }
+      }
+    }
+    return Array.from(ids).map((id) => ({
+      id,
+      name: exerciseMap.get(id)?.name ?? `Exercício ${id}`,
+    })).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  }, [workouts, exerciseMap]);
+
+  // Seleciona automaticamente o primeiro quando a lista muda
+  const resolvedExerciseId = selectedExerciseId !== '' && exercisesWithEffort.some((e) => e.id === selectedExerciseId)
+    ? selectedExerciseId
+    : (exercisesWithEffort[0]?.id ?? '');
+
+  const curvePoints = useMemo(
+    () => resolvedExerciseId !== '' ? topSetEffortCurve(workouts, resolvedExerciseId) : [],
+    [workouts, resolvedExerciseId],
+  );
+
+  const hasData = weeks.length > 0;
+  const totalSets = weeks.reduce((acc, w) => acc + w.setCount, 0);
+
+  // Se não há dados e trackEffort está desligado, mostra dica
+  if (!hasData && !trackEffort) {
+    return (
+      <div className="card" style={{ marginBottom: 'var(--gap)' }}>
+        <div className="prog-effort-header">
+          <Zap size={15} strokeWidth={2.2} style={{ color: 'var(--flame)' }} />
+          <div className="section-title">Esforço</div>
+        </div>
+        <div className="prog-effort-hint">
+          <p className="hint">Registro de esforço (RIR/RPE) desativado.</p>
+          <p className="hint">Ative em <strong>Perfil → Registrar esforço</strong> para ver estatísticas aqui.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Se trackEffort está ligado mas não há dados ainda
+  if (!hasData) {
+    return (
+      <div className="card" style={{ marginBottom: 'var(--gap)' }}>
+        <div className="prog-effort-header">
+          <Zap size={15} strokeWidth={2.2} style={{ color: 'var(--flame)' }} />
+          <div className="section-title">Esforço</div>
+        </div>
+        <p className="hint" style={{ textAlign: 'center', padding: '8px 0' }}>
+          Nenhum dado de esforço neste período.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 'var(--gap)' }}>
+      <div className="prog-effort-header">
+        <Zap size={15} strokeWidth={2.2} style={{ color: 'var(--flame)' }} />
+        <div className="section-title">Esforço</div>
+      </div>
+
+      {/* Média semanal — gráfico de linha */}
+      <div className="prog-effort-meta">
+        {totalSets} set{totalSets !== 1 ? 's' : ''} avaliado{totalSets !== 1 ? 's' : ''} · escala RPE 0–10
+      </div>
+      <div className="prog-effort-chart">
+        <EffortLineChart weeks={weeks} />
+      </div>
+
+      <div className="prog-effort-divider" />
+
+      {/* Spread */}
+      <EffortSpreadBars spread={spread} />
+
+      {/* Curva do top-set */}
+      {exercisesWithEffort.length > 0 && (
+        <div className="prog-effort-curve">
+          <div className="prog-effort-curve-header">
+            <div className="prog-effort-curve-title">Top-set + esforço</div>
+            <select
+              className="prog-effort-curve-select"
+              value={resolvedExerciseId}
+              onChange={(e) => setSelectedExerciseId(e.target.value)}
+              aria-label="Selecionar exercício para curva do top-set"
+            >
+              {exercisesWithEffort.map((ex) => (
+                <option key={ex.id} value={ex.id}>{ex.name}</option>
+              ))}
+            </select>
+          </div>
+          <TopSetCurve points={curvePoints} />
+          <p className="hint" style={{ marginTop: 6, fontSize: 10 }}>
+            Círculo maior = RPE mais alto naquela sessão. Contorno vazio = sem esforço registrado.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Página principal
 // ---------------------------------------------------------------------------
 
@@ -131,6 +563,8 @@ export function Progresso() {
 
   // Figura persistida em Settings (padrão 'male')
   const figure = settings?.muscleFigure ?? 'male';
+  // Rastreio de esforço habilitado nas configurações
+  const trackEffort = settings?.trackEffort ?? false;
 
   // ---- mapa de exercícios ----
   const exerciseMap = useMemo(() => {
@@ -327,6 +761,14 @@ export function Progresso() {
               </div>
             )}
           </div>
+
+          {/* Esforço (G4) */}
+          <EffortSection
+            workouts={workouts}
+            exerciseMap={exerciseMap}
+            period={period}
+            trackEffort={trackEffort}
+          />
         </>
       )}
     </>

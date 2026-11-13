@@ -5,8 +5,40 @@ import type { WorkoutLog, Exercise, MuscleGroup, RoutineExercise } from '@forja/
 import { estimate1RM } from '@forja/core';
 
 // ---------------------------------------------------------------------------
+// Escala comum de esforço
+// ---------------------------------------------------------------------------
+//
+// Convenção: a escala comum é RPE 0–10, onde 10 = falha total.
+//   • Se a série tem `rpe`: usa direto.
+//   • Se a série tem `rir`: converte com RPE = 10 - RIR (RIR 0 = falha = RPE 10).
+//   • Se ambos estiverem presentes, `rpe` tem precedência.
+//   • Valores fora de [0, 10] são descartados (undefined).
+//
+// Exemplo:
+//   RIR 2 → RPE 8 (2 reps na reserva, 80 % do esforço máximo)
+//   RIR 0 → RPE 10 (falha)
+//   RPE 9 → RPE 9 (passthrough)
+
+// ---------------------------------------------------------------------------
 // Tipos exportados
 // ---------------------------------------------------------------------------
+
+/** Resultado de uma semana de esforço. */
+export interface EffortWeek {
+  /** Semana no formato ISO (segunda-feira da semana, YYYY-MM-DD). */
+  weekISO: string;
+  /** Média de esforço (RPE 0–10) dos sets avaliados na semana. */
+  avg: number;
+  /** Número de sets com esforço registrado na semana. */
+  setCount: number;
+}
+
+/** Ponto na curva de top-set de um exercício: data, 1RM estimado e esforço. */
+export interface TopSetPoint {
+  dateISO: string;
+  topSet1RM: number;
+  effort: number | undefined;
+}
 
 /** PR de um exercício: melhor 1RM estimado e melhor carga bruta. */
 export interface ExercisePR {
@@ -33,6 +65,19 @@ export interface PeriodSummary {
 // ---------------------------------------------------------------------------
 // Helpers internos
 // ---------------------------------------------------------------------------
+
+/**
+ * Retorna o início da semana (segunda-feira) de uma data ISO como string YYYY-MM-DD.
+ * weekStartsOn=1 (segunda) é o padrão do Forja.
+ */
+function isoWeekStart(dateISO: string): string {
+  const d = new Date(`${dateISO}T00:00:00`);
+  const dow = d.getDay(); // 0=dom … 6=sáb
+  // Dias para subtrair pra chegar na segunda (1). Dom(0)→-6, Seg(1)→0, …, Sáb(6)→-5
+  const diff = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
 
 /** Filtra workouts pelo período (em dias a partir de hoje). null = todos. */
 function filterByPeriod(workouts: WorkoutLog[], days: number | null): WorkoutLog[] {
@@ -182,6 +227,165 @@ export function computeVolumeByMuscle(
  */
 export function workoutDates(workouts: WorkoutLog[], days: number | null): string[] {
   return filterByPeriod(workouts, days).map((w) => w.dateISO);
+}
+
+// ---------------------------------------------------------------------------
+// Esforço — funções públicas (G4 / P45-003)
+// ---------------------------------------------------------------------------
+
+/**
+ * Normaliza um objeto `Effort` para a escala RPE 0–10.
+ *
+ * Convenção:
+ *   - `rpe` presente: usa direto (tem precedência).
+ *   - Só `rir`: RPE = 10 − RIR.
+ *   - Valores fora de [0, 10]: descartados (undefined).
+ *
+ * @example
+ *   toCommonEffort({ rir: 2 })       // 8
+ *   toCommonEffort({ rpe: 9 })       // 9
+ *   toCommonEffort({ rpe: 9, rir: 1 }) // 9 (rpe vence)
+ *   toCommonEffort({})               // undefined
+ */
+export function toCommonEffort(
+  effort: { rir?: number; rpe?: number } | undefined,
+): number | undefined {
+  if (effort === undefined) return undefined;
+
+  let value: number | undefined;
+
+  if (effort.rpe !== undefined) {
+    value = effort.rpe;
+  } else if (effort.rir !== undefined) {
+    value = 10 - effort.rir;
+  }
+
+  if (value === undefined) return undefined;
+  if (value < 0 || value > 10) return undefined;
+  return value;
+}
+
+/**
+ * Agrega esforço médio e contagem de sets avaliados por semana ISO.
+ * Semanas sem nenhum set com esforço não aparecem no resultado.
+ * Resultado ordenado por `weekISO` crescente.
+ *
+ * @param workouts Lista de workouts (todos; filtragem por período feita aqui se `days` passado).
+ * @param days     Janela em dias. null = todos.
+ */
+export function effortByWeek(workouts: WorkoutLog[], days: number | null): EffortWeek[] {
+  const filtered = filterByPeriod(workouts, days);
+
+  // weekISO → { sum, count }
+  const acc = new Map<string, { sum: number; count: number }>();
+
+  for (const workout of filtered) {
+    const week = isoWeekStart(workout.dateISO);
+    for (const entry of workout.entries) {
+      for (const set of entry.sets) {
+        if (!set.done) continue;
+        const e = toCommonEffort(set.effort);
+        if (e === undefined) continue;
+        const existing = acc.get(week);
+        if (existing === undefined) {
+          acc.set(week, { sum: e, count: 1 });
+        } else {
+          existing.sum += e;
+          existing.count += 1;
+        }
+      }
+    }
+  }
+
+  const result: EffortWeek[] = [];
+  for (const [weekISO, { sum, count }] of acc) {
+    result.push({
+      weekISO,
+      avg: Math.round((sum / count) * 10) / 10,
+      setCount: count,
+    });
+  }
+
+  result.sort((a, b) => (a.weekISO < b.weekISO ? -1 : 1));
+  return result;
+}
+
+/**
+ * Distribui os sets avaliados por nível de RPE (escala comum 0–10).
+ * Retorna um histograma: `Record<nível_arredondado, contagem>`.
+ * Apenas níveis com ao menos 1 set aparecem no resultado.
+ *
+ * @param workouts Lista de workouts.
+ * @param days     Janela em dias. null = todos.
+ */
+export function effortSpread(
+  workouts: WorkoutLog[],
+  days: number | null,
+): Record<number, number> {
+  const filtered = filterByPeriod(workouts, days);
+  const counts: Record<number, number> = {};
+
+  for (const workout of filtered) {
+    for (const entry of workout.entries) {
+      for (const set of entry.sets) {
+        if (!set.done) continue;
+        const e = toCommonEffort(set.effort);
+        if (e === undefined) continue;
+        const level = Math.round(e);
+        counts[level] = (counts[level] ?? 0) + 1;
+      }
+    }
+  }
+
+  return counts;
+}
+
+/**
+ * Para um exercício específico, retorna por sessão o 1RM estimado do top-set
+ * (série com maior 1RM) e o esforço normalizado daquela série.
+ *
+ * "Top-set" = série done com maior 1RM estimado (Epley) na sessão.
+ * Se a sessão tiver múltiplos workouts no mesmo dia, considera todos.
+ * Resultado ordenado por data crescente.
+ *
+ * @param workouts   Lista de workouts (todos — sem filtro de período para ver curva completa).
+ * @param exerciseId ID do exercício.
+ */
+export function topSetEffortCurve(
+  workouts: WorkoutLog[],
+  exerciseId: string,
+): TopSetPoint[] {
+  // dateISO → melhor ponto da sessão
+  const byDate = new Map<string, { topSet1RM: number; effort: number | undefined }>();
+
+  for (const workout of workouts) {
+    for (const entry of workout.entries) {
+      if (entry.exerciseId !== exerciseId) continue;
+
+      for (const set of entry.sets) {
+        if (!set.done) continue;
+        if (set.reps === undefined || set.weightKg === undefined) continue;
+        if (set.reps <= 0 || set.weightKg <= 0) continue;
+
+        const rm = estimate1RM(set.weightKg, set.reps);
+        const existing = byDate.get(workout.dateISO);
+
+        if (existing === undefined || rm > existing.topSet1RM) {
+          byDate.set(workout.dateISO, {
+            topSet1RM: Math.round(rm * 10) / 10,
+            effort: toCommonEffort(set.effort),
+          });
+        }
+      }
+    }
+  }
+
+  const result: TopSetPoint[] = [];
+  for (const [dateISO, { topSet1RM, effort }] of byDate) {
+    result.push({ dateISO, topSet1RM, effort });
+  }
+  result.sort((a, b) => (a.dateISO < b.dateISO ? -1 : 1));
+  return result;
 }
 
 /**

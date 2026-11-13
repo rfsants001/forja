@@ -1,0 +1,14 @@
+/**
+ * print.css — G6: Estilos @media print para o plano de treino.
+ * Importado em Perfil.tsx para ser incluído no bundle da página.
+ * Os estilos reais do HTML de impressão ficam inline em plan-share.ts
+ * (janela separada); este arquivo existe como ponto de extensão futura
+ * e garante que a página de Perfil em si fique limpa ao imprimir.
+ */
+
+@media print {
+  /* Oculta a UI do app ao imprimir a página de Perfil diretamente */
+  body > * {
+    display: none !important;
+  }
+}

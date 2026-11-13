@@ -1,13 +1,23 @@
 import '../styles/perfil.css';
+import '../styles/print.css';
 
 import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { User, Trash2, CheckCircle2, TrendingUp, Download, Upload, Database } from 'lucide-react';
+import {
+  User, Trash2, CheckCircle2, TrendingUp, Download, Upload,
+  Database, ArrowDownToLine, Share2, Printer, FileInput,
+} from 'lucide-react';
 import { DEFAULT_SETTINGS } from '@forja/core';
 import type { Settings, BodyWeight } from '@forja/core';
 import { db } from '../db/db';
 import { updateSettings, addBodyWeight, deleteBodyWeight } from '../db/repo';
 import { downloadBackup, importAll } from '../lib/backup';
+import {
+  parseFitNotes, parseStrong, parseHevy, parseAppleHealthWeight,
+  applyImport,
+} from '../lib/importers';
+import type { ImportResult } from '../lib/importers';
+import { downloadPlan, importPlan, printPlan } from '../lib/plan-share';
 
 // ---------------------------------------------------------------------------
 // Utilitários
@@ -710,6 +720,337 @@ function SeusDadosSection() {
 }
 
 // ---------------------------------------------------------------------------
+// Seção G5 — Importar de outro app
+// ---------------------------------------------------------------------------
+
+type ImportSource = 'fitnotes' | 'strong' | 'hevy' | 'applehealth';
+
+interface ImportPreview {
+  workouts: number;
+  exercises: number;
+  bodyweight: number;
+  unrecognized: string[];
+  result: ImportResult;
+}
+
+function ImportarAppSection() {
+  const [source, setSource] = useState<ImportSource>('fitnotes');
+  const [status, setStatus] = useState<'idle' | 'parsing' | 'preview' | 'applying' | 'done' | 'error'>('idle');
+  const [applying, setApplying] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const sourceOptions: Array<{ value: ImportSource; label: string; accept: string }> = [
+    { value: 'fitnotes',   label: 'FitNotes',     accept: '.csv,text/csv' },
+    { value: 'strong',     label: 'Strong',        accept: '.csv,text/csv' },
+    { value: 'hevy',       label: 'Hevy',          accept: '.csv,text/csv' },
+    { value: 'applehealth',label: 'Apple Health (peso)', accept: '.xml,application/xml,text/xml' },
+  ];
+
+  function showError(msg: string) {
+    setFeedback(msg);
+    setStatus('error');
+  }
+
+  function resetState() {
+    setStatus('idle');
+    setApplying(false);
+    setFeedback(null);
+    setPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setStatus('parsing');
+    setFeedback(null);
+    setPreview(null);
+
+    try {
+      const text = await file.text();
+
+      let result: ImportResult;
+      if (source === 'fitnotes')    result = parseFitNotes(text);
+      else if (source === 'strong') result = parseStrong(text);
+      else if (source === 'hevy')   result = parseHevy(text);
+      else                          result = parseAppleHealthWeight(text);
+
+      setPreview({
+        workouts: result.workouts.length,
+        exercises: result.exercises.length,
+        bodyweight: result.bodyweight.length,
+        unrecognized: result.unrecognized,
+        result,
+      });
+      setStatus('preview');
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Erro ao processar o arquivo.');
+    }
+  }
+
+  async function handleConfirm() {
+    if (preview === null) return;
+    setApplying(true);
+    setStatus('applying');
+    try {
+      const counts = await applyImport(preview.result);
+      setFeedback(
+        `Importado: ${counts.workouts} treino(s), ${counts.exercises} exercício(s) novo(s)` +
+        (counts.bodyweight > 0 ? `, ${counts.bodyweight} registro(s) de peso` : '') +
+        '.',
+      );
+      setStatus('done');
+      setPreview(null);
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Erro ao gravar os dados.');
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  const currentSource = sourceOptions.find((s) => s.value === source);
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <FileInput size={15} style={{ opacity: 0.6, flexShrink: 0 }} />
+        <p className="hint" style={{ lineHeight: 1.5 }}>
+          Importe treinos de outros apps. Exercícios não reconhecidos são criados como personalizados
+          — nenhum dado é descartado.
+        </p>
+      </div>
+
+      {/* Seletor de origem */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+        {sourceOptions.map((opt) => (
+          <button
+            key={opt.value}
+            className={`btn ghost${source === opt.value ? ' active-source' : ''}`}
+            style={{
+              flex: '1 1 auto',
+              borderColor: source === opt.value ? 'var(--flame)' : undefined,
+              color: source === opt.value ? 'var(--flame)' : undefined,
+            }}
+            onClick={() => { setSource(opt.value); resetState(); }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Upload */}
+      {status !== 'done' && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={currentSource?.accept ?? '.csv,.xml'}
+            style={{ display: 'none' }}
+            onChange={(e) => { void handleFile(e); }}
+          />
+          <button
+            className="btn"
+            style={{ width: '100%' }}
+            disabled={status === 'parsing' || status === 'applying'}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <ArrowDownToLine size={15} />
+            {status === 'parsing' ? 'Processando…' : `Selecionar arquivo ${currentSource?.label ?? ''}`}
+          </button>
+        </>
+      )}
+
+      {/* Preview */}
+      {status === 'preview' && preview !== null && (
+        <div style={{ marginTop: 14, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
+          <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Prévia da importação</p>
+          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+            <li><span style={{ color: 'var(--text-muted)' }}>Treinos:</span> <strong>{preview.workouts}</strong></li>
+            <li><span style={{ color: 'var(--text-muted)' }}>Exercícios novos:</span> <strong>{preview.exercises}</strong></li>
+            {preview.bodyweight > 0 && (
+              <li><span style={{ color: 'var(--text-muted)' }}>Pesos:</span> <strong>{preview.bodyweight}</strong></li>
+            )}
+            {preview.unrecognized.length > 0 && (
+              <li style={{ marginTop: 4 }}>
+                <span style={{ color: 'var(--text-muted)' }}>Exercícios não reconhecidos (serão criados como personalizados):</span>
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  {preview.unrecognized.slice(0, 8).join(', ')}
+                  {preview.unrecognized.length > 8 && ` … +${preview.unrecognized.length - 8}`}
+                </div>
+              </li>
+            )}
+          </ul>
+          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+            <button
+              className="btn"
+              style={{ flex: 1 }}
+              disabled={applying}
+              onClick={() => { void handleConfirm(); }}
+            >
+              <CheckCircle2 size={14} />
+              {applying ? 'Gravando…' : 'Confirmar importação'}
+            </button>
+            <button className="btn ghost" onClick={resetState}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback */}
+      {feedback !== null && (
+        <p
+          style={{
+            marginTop: 12,
+            fontSize: 13,
+            color: status === 'done' ? 'var(--ok)' : 'var(--danger)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          {status === 'done' && <CheckCircle2 size={14} />}
+          {feedback}
+        </p>
+      )}
+      {status === 'done' && (
+        <button className="btn ghost" style={{ marginTop: 10, width: '100%' }} onClick={resetState}>
+          Importar outro arquivo
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Seção G6 — Compartilhar plano
+// ---------------------------------------------------------------------------
+
+function CompartilharPlanoSection() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [status, setStatus] = useState<'idle' | 'busy' | 'ok' | 'error'>('idle');
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  function showFeedback(msg: string, type: 'ok' | 'error') {
+    setFeedback(msg);
+    setStatus(type);
+    window.setTimeout(() => { setFeedback(null); setStatus('idle'); }, 4000);
+  }
+
+  async function handleExport() {
+    setStatus('busy');
+    try {
+      await downloadPlan();
+      showFeedback('Plano exportado com sucesso!', 'ok');
+    } catch (err) {
+      showFeedback(err instanceof Error ? err.message : 'Erro ao exportar.', 'error');
+    }
+  }
+
+  async function handlePrint() {
+    setStatus('busy');
+    try {
+      await printPlan();
+      setStatus('idle');
+    } catch (err) {
+      showFeedback(err instanceof Error ? err.message : 'Erro ao abrir impressão.', 'error');
+    }
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setStatus('busy');
+    try {
+      const json = await file.text();
+      const counts = await importPlan(json);
+      showFeedback(
+        `Plano importado: ${counts.categories} categoria(s), ${counts.routines} rotina(s), ${counts.weekPlan} dia(s).`,
+        'ok',
+      );
+    } catch (err) {
+      showFeedback(err instanceof Error ? err.message : 'Erro ao importar.', 'error');
+    }
+  }
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <Share2 size={15} style={{ opacity: 0.6, flexShrink: 0 }} />
+        <p className="hint" style={{ lineHeight: 1.5 }}>
+          Compartilhe suas rotinas e plano semanal — sem histórico de treinos ou dados de peso.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <button
+          className="btn"
+          style={{ flex: '1 1 auto' }}
+          disabled={status === 'busy'}
+          onClick={() => { void handleExport(); }}
+        >
+          <Download size={15} />
+          Exportar plano
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json"
+          style={{ display: 'none' }}
+          onChange={(e) => { void handleFileChange(e); }}
+        />
+        <button
+          className="btn ghost"
+          style={{ flex: '1 1 auto' }}
+          disabled={status === 'busy'}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload size={15} />
+          Importar plano
+        </button>
+
+        <button
+          className="btn ghost"
+          style={{ flex: '1 1 auto' }}
+          disabled={status === 'busy'}
+          onClick={() => { void handlePrint(); }}
+        >
+          <Printer size={15} />
+          Imprimir / PDF
+        </button>
+      </div>
+
+      <p className="hint" style={{ marginTop: 10 }}>
+        Na impressão, o browser abre uma janela com o plano formatado — salve como PDF pelo
+        diálogo nativo (<em>Ctrl+P</em> ou <em>Cmd+P</em>).
+      </p>
+
+      {feedback !== null && (
+        <p
+          style={{
+            marginTop: 10,
+            fontSize: 13,
+            color: status === 'ok' ? 'var(--ok)' : 'var(--danger)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          {status === 'ok' && <CheckCircle2 size={14} />}
+          {feedback}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Página principal
 // ---------------------------------------------------------------------------
 
@@ -778,6 +1119,24 @@ export function Perfil() {
       {/* Seção 4 — Seus dados */}
       <div className="section-title perfil-section">Seus dados</div>
       <SeusDadosSection />
+
+      {/* Seção 5 — Importar de outro app (G5) */}
+      <div className="section-title perfil-section">
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <FileInput size={15} style={{ opacity: 0.7 }} />
+          Importar de outro app
+        </span>
+      </div>
+      <ImportarAppSection />
+
+      {/* Seção 6 — Compartilhar plano (G6) */}
+      <div className="section-title perfil-section">
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Share2 size={15} style={{ opacity: 0.7 }} />
+          Compartilhar plano
+        </span>
+      </div>
+      <CompartilharPlanoSection />
 
       <p className="hint" style={{ textAlign: 'center', marginTop: 24 }}>
         Login por passkey e sync entre dispositivos chegam na Fase 6.
