@@ -4,7 +4,7 @@ Atualizado em 13/11/2026.
 
 ## Estado
 
-Mapa estilizado com duas figuras, 7/30 dias e tudo, prévia no editor e link filtrado para a biblioteca. Cobertura por séries concluídas inclui exercícios sem carga e músculos secundários. A cor continua representando volume de carga.
+Atlas MuscleMap (MIT) com quatro vistas. Progresso alterna entre séries, volume e último treino; editor e detalhe mostram cobertura prevista. O detalhe usa legenda para o músculo principal e os auxiliares. As métricas ignoram aquecimento. A geometria e o mapeamento estão em `muscle-map.generated.json` e `muscle-map-paths.ts`. As seções de planejamento abaixo registram a proposta original.
 
 ## Aceite
 

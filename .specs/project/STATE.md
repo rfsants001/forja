@@ -1,10 +1,14 @@
 # Forja · Estado e retomada
 
-Atualizado em 13/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [ROADMAP](ROADMAP.md).
+Atualizado em 14/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [ROADMAP](ROADMAP.md).
 
-## Entregue nesta revisão
+## Publicado na main
 
-Implementação em `e93c859`.
+- `e93c859` — correções de treino, dados e UX listadas abaixo.
+- `7f99a38` — PRD, SDD, roadmap, specs e handoff em `CLAUDE.md`.
+- `27310e1` — [README](../../README.md) com quatro capturas da interface usando dados fictícios, guia do primeiro treino, clone, instalação, PWA e restauração. O workspace usa `allowBuilds` para autorizar o postinstall do esbuild no pnpm 12.
+
+## Correções entregues
 
 - Finalização salva no IndexedDB antes de limpar o rascunho. Retry pelo ID da sessão, feedback de erro e persistência de cronômetro de execução.
 - Prescrição única por exercício na sessão. Carga inferior ao alvo falha, primeiro treino fornece referência, tempo e reps guardam o alvo efetivo. 5/3/1 aplica cada série e incrementa TM por ciclo.
@@ -13,15 +17,31 @@ Implementação em `e93c859`.
 - Home com caminhos de primeiro treino, plano de força em casa, treino avulso, mudança de data e edição de séries no histórico.
 - UX nos fluxos alterados com mensagens de estado e erro, foco visível, diálogos de plano com teclado, paletas contrastadas e redução de movimento.
 
+## Caderno de treino · revisão local
+
+- A Home reúne treino do dia, agenda com link por data, registros recentes e métricas. O desktop usa navegação lateral e painéis em colunas. No celular, a navegação inferior inclui a biblioteca.
+- A identidade usa um monograma F geométrico, índigo, grafite e off-white. Inter é a fonte dos títulos e formulários. Barlow Condensed aparece em métricas. A fotografia da Home, as fontes e os ícones da PWA fazem parte do build offline.
+- Biblioteca com atlas MuscleMap (MIT) nas duas figuras e suas vistas de frente/costas, 48 entradas com demonstração local, controles de posição, créditos, filtros por músculos auxiliares e inventário próprio. Progresso oferece séries, volume de carga e último treino.
+- Aquecimentos de repetições são opcionais e persistem em `warmupSets` no rascunho e no log. O histórico permite corrigir as séries. Hevy importa o tipo de série e o backup v2 conserva aquecimento e inventário. Progressão, volume e recordes consultam séries de trabalho.
+- Histórico com barra de busca e rotina acima da lista, contagem e ação de limpar. Formulários têm rótulos associados, aparência compartilhada, ações compactas e feedback. O Perfil grava descanso e meta por envio explícito. O tema explícito se sobrepõe à preferência do SO, e o modo Sistema acompanha a preferência.
+- As imagens abertas têm fundo, proporção, escala e tratamento monocromático consistentes. A licença da mídia Gym visual usada pelo openGym exige autorização própria para a Forja.
+- A [integração](../codebase/INTEGRATIONS.md) registra o atlas, as licenças e os limites de reuso do openGym.
+
+## Exclusão de planos e rotinas
+
+- Em Treinos, a lixeira remove uma rotina. **Excluir plano** remove em conjunto as rotinas de uma categoria criada por um plano pronto. A confirmação mostra as rotinas afetadas.
+- A transação limpa a semana e as exceções ligadas às rotinas removidas. O histórico mantém a sessão, o nome e a nota, inclusive para filtragem após a exclusão. A sessão ativa continua usando o snapshot em andamento.
+- O README em PT-BR apresenta capturas de desktop e celular e instruções de instalação e backup. O perfil do GitHub aponta para as telas e o guia de execução.
+
 ## Próxima tarefa para o Claude
 
-**P5-003 · i18n PT/EN, iniciado e incompleto.** O trabalho anterior à interrupção está no repositório. Existe `apps/web/src/lib/i18n.ts`, `Settings.lang` e adoção parcial em componentes. O import sem uso em `Media.tsx` foi resolvido ao traduzir o controle de demo. Confira as alterações de Home, Treinos, Perfil, Histórico e treino guiado antes de mapear as mensagens. Faltam o seletor no Perfil, uso reativo nas páginas, idioma do HTML, formatação, mensagens novas e justificativas de progressão. A spec de i18n lista o teste de aceitação.
+**P5-003 · i18n PT/EN, iniciado e incompleto.** O trabalho anterior à interrupção está no repositório. Existe `apps/web/src/lib/i18n.ts`, `Settings.lang` e adoção parcial em componentes. Os controles de posições das demos já usam `useT()`. Confira as alterações da Home, navegação, agenda, Perfil, Histórico, atlas, inventário e aquecimento antes de mapear as mensagens. Faltam o seletor no Perfil, uso reativo nas páginas, idioma do HTML, formatação, mensagens novas e justificativas de progressão. A spec de i18n lista o teste de aceitação.
 
 ## Verificação e limites
 
-- `pnpm test` (136 testes), `pnpm typecheck` e `pnpm build` passaram.
+- Em clone limpo, `pnpm install --frozen-lockfile`, `pnpm test` (136 testes), `pnpm typecheck` e `pnpm build` passaram com Node.js 24.16.0 e pnpm 12.16.1.
 - Testes adicionais com Dexie e IndexedDB simulado cobriram backup, portabilidade, planos iniciais, deduplicação e retry de sessão. Contraste dos oito acentos medido sobre as superfícies principais.
 - Chromium, viewport móvel: primeiro acesso, modal por teclado, plano de casa, exceção por data, treino, cronômetro após reload, correção do histórico, exportação/cancelamento/mescla de backup e segundo treino offline após ativação do service worker, com a carga corrigida no histórico.
 - Falta teste em aparelho físico, instalação e atualização da PWA, timers com tela bloqueada, leitor de tela e PDF.
-- A mídia de terceiros continua dependente do CDN. Confirmar licença antes de distribuir com demos.
+- Na revisão local, 138 testes do core, typecheck e build passaram. O Chromium validou o layout de 320 a 1440 px, envio por teclado, filtros do Histórico, preferências após recarga e tema explícito. O axe não apontou violações WCAG A/AA nas três telas verificadas: Histórico escuro, novo exercício escuro e Perfil claro. A PWA abriu em modo offline com foto, fonte, atlas e demonstrações e iniciou o plano de casa.
 - Specs e notas já existentes da Forja integram a documentação versionada do projeto. A vault permanece como índice e visão de produto.

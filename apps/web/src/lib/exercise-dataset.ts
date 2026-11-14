@@ -2,8 +2,7 @@
 //
 // Dataset: hasaneyldrm/exercises-dataset
 // Commit pinado: 7455efae41b330c265e7cd4b78dfa848e7ce5ebd
-// CDN: jsDelivr (https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@<commit>/)
-// Atribuição: © Gym visual (gymvisual.com)
+// Somente metadados e instruções. A mídia licenciada vem do catálogo local.
 //
 // O JSON NÃO é importado estaticamente para não inflar o bundle principal.
 // A primeira chamada dispara o import dinâmico; chamadas subsequentes retornam o cache.
@@ -11,7 +10,7 @@
 import type { Exercise } from '@forja/core';
 
 // Versão do dataset — bump aqui quando o commit mudar para forçar re-seed.
-export const DATASET_VERSION = '7455efae41b330c265e7cd4b78dfa848e7ce5ebd';
+export const DATASET_VERSION = '7455efae41b330c265e7cd4b78dfa848e7ce5ebd-text';
 
 let _cached: Exercise[] | null = null;
 

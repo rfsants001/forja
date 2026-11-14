@@ -1,121 +1,96 @@
-// Componente de demo visual de exercício.
-//
-// Renderiza a mídia correta de acordo com DemoSource.kind:
-//   'cdn'    → <img> com imagem estática; troca para GIF ao expandir/tocar.
-//   'custom' → SVG desenhado à mão injetado (SMIL/flipbook).
-//   'asset'  → placeholder (SVG local ainda não implementado nesta fase).
-//   'none'   → placeholder com ícone Dumbbell.
-//
-// Fallback offline: se o GIF CDN falhar, volta à imagem estática; se a imagem
-// também falhar, mostra o placeholder silenciosamente (nunca quebra o layout).
-
-import { useState, useCallback } from 'react';
-import { Dumbbell } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight, Dumbbell } from 'lucide-react';
 import type { DemoSource } from '@forja/core';
 import { useT } from '../lib/i18n';
+import catalog from '../data/exercise-media.json';
 import './Media.css';
 
-export type MediaSize = 'sm' | 'md' | 'lg' | 'xl';
+type MediaSize = 'sm' | 'md' | 'lg' | 'xl';
 
-export interface MediaProps {
+interface ExerciseMedia {
+  frames: (number | string)[];
+  author: string;
+  license: number;
+  source?: string[];
+}
+
+const demos: Readonly<Partial<Record<string, ExerciseMedia>>> = catalog;
+const licenses: Record<number, { name: string; url: string }> = {
+  1: { name: 'CC BY-SA 3.0', url: 'https://creativecommons.org/licenses/by-sa/3.0/' },
+  2: { name: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/' },
+};
+
+export function hasExerciseMedia(exerciseId: string, demo: DemoSource): boolean {
+  return demo.kind === 'custom' || Object.hasOwn(demos, exerciseId);
+}
+
+interface MediaProps {
+  exerciseId?: string;
   demo: DemoSource;
-  /** Nome do exercício (usado como alt text). */
   name: string;
-  /** Tamanho do quadrado de mídia (padrão: 'md'). */
   size?: MediaSize;
-  /** Quando true, sempre mostra imagem estática (jamais GIF). Usado em Settings "sem imagens". */
   staticOnly?: boolean;
-  className?: string;
 }
 
-/**
- * Componente de demo visual de exercício.
- * Lazy-load: imagem estática (poster) é carregada com loading="lazy";
- * o GIF só é requisitado ao tocar/expandir o componente.
- */
-export function Media({ demo, name, size = 'md', staticOnly = false, className }: MediaProps) {
+export function Media({ exerciseId, demo, name, size = 'md', staticOnly = false }: MediaProps) {
+  const local = exerciseId && Object.hasOwn(demos, exerciseId) ? demos[exerciseId] : undefined;
+
+  if (local) return <DemoFrames key={exerciseId} entry={local} name={name} size={size} staticOnly={staticOnly} />;
+
+  return (
+    <div className="media-root" data-size={size}>
+      {demo.kind === 'custom'
+        ? <img src={`data:image/svg+xml,${encodeURIComponent(demo.svg)}`} alt={staticOnly ? '' : name} className="media-img" loading="lazy" />
+        : <Placeholder />}
+    </div>
+  );
+}
+
+function DemoFrames({ entry, name, size, staticOnly }: { entry: ExerciseMedia } & Required<Pick<MediaProps, 'name' | 'size' | 'staticOnly'>>) {
   const t = useT();
-  // Estado para controle do GIF (só carrega ao tocar)
-  const [gifAtivo, setGifAtivo] = useState(false);
-  // Fallback: se gif falhar, mostrar imagem; se imagem falhar, mostrar placeholder
-  const [gifErro, setGifErro] = useState(false);
-  const [imagemErro, setImagemErro] = useState(false);
-
-  const handleToggleGif = useCallback(() => {
-    if (!staticOnly) setGifAtivo((v) => !v);
-  }, [staticOnly]);
-
-  const handleGifErro = useCallback(() => {
-    setGifErro(true);
-  }, []);
-
-  const handleImagemErro = useCallback(() => {
-    setImagemErro(true);
-  }, []);
-
-  // ── kind: 'cdn' ──────────────────────────────────────────────────────────
-  if (demo.kind === 'cdn') {
-    const temGif = Boolean(demo.gif) && !staticOnly;
-    const temImagem = Boolean(demo.image);
-
-    // Determina qual src usar
-    let src: string | undefined;
-    if (temGif && gifAtivo && !gifErro) {
-      src = demo.gif;
-    } else if (temImagem && !imagemErro) {
-      src = demo.image;
-    }
-
-    const media = src ? (
-      <img src={src} alt={name} className="media-img" loading="lazy"
-        onError={gifAtivo && !gifErro ? handleGifErro : handleImagemErro} />
-    ) : <Placeholder />;
-
-    return (
-      <div
-        className={['media-root', className].filter(Boolean).join(' ')}
-        data-size={size}
-      >
-        {temGif ? (
-          <button type="button" className="media-play" onClick={handleToggleGif} aria-pressed={gifAtivo}
-            aria-label={t(gifAtivo ? 'media.stopDemo' : 'media.viewDemo', [name])}>
-            {media}
-          </button>
-        ) : media}
-        <a href="https://gymvisual.com/" className="media-attribution" target="_blank" rel="noreferrer">© Gym visual</a>
-      </div>
-    );
-  }
-
-  // ── kind: 'custom' (SVG SMIL) ─────────────────────────────────────────────
-  if (demo.kind === 'custom') {
-    return (
-      <div
-        className={['media-root', className].filter(Boolean).join(' ')}
-        data-size={size}
-      >
-        <img src={`data:image/svg+xml,${encodeURIComponent(demo.svg)}`} alt={name} className="media-img" loading="lazy" />
-      </div>
-    );
-  }
-
-  // ── kind: 'asset' | 'none' → placeholder ─────────────────────────────────
-  return (
-    <div
-      className={['media-root', className].filter(Boolean).join(' ')}
-      data-size={size}
-      aria-label={name}
-    >
-      <Placeholder />
+  const [index, setIndex] = useState(0);
+  const [failed, setFailed] = useState<(number | string)[]>([]);
+  const frame = entry.frames[index];
+  const license = licenses[entry.license];
+  if (frame === undefined || license === undefined) return null;
+  const position = t('media.position', [index + 1, entry.frames.length]);
+  const source = entry.source?.[index] ?? `https://wger.de/api/v2/exerciseimage/${frame}/`;
+  const image = (
+    <div className="media-root" data-size={size} data-demo="local">
+      {failed.includes(frame) ? <Placeholder /> : (
+        <img className="media-img" src={`${import.meta.env.BASE_URL}exercise-media/${frame}.webp`}
+          alt={staticOnly ? '' : `${name} · ${position}`}
+          loading="lazy" onError={() => setFailed((frames) => [...frames, frame])} />
+      )}
     </div>
+  );
+
+  if (staticOnly) return image;
+
+  return (
+    <figure className="media-demo">
+      {image}
+      {entry.frames.length > 1 && (
+        <div className="media-controls" aria-label={t('media.positions')}>
+          <button type="button" onClick={() => setIndex(index - 1)} disabled={index === 0} aria-label={t('media.previousPosition')}>
+            <ChevronLeft size={18} />
+          </button>
+          <span aria-live="polite">{position}</span>
+          <button type="button" onClick={() => setIndex(index + 1)} disabled={index === entry.frames.length - 1} aria-label={t('media.nextPosition')}>
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+      <figcaption className="media-attribution">
+        <a href={source} target="_blank" rel="noreferrer">{entry.author}</a>
+        {' · '}
+        <a href={license.url} target="_blank" rel="noreferrer">{license.name}</a>
+        {' · '}{t('media.adapted')}
+      </figcaption>
+    </figure>
   );
 }
 
-// Ícone de placeholder interno
 function Placeholder() {
-  return (
-    <div className="media-placeholder" aria-hidden="true">
-      <Dumbbell />
-    </div>
-  );
+  return <div className="media-placeholder" aria-hidden="true"><Dumbbell /></div>;
 }

@@ -1,18 +1,20 @@
 import '../styles/setup.css';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Search, Plus, X, Pencil, Trash2, ChevronRight } from 'lucide-react';
+import { Search, Plus, X, Pencil, Trash2, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import type { Exercise, ExerciseMode, MuscleGroup } from '@forja/core';
 import { db } from '../db/db';
-import { upsertExercise, deleteExercise } from '../db/repo';
+import { upsertExercise, deleteExercise, updateSettings } from '../db/repo';
 import {
   MUSCLE_LABEL,
   MODE_LABEL,
   MUSCLE_OPTIONS,
   MODE_OPTIONS,
 } from '../lib/labels';
-import { Media } from '../components/Media';
+import { hasExerciseMedia, Media } from '../components/Media';
+import { MuscleMap } from '../components/MuscleMap';
+import { normalizeExName } from '../lib/normalize';
 
 // ---------------------------------------------------------------------------
 // Tipos do formulário
@@ -37,7 +39,20 @@ const EMPTY_FORM: ExForm = {
 };
 
 // Equipamentos frequentes para sugestão de chips
-const EQUIP_FILTERS = ['Barra', 'Halteres', 'Cabo', 'Máquina', 'Peso corporal', 'Elástico'];
+const EQUIP_FILTERS = [
+  { label: 'Barra', terms: ['barra', 'barra ez', 'barra olimpica', 'barra hexagonal'] },
+  { label: 'Barra fixa', terms: ['barra fixa'] },
+  { label: 'Halteres', terms: ['halter', 'halteres'] },
+  { label: 'Cabo', terms: ['polia', 'cabo'] },
+  { label: 'Máquina', terms: ['maquina', 'smith machine', 'maquina articulada'] },
+  { label: 'Peso corporal', terms: ['peso corporal'] },
+  { label: 'Elástico', terms: ['elastica', 'elastico', 'faixa elastica', 'faixa de resistencia'] },
+  { label: 'Kettlebell', terms: ['kettlebell'] },
+  { label: 'Banco', terms: ['banco'] },
+] as const;
+const INVENTORY_TERMS = new Map<string, string>(EQUIP_FILTERS.flatMap((group) =>
+  group.terms.map((term) => [term, group.terms[0]])));
+
 
 // Performance: exibe 50 itens + "carregar mais" para suportar 1324+ exercícios.
 // A busca/filtro opera sobre o conjunto completo; a paginação só afeta a exibição.
@@ -62,6 +77,46 @@ export function Exercicios() {
     }, { replace: true });
   }
   const [equipFilter, setEquipFilter] = useState<string | null>(null);
+  const [onlyIllustrated, setOnlyIllustrated] = useState(false);
+  const [includeSecondary, setIncludeSecondary] = useState(false);
+  const [onlyMyEquipment, setOnlyMyEquipment] = useState(false);
+  const settings = useLiveQuery(() => db.settings.get('app'), []);
+  const savedEquipment = settings?.gymEquipment;
+  const [equipmentChanges, setEquipmentChanges] = useState<Record<string, boolean>>({});
+  const [equipmentError, setEquipmentError] = useState(false);
+  const myEquipment = useMemo(() => {
+    const selected = new Set(savedEquipment);
+    for (const [term, checked] of Object.entries(equipmentChanges)) {
+      if (checked) selected.add(term);
+      else selected.delete(term);
+    }
+    return selected;
+  }, [savedEquipment, equipmentChanges]);
+  useEffect(() => {
+    setEquipmentChanges((changes) => {
+      const pending = Object.entries(changes).filter(([term, checked]) => (savedEquipment?.includes(term) ?? false) !== checked);
+      return pending.length === Object.keys(changes).length ? changes : Object.fromEntries(pending);
+    });
+  }, [savedEquipment]);
+  async function toggleEquipment(term: string, checked: boolean) {
+    setEquipmentChanges((changes) => ({ ...changes, [term]: checked }));
+    setEquipmentError(false);
+    try {
+      await db.transaction('rw', db.settings, async () => {
+        const selected = new Set((await db.settings.get('app'))?.gymEquipment);
+        if (checked) selected.add(term);
+        else selected.delete(term);
+        await updateSettings({ gymEquipment: [...selected] });
+      });
+    } catch {
+      setEquipmentChanges((changes) => {
+        const next = { ...changes };
+        if (next[term] === checked) delete next[term];
+        return next;
+      });
+      setEquipmentError(true);
+    }
+  }
   // Paginação — reset quando filtros mudam
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -70,9 +125,22 @@ export function Exercicios() {
   const [editing, setEditing] = useState<Exercise | null>(null);
   const [form, setForm] = useState<ExForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+  const editDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = editDialog.current;
+    if (sheetOpen && dialog && !dialog.open) {
+      dialog.showModal();
+      dialog.querySelector<HTMLInputElement>('#exercise-name')?.focus();
+    }
+  }, [sheetOpen]);
 
   // Detalhe / modal de visualização (G1)
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
+  const detailDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (detailEx && detailDialog.current && !detailDialog.current.open) detailDialog.current.showModal();
+  }, [detailEx]);
   // Nota por exercício (G15) — estado local dentro do modal de detalhe
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
@@ -85,18 +153,28 @@ export function Exercicios() {
   // ---------------------------------------------------------------------------
   const filtered = useMemo(() => {
     const all = exercises ?? [];
-    const q = query.toLowerCase().trim();
-    return all.filter((ex) => {
-      if (q.length > 0 && !ex.name.toLowerCase().includes(q)) return false;
-      if (muscleFilter !== null && ex.primaryMuscle !== muscleFilter) return false;
-      if (equipFilter !== null) {
-        const eq = equipFilter.toLowerCase();
-        const has = ex.equipment.some((e) => e.toLowerCase().includes(eq));
-        if (!has) return false;
+    const q = normalizeExName(query);
+    const equipment = EQUIP_FILTERS.find((filter) => filter.label === equipFilter);
+    const matching = all.filter((ex) => {
+      if (q.length > 0 && !normalizeExName(ex.name).includes(q)) return false;
+      if (muscleFilter !== null && ex.primaryMuscle !== muscleFilter
+        && !(includeSecondary && ex.secondaryMuscles.includes(muscleFilter))) return false;
+      if (onlyIllustrated && !hasExerciseMedia(ex.id, ex.demo)) return false;
+      if (onlyMyEquipment && !ex.equipment.every((item) => {
+        const name = normalizeExName(item);
+        const equipment = INVENTORY_TERMS.get(name);
+        return name === 'peso corporal' || (equipment !== undefined && myEquipment.has(equipment));
+
+      })) return false;
+      if (equipment && !ex.equipment.some((item) => equipment.terms.some((term) => normalizeExName(item) === term))) {
+        return false;
       }
       return true;
     });
-  }, [exercises, query, muscleFilter, equipFilter]);
+    if (q.length > 0) return matching;
+    return matching.sort((first, second) => Number(hasExerciseMedia(second.id, second.demo))
+      - Number(hasExerciseMedia(first.id, first.demo)));
+  }, [exercises, query, muscleFilter, equipFilter, onlyIllustrated, includeSecondary, onlyMyEquipment, myEquipment]);
 
   // Itens visíveis (paginação)
   const visible = filtered.slice(0, visibleCount);
@@ -131,6 +209,7 @@ export function Exercicios() {
   }
 
   function closeSheet() {
+    setFormError('');
     setSheetOpen(false);
     setEditing(null);
     setForm(EMPTY_FORM);
@@ -147,8 +226,14 @@ export function Exercicios() {
 
   async function handleSave() {
     const name = form.name.trim();
-    if (name.length === 0) return;
+    if (saving) return;
+    if (name.length === 0) {
+      setFormError('Digite o nome do exercício.');
+      document.getElementById('exercise-name')?.focus();
+      return;
+    }
 
+    setFormError('');
     setSaving(true);
     try {
       const equipment = form.equipment
@@ -157,17 +242,19 @@ export function Exercicios() {
         .filter((s) => s.length > 0);
 
       await upsertExercise({
-        ...(editing !== null ? { id: editing.id, createdAt: editing.createdAt } : {}),
+        ...(editing !== null ? { ...editing } : {}),
         name,
         mode: form.mode,
         primaryMuscle: form.primaryMuscle,
-        secondaryMuscles: form.secondaryMuscles,
+        secondaryMuscles: form.secondaryMuscles.filter((muscle) => muscle !== form.primaryMuscle),
         equipment,
-        demo: { kind: 'none' },
+        demo: editing?.demo ?? { kind: 'none' },
         instructions: form.instructions.trim() || undefined,
         custom: true,
       });
       closeSheet();
+    } catch {
+      setFormError('Não foi possível salvar o exercício. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -202,164 +289,194 @@ export function Exercicios() {
         <div className="brand">
           <h1>Exercícios</h1>
         </div>
-        <button className="btn" onClick={openNew} style={{ padding: '10px 16px', fontSize: 13 }}>
+        <button className="btn" onClick={openNew}>
           <Plus size={16} strokeWidth={2.8} />
-          Novo
+          Novo exercício
         </button>
       </div>
 
-      {/* Busca */}
-      <div className="search-bar" style={{ marginBottom: 12 }}>
-        <Search size={16} color="var(--text-muted)" />
-        <input
-          type="text"
-          placeholder="Buscar exercício…"
-          aria-label="Buscar exercício"
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); resetPaging(); }}
-        />
-        {query.length > 0 && (
-          <button onClick={() => { setQuery(''); resetPaging(); }} style={{ color: 'var(--text-muted)', display: 'grid', placeItems: 'center' }}>
-            <X size={14} />
-          </button>
-        )}
-      </div>
-
-      {/* Filtros — grupo muscular */}
-      <div className="chip-row" style={{ marginBottom: 8 }}>
-        <button
-          className={`chip${muscleFilter === null ? ' active' : ''}`}
-          onClick={() => { setMuscleFilter(null); resetPaging(); }}
-        >
-          Todos
-        </button>
-        {MUSCLE_OPTIONS.map((m) => (
-          <button
-            key={m}
-            className={`chip${muscleFilter === m ? ' active' : ''}`}
-            onClick={() => { setMuscleFilter(muscleFilter === m ? null : m); resetPaging(); }}
-          >
-            {MUSCLE_LABEL[m]}
-          </button>
-        ))}
-      </div>
-
-      {/* Filtros — equipamento */}
-      <div className="chip-row" style={{ marginBottom: 16 }}>
-        {EQUIP_FILTERS.map((eq) => (
-          <button
-            key={eq}
-            className={`chip${equipFilter === eq ? ' active' : ''}`}
-            onClick={() => { setEquipFilter(equipFilter === eq ? null : eq); resetPaging(); }}
-          >
-            {eq}
-          </button>
-        ))}
-      </div>
-
-      {/* Contador */}
-      {filtered.length > 0 && (
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
-          {filtered.length} exercício{filtered.length !== 1 ? 's' : ''}
-          {hasMore ? ` — mostrando ${visibleCount}` : ''}
-        </p>
-      )}
-
-      {/* Lista */}
-      {filtered.length === 0 ? (
-        <div className="empty">
-          <Media demo={{ kind: 'none' }} name="" size="lg" />
-          <p style={{ marginTop: 12 }}>
-            {(exercises ?? []).length === 0
-              ? 'Nenhum exercício encontrado. Adicione o primeiro!'
-              : 'Nenhum resultado para esse filtro.'}
-          </p>
-          {(exercises ?? []).length === 0 && (
-            <button className="btn" style={{ marginTop: 16 }} onClick={openNew}>
-              <Plus size={16} />
-              Novo exercício
+      <div className="catalog-layout">
+        <section className="card catalog-filters" aria-labelledby="catalog-filter-title">
+        <h2 className="panel-title" id="catalog-filter-title">Filtrar exercícios</h2>
+        <div className="search-bar" style={{ marginBottom: 12 }}>
+          <Search size={16} color="var(--text-muted)" />
+          <input
+            type="text"
+            placeholder="Buscar exercício…"
+            aria-label="Buscar exercício"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); resetPaging(); }}
+          />
+          {query.length > 0 && (
+            <button aria-label="Limpar busca" onClick={() => { setQuery(''); resetPaging(); }} style={{ color: 'var(--text-muted)', display: 'grid', placeItems: 'center' }}>
+              <X size={14} />
             </button>
           )}
         </div>
-      ) : (
-        <>
-          <div className="ex-list">
-            {visible.map((ex) => (
-              <div
-                key={ex.id}
-                className="ex-item"
-                onClick={() => { setDetailEx(ex); setNoteText(ex.note ?? ''); }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter') { setDetailEx(ex); setNoteText(ex.note ?? ''); } }}
-              >
-                {/* G1: miniatura da demo */}
-                <Media demo={ex.demo} name={ex.name} size="sm" staticOnly />
-                <div className="ex-info">
-                  <div className="ex-name">{ex.name}</div>
-                  <div className="ex-meta">
-                    {MUSCLE_LABEL[ex.primaryMuscle]}
-                    {ex.equipment.length > 0 && ` · ${ex.equipment.join(', ')}`}
-                    {' · '}
-                    {MODE_LABEL[ex.mode]}
-                  </div>
-                </div>
-                {ex.custom === true && (
-                  <span className="ex-badge">Custom</span>
-                )}
-                {ex.note !== undefined && ex.note.length > 0 && (
-                  <span className="ex-badge" title={ex.note}>Nota</span>
-                )}
-                <ChevronRight size={16} color="var(--text-muted)" />
-              </div>
+
+        <div className="catalog-filter">
+          <label htmlFor="catalog-muscle">Grupo muscular</label>
+          <select id="catalog-muscle" value={muscleFilter ?? ''} onChange={(event) => {
+            setMuscleFilter(MUSCLE_OPTIONS.find((muscle) => muscle === event.target.value) ?? null);
+            resetPaging();
+          }}>
+            <option value="">Todos</option>
+            {MUSCLE_OPTIONS.map((muscle) => <option key={muscle} value={muscle}>{MUSCLE_LABEL[muscle]}</option>)}
+          </select>
+          {muscleFilter && (
+            <label className="catalog-check"><input type="checkbox" checked={includeSecondary} onChange={(event) => {
+              setIncludeSecondary(event.target.checked);
+              resetPaging();
+            }} /> Incluir músculos auxiliares</label>
+          )}
+        </div>
+        <div className="catalog-filter">
+          <label htmlFor="catalog-equipment">Equipamento</label>
+          <select id="catalog-equipment" value={equipFilter ?? ''} onChange={(event) => {
+            setEquipFilter(event.target.value || null);
+            resetPaging();
+          }}>
+            <option value="">Todos</option>
+            {EQUIP_FILTERS.map((equipment) => <option key={equipment.label} value={equipment.label}>{equipment.label}</option>)}
+          </select>
+        </div>
+        <details className="catalog-inventory">
+          <summary>Meus equipamentos</summary>
+          <div className="catalog-inventory-options">
+            {EQUIP_FILTERS.filter((group) => group.terms[0] !== 'peso corporal').map((group) => (
+              <label key={group.label} className="catalog-check">
+                <input type="checkbox" checked={myEquipment.has(group.terms[0])}
+                  disabled={!settings} onChange={(event) => void toggleEquipment(group.terms[0], event.target.checked)} />
+                {group.label}
+              </label>
             ))}
           </div>
+          <label className="catalog-check"><input type="checkbox" checked={onlyMyEquipment} onChange={(event) => {
+            setOnlyMyEquipment(event.target.checked);
+            resetPaging();
+          }} /> Usar meu equipamento</label>
+          <p className="hint">Exercícios de peso corporal também aparecem.</p>
+          {equipmentError && <p className="feedback error" role="alert">Não foi possível salvar seus equipamentos. Tente novamente.</p>}
+        </details>
+        <label className="catalog-check catalog-illustrated"><input type="checkbox" checked={onlyIllustrated} onChange={(event) => {
+          setOnlyIllustrated(event.target.checked);
+          resetPaging();
+        }} /> <ImageIcon size={15} aria-hidden="true" /> Com demonstração</label>
+      </section>
+        <section className="catalog-results" aria-label="Resultados da biblioteca">
+        {/* Contador */}
+        {filtered.length > 0 && (
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+            {filtered.length} exercício{filtered.length !== 1 ? 's' : ''}
+            {hasMore ? ` — mostrando ${visibleCount}` : ''}
+          </p>
+        )}
 
-          {/* Carregar mais */}
-          {hasMore && (
-            <button
-              className="btn ghost"
-              style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
-              onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
-            >
-              Carregar mais ({filtered.length - visibleCount} restantes)
-            </button>
-          )}
-        </>
-      )}
+        {/* Lista */}
+        {filtered.length === 0 ? (
+          <div className="empty">
+            <Media demo={{ kind: 'none' }} name="" size="lg" />
+            <p style={{ marginTop: 12 }}>
+              {(exercises ?? []).length === 0
+                ? 'Nenhum exercício encontrado. Adicione o primeiro!'
+                : 'Nenhum resultado para esse filtro.'}
+            </p>
+            {(exercises ?? []).length === 0 && (
+              <button className="btn" style={{ marginTop: 16 }} onClick={openNew}>
+                <Plus size={16} />
+                Novo exercício
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="ex-list">
+              {visible.map((ex) => (
+                <div
+                  key={ex.id}
+                  className="ex-item"
+                  onClick={() => { setDetailEx(ex); setNoteText(ex.note ?? ''); }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setDetailEx(ex); setNoteText(ex.note ?? ''); } }}
+                >
+                  {/* G1: miniatura da demo */}
+                  <Media exerciseId={ex.id} demo={ex.demo} name={ex.name} size="sm" staticOnly />
+                  <div className="ex-info">
+                    <div className="ex-name">{ex.name}</div>
+                    <div className="ex-meta">
+                      {MUSCLE_LABEL[ex.primaryMuscle]}
+                      {ex.equipment.length > 0 && ` · ${ex.equipment.join(', ')}`}
+                      {' · '}
+                      {MODE_LABEL[ex.mode]}
+                    </div>
+                  </div>
+                  {ex.custom === true && (
+                    <span className="ex-badge">Personalizado</span>
+                  )}
+                  {ex.note !== undefined && ex.note.length > 0 && (
+                    <span className="ex-badge" title={ex.note}>Nota</span>
+                  )}
+                  <ChevronRight size={16} color="var(--text-muted)" />
+                </div>
+              ))}
+            </div>
+
+            {/* Carregar mais */}
+            {hasMore && (
+              <button
+                className="btn ghost"
+                style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
+                onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+              >
+                Carregar mais ({filtered.length - visibleCount} restantes)
+              </button>
+            )}
+          </>
+        )}
+
+        </section>
+      </div>
 
       {/* G1: modal de detalhe do exercício */}
       {detailEx !== null && (
-        <div
-          className="sheet-overlay"
-          onClick={(e) => { if (e.target === e.currentTarget) setDetailEx(null); }}
-        >
-          <div className="sheet">
-            <div className="sheet-handle" />
-
-            {/* Demo em tamanho maior */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-              <Media demo={detailEx.demo} name={detailEx.name} size="lg" />
-            </div>
-
-            <h2 style={{ marginBottom: 8 }}>{detailEx.name}</h2>
-
-            {/* Metadados */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-              <span className="ex-badge" style={{ fontSize: 11 }}>
-                {MODE_LABEL[detailEx.mode]}
-              </span>
-              <span className="ex-badge" style={{ fontSize: 11 }}>
-                {MUSCLE_LABEL[detailEx.primaryMuscle]}
-              </span>
-              {detailEx.secondaryMuscles.map((m) => (
-                <span key={m} className="ex-badge" style={{ fontSize: 11, opacity: 0.7 }}>
-                  {MUSCLE_LABEL[m]}
-                </span>
-              ))}
-              {detailEx.custom === true && (
-                <span className="ex-badge" style={{ fontSize: 11 }}>Custom</span>
+        <dialog className="sheet exercise-detail" ref={detailDialog} aria-labelledby="exercise-detail-title"
+          onClose={() => setDetailEx(null)} onClick={(event) => {
+            if (event.target === event.currentTarget) detailDialog.current?.close();
+          }}>
+          <div className="exercise-detail-inner">
+            <header className="exercise-detail-heading">
+              <div>
+                <p className="hint">{MODE_LABEL[detailEx.mode]}</p>
+                <h2 id="exercise-detail-title">{detailEx.name}</h2>
+              </div>
+              <button type="button" className="btn ghost" aria-label="Fechar detalhes"
+                onClick={() => detailDialog.current?.close()}><X size={18} aria-hidden="true" /></button>
+            </header>
+            <div className="exercise-detail-visuals">
+              {hasExerciseMedia(detailEx.id, detailEx.demo) && (
+                <section aria-label="Demonstração" className="exercise-demo-panel">
+                  <Media exerciseId={detailEx.id} demo={detailEx.demo} name={detailEx.name} size="xl" />
+                </section>
               )}
+              <section className="exercise-muscles" aria-label="Músculos envolvidos">
+                <MuscleMap
+                  figure={settings?.muscleFigure}
+                  volumeByMuscle={{
+                    ...Object.fromEntries(detailEx.secondaryMuscles.map((muscle) => [muscle, 0.5])),
+                    [detailEx.primaryMuscle]: 1,
+                  }}
+                  preview
+                />
+                <ul className="exercise-muscle-legend">
+                  <li><span className="muscle-legend-swatch primary" aria-hidden="true" />
+                    <span><strong>Principal</strong> {MUSCLE_LABEL[detailEx.primaryMuscle]}</span></li>
+                  {detailEx.secondaryMuscles.length > 0 && (
+                    <li><span className="muscle-legend-swatch secondary" aria-hidden="true" />
+                      <span><strong>Auxiliares</strong> {detailEx.secondaryMuscles.map((muscle) => MUSCLE_LABEL[muscle]).join(', ')}</span></li>
+                  )}
+                </ul>
+              </section>
             </div>
 
             {detailEx.equipment.length > 0 && (
@@ -374,17 +491,11 @@ export function Exercicios() {
               </p>
             )}
 
-            {/* Atribuição */}
-            {detailEx.attribution !== undefined && (
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16 }}>
-                {detailEx.attribution}
-              </p>
-            )}
-
             {/* Nota pessoal (G15) */}
             <div className="field" style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12 }}>Nota pessoal</label>
+              <label htmlFor="exercise-personal-note">Nota pessoal</label>
               <textarea
+                id="exercise-personal-note"
                 placeholder="Dicas, ajustes de execução, observações…"
                 value={noteText}
                 rows={3}
@@ -403,7 +514,7 @@ export function Exercicios() {
             </div>
 
             <div className="btn-row">
-              <button className="btn ghost" onClick={() => setDetailEx(null)}>
+              <button className="btn ghost" onClick={() => detailDialog.current?.close()}>
                 Fechar
               </button>
               {detailEx.custom === true && (
@@ -426,106 +537,71 @@ export function Exercicios() {
               )}
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
-      {/* Sheet — formulário */}
       {sheetOpen && (
-        <div
-          className="sheet-overlay"
-          onClick={(e) => { if (e.target === e.currentTarget) closeSheet(); }}
-        >
-          <div className="sheet">
-            <div className="sheet-handle" />
-            <h2>{editing !== null ? 'Editar exercício' : 'Novo exercício'}</h2>
-
-            <div className="field">
-              <label>Nome *</label>
-              <input
-                type="text"
-                placeholder="Ex.: Supino reto"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                autoFocus
-              />
-            </div>
-
-            <div className="field">
-              <label>Modo</label>
-              <select
-                value={form.mode}
-                onChange={(e) => setForm((f) => ({ ...f, mode: e.target.value as ExerciseMode }))}
-              >
-                {MODE_OPTIONS.map((m) => (
-                  <option key={m} value={m}>{MODE_LABEL[m]}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field">
-              <label>Músculo primário</label>
-              <select
-                value={form.primaryMuscle}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, primaryMuscle: e.target.value as MuscleGroup }))
-                }
-              >
-                {MUSCLE_OPTIONS.map((m) => (
-                  <option key={m} value={m}>{MUSCLE_LABEL[m]}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field">
-              <label>Músculos secundários</label>
-              <div className="chip-row" style={{ flexWrap: 'wrap' }}>
-                {MUSCLE_OPTIONS.filter((m) => m !== form.primaryMuscle).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    className={`chip${form.secondaryMuscles.includes(m) ? ' active' : ''}`}
-                    onClick={() => toggleSecondary(m)}
-                  >
-                    {MUSCLE_LABEL[m]}
-                  </button>
-                ))}
+        <dialog ref={editDialog} className="sheet form-dialog" aria-labelledby="exercise-form-title"
+          onClose={closeSheet} onCancel={(event) => { if (saving) event.preventDefault(); }}>
+          <form onSubmit={(event) => { event.preventDefault(); void handleSave(); }}>
+            <header className="form-dialog-heading">
+              <h2 id="exercise-form-title">{editing ? 'Editar exercício' : 'Novo exercício'}</h2>
+              <button type="button" className="icon-btn" disabled={saving} aria-label="Fechar formulário"
+                onClick={() => editDialog.current?.close()}><X size={17} aria-hidden="true" /></button>
+            </header>
+            <fieldset className="field-grid form-fields" disabled={saving}>
+              <div className="field full">
+                <label htmlFor="exercise-name">Nome do exercício</label>
+                <input id="exercise-name" type="text" value={form.name} required
+                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
               </div>
+              <div className="field">
+                <label htmlFor="exercise-mode">Como registrar</label>
+                <select id="exercise-mode" value={form.mode}
+                  onChange={(event) => setForm((current) => ({ ...current, mode: event.target.value as ExerciseMode }))}>
+                  {MODE_OPTIONS.map((mode) => <option key={mode} value={mode}>{MODE_LABEL[mode]}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="exercise-primary">Músculo principal</label>
+                <select id="exercise-primary" value={form.primaryMuscle} onChange={(event) => {
+                  const primaryMuscle = event.target.value as MuscleGroup;
+                  setForm((current) => ({
+                    ...current, primaryMuscle, secondaryMuscles: current.secondaryMuscles.filter((muscle) => muscle !== primaryMuscle),
+                  }));
+                }}>
+                  {MUSCLE_OPTIONS.map((muscle) => <option key={muscle} value={muscle}>{MUSCLE_LABEL[muscle]}</option>)}
+                </select>
+              </div>
+              <fieldset className="field full">
+                <legend>Músculos auxiliares <small className="hint">(opcional)</small></legend>
+                <div className="form-chips">
+                  {MUSCLE_OPTIONS.filter((muscle) => muscle !== form.primaryMuscle).map((muscle) => (
+                    <button key={muscle} type="button" className="chip"
+                      aria-pressed={form.secondaryMuscles.includes(muscle)}
+                      onClick={() => toggleSecondary(muscle)}>{MUSCLE_LABEL[muscle]}</button>
+                  ))}
+                </div>
+              </fieldset>
+              <div className="field full">
+                <label htmlFor="exercise-equipment">Equipamento <small className="hint">(opcional)</small></label>
+                <input id="exercise-equipment" type="text" value={form.equipment} aria-describedby="exercise-equipment-help"
+                  onChange={(event) => setForm((current) => ({ ...current, equipment: event.target.value }))} />
+                <span id="exercise-equipment-help" className="hint">Separe os itens por vírgula. Exemplo: barra, banco.</span>
+              </div>
+              <div className="field full">
+                <label htmlFor="exercise-instructions">Como executar <small className="hint">(opcional)</small></label>
+                <textarea id="exercise-instructions" value={form.instructions} rows={3}
+                  onChange={(event) => setForm((current) => ({ ...current, instructions: event.target.value }))} />
+              </div>
+            </fieldset>
+            {formError && <p className="field-error" role="alert">{formError}</p>}
+            <div className="form-actions">
+              <button type="button" className="btn ghost" onClick={() => editDialog.current?.close()} disabled={saving}>Cancelar</button>
+              <button type="submit" className="btn" disabled={saving}>{saving ? 'Salvando…' : 'Salvar exercício'}</button>
             </div>
-
-            <div className="field">
-              <label>Equipamento</label>
-              <input
-                type="text"
-                placeholder="Ex.: Barra, Halteres"
-                value={form.equipment}
-                onChange={(e) => setForm((f) => ({ ...f, equipment: e.target.value }))}
-              />
-              <span className="hint">Separe com vírgula.</span>
-            </div>
-
-            <div className="field">
-              <label>Instruções (opcional)</label>
-              <textarea
-                placeholder="Descreva a execução…"
-                value={form.instructions}
-                onChange={(e) => setForm((f) => ({ ...f, instructions: e.target.value }))}
-              />
-            </div>
-
-            <div className="btn-row">
-              <button className="btn ghost" onClick={closeSheet} disabled={saving}>
-                Cancelar
-              </button>
-              <button
-                className="btn"
-                onClick={() => { void handleSave(); }}
-                disabled={saving || form.name.trim().length === 0}
-              >
-                {saving ? 'Salvando…' : 'Salvar'}
-              </button>
-            </div>
-          </div>
-        </div>
+          </form>
+        </dialog>
       )}
 
       {/* Confirmação de exclusão */}

@@ -457,8 +457,11 @@ const messages: Record<Lang, Record<string, string>> = {
     'streak.days': 'dias',
 
     // Media
-    'media.stopDemo': 'Parar demo de {0}',
-    'media.viewDemo': 'Ver demo de {0}',
+    'media.position': 'Posição {0} de {1}',
+    'media.positions': 'Posições do exercício',
+    'media.previousPosition': 'Posição anterior',
+    'media.nextPosition': 'Próxima posição',
+    'media.adapted': 'WebP adaptado',
   },
 
   // ── English ───────────────────────────────────────────────────────────────
@@ -901,8 +904,11 @@ const messages: Record<Lang, Record<string, string>> = {
     'streak.days': 'days',
 
     // Media
-    'media.stopDemo': 'Stop demo for {0}',
-    'media.viewDemo': 'View demo for {0}',
+    'media.position': 'Position {0} of {1}',
+    'media.positions': 'Exercise positions',
+    'media.previousPosition': 'Previous position',
+    'media.nextPosition': 'Next position',
+    'media.adapted': 'Adapted WebP',
   },
 };
 

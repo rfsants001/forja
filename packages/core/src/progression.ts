@@ -120,6 +120,11 @@ export function nextPrescription({
   const policy: ProgressionPolicy = config.progression ?? 'off';
   const incrementKg = config.incrementKg ?? 2.5;
 
+  const trainingWorkouts = workouts.map((workout) => ({
+    ...workout,
+    entries: workout.entries.filter((entry) =>
+      !entry.warmupSets?.some((row) => row.done) || entry.sets.some((row) => row.done)),
+  }));
   const thresholds = { ...STALL_THRESHOLD, ...stallThresholdOverride };
   const stallLimit = thresholds[policy];
 
@@ -128,13 +133,13 @@ export function nextPrescription({
   // com 0 sessões (semana 1 do ciclo). Tem sua própria lógica de "sem TM".
   // ---------------------------------------------------------------------------
   if (policy === '531') {
-    const cycleWorkouts = routineId === undefined ? workouts : workouts.filter((w) => w.routineId === routineId);
+    const cycleWorkouts = routineId === undefined ? trainingWorkouts : trainingWorkouts.filter((w) => w.routineId === routineId);
     return apply531Policy({ workouts: cycleWorkouts, config });
   }
 
   const scopedWorkouts = routineId === undefined
-    ? workouts
-    : workouts.filter((w) => w.routineId === routineId);
+    ? trainingWorkouts
+    : trainingWorkouts.filter((w) => w.routineId === routineId);
   const policyWorkouts = scopedWorkouts.map((workout) => ({
     ...workout,
     entries: workout.entries.filter((entry) =>
@@ -143,7 +148,7 @@ export function nextPrescription({
   }));
   const lastEntry = lastEntryFor(policyWorkouts, config.exerciseId);
   const reference = lastEntry ?? lastEntryFor(
-    routineId === undefined ? workouts : workouts.filter((w) => w.routineId === undefined),
+    routineId === undefined ? trainingWorkouts : trainingWorkouts.filter((w) => w.routineId === undefined),
     config.exerciseId,
   );
 

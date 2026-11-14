@@ -27,8 +27,7 @@ export type MuscleGroup =
 export type DemoSource =
   | { kind: 'asset'; frames: number } // ilustrações SVG locais em flipbook
   | { kind: 'custom'; svg: string } // vetor desenhado à mão (SMIL)
-  // Mídia remota (dataset hasaneyldrm): imagem estática e/ou GIF servidos de CDN.
-  // Atribuição obrigatória (© Gym visual) quando presente — ver Exercise.attribution.
+  // Formato legado mantido para compatibilidade com backups.
   | { kind: 'cdn'; image?: string; gif?: string }
   | { kind: 'none' };
 
@@ -44,7 +43,7 @@ export interface Exercise {
   instructions?: string;
   /** Busca no YouTube pro botão "ver vídeo" (sobrepõe a busca pelo nome). */
   videoQuery?: string;
-  /** Atribuição obrigatória quando a mídia é © Gym visual (dataset). */
+  /** Crédito opcional de mídia personalizada ou de registros legados. */
   attribution?: string;
   /** true quando criado pelo usuário (não veio de seed/dataset). */
   custom?: boolean;
@@ -195,6 +194,8 @@ export interface TargetSnapshot {
 export interface WorkoutEntry {
   exerciseId: string;
   sets: SetLog[];
+  /** Séries de aquecimento, fora das métricas e da prescrição. */
+  warmupSets?: SetLog[];
   target: TargetSnapshot;
 }
 
@@ -210,6 +211,8 @@ export interface WorkoutLog {
   id: string;
   dateISO: string;
   routineId?: string;
+  /** Nome guardado para exibição quando a rotina já foi excluída. */
+  routineName?: string;
   categoryId?: string;
   entries: WorkoutEntry[];
   durationSec?: number;
@@ -248,6 +251,8 @@ export interface Settings {
   trackEffort: boolean;
   /** 0=domingo, 1=segunda. */
   weekStartsOn: 0 | 1;
+  /** Chaves do equipamento disponível no filtro da biblioteca. */
+  gymEquipment?: string[];
   bodyWeightGoalKg?: number;
   /** Figura usada no mapa muscular. */
   muscleFigure?: 'male' | 'female';

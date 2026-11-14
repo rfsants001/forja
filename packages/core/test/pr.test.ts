@@ -45,6 +45,15 @@ describe('detectPRs — sem histórico', () => {
     const prs = detectPRs(entry, history);
     expect(prs).toHaveLength(0);
   });
+  it('aquecimento não torna uma sessão anterior elegível para PR', () => {
+    const warmup = makeRepsEntry(EX, []);
+    warmup.warmupSets = [{ reps: 10, weightKg: 20, done: true }];
+    const history = [makeWorkout('2026-01-01', [warmup])];
+    const entry = makeRepsEntry(EX, [{ reps: 5, weightKg: 100 }]);
+
+    expect(detectPRs(entry, history)).toEqual([]);
+  });
+
 });
 
 // ---------------------------------------------------------------------------

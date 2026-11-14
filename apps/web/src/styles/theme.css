@@ -1,25 +1,22 @@
-/* Forja — design tokens. Base atlética escura (premium tipo Hevy/Strong) + camada
-   gamificada (energia quente do fogo/streak, acentos por categoria). */
-
 :root {
   /* superfícies — quase-preto levemente quente, elevações sutis */
-  --bg: #0e0f13;
-  --bg-2: #14161d;
-  --surface: #1a1d26;
-  --surface-2: #222634;
-  --surface-3: #2b3040;
-  --border: #2d3240;
-  --border-soft: #22262f;
+  --bg: #151525;
+  --bg-2: #18182b;
+  --surface: #1e1e32;
+  --surface-2: #26263d;
+  --surface-3: #32324c;
+  --border: #41415e;
+  --border-soft: #34344e;
 
   /* texto */
-  --text: #f2f4f8;
-  --text-2: #b7c0cf;
-  --text-muted: #a4afc1;
+  --text: #f5f4ff;
+  --text-2: #d4d3eb;
+  --text-muted: #aaaac8;
 
-  /* energia / fogo (streak, destaque primário) */
-  --flame: #ff7a1a;
-  --flame-2: #ffb020;
-  --flame-glow: rgba(255, 122, 26, 0.35);
+  /* Destaques usados por métricas e timers. */
+  --flame: #bdb4ff;
+  --flame-2: #d6cfff;
+  --flame-glow: rgb(189 180 255 / 18%);
 
   /* acentos por categoria (seed) */
   --cal: #e8a838; /* calistenia */
@@ -27,40 +24,44 @@
   --box: #a768d8; /* boxe */
 
   /* semânticos */
-  --ok: #3fae6b;
-  --warn: #e8a838;
+  --ok: #62dca7;
+  --warn: #ffca80;
   --danger: #ff8e80;
   --danger-fill: #ad2e24;
-  --focus: #f7ca78;
-  --control-border: #778397;
+  --focus: #d5cfff;
+  --control-border: #777799;
   color-scheme: dark;
 
   /* acento ativo (padrão flame; sobrescrito por [data-accent] ou categoria via inline style) */
-  --accent: var(--accent-dark, #ff9a53);
-  --on-accent: #141019;
+  --accent: var(--accent-dark, #bdb4ff);
+  --on-accent: #1b124b;
 
   /* tipografia */
   --font-display: 'Barlow Condensed', system-ui, sans-serif;
+  --font-heading: var(--font-body);
   --font-body: 'Inter', system-ui, sans-serif;
 
-  /* raios — bem arredondado (gamificado) */
-  --r-sm: 10px;
-  --r: 16px;
-  --r-lg: 22px;
-  --r-pill: 999px;
+  /* Raios de contêineres e controles. */
+  --r-sm: 7px;
+  --r: 10px;
+  --r-lg: 14px;
+  --r-pill: 6px;
 
   /* sombras / glow */
-  --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  --shadow: none;
   --shadow-lg: 0 14px 40px rgba(0, 0, 0, 0.45);
   --glow-flame: 0 0 0 4px var(--flame-glow);
 
   /* espaçamento base */
-  --gap: 14px;
+  --gap: 20px;
   --pad: 18px;
 
   /* layout */
-  --maxw: 560px;
-  --nav-h: 64px;
+  --maxw: 1320px;
+  --nav-h: 68px;
+  --sidebar-w: clamp(172px, 14vw, 214px);
+  --control-h: 36px;
+  --field-h: 38px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -68,50 +69,54 @@
    O sistema respeita @media abaixo; aqui o valor vence independente do SO.
    --------------------------------------------------------------------------- */
 [data-theme='light'] {
-  --bg: #f5f6f9;
-  --bg-2: #eceef3;
+  --bg: #f6f5fa;
+  --bg-2: #edebf7;
   --surface: #ffffff;
-  --surface-2: #f2f4f8;
-  --surface-3: #e7eaf1;
-  --border: #d9dee8;
-  --border-soft: #e7eaf1;
-  --text: #15171e;
-  --text-2: #3a4150;
-  --text-muted: #525e73;
-  --accent: var(--accent-light, #9f3d12);
+  --surface-2: #f8f7fc;
+  --surface-3: #efedf8;
+  --border: #ccc9dd;
+  --border-soft: #efedf8;
+  --text: #1b192b;
+  --text-2: #454258;
+  --text-muted: #5a566f;
+  --accent: var(--accent-light, #4937b8);
   --on-accent: #ffffff;
-  --focus: #80430f;
-  --control-border: #69768c;
+  --flame: #4937b8;
+  --flame-2: #342489;
+  --focus: #4937b8;
+  --control-border: #858198;
   --ok: #236d44;
   --warn: #845000;
   --danger: #ab3428;
   color-scheme: light;
-  --shadow: 0 6px 24px rgba(20, 22, 29, 0.12);
+  --shadow: none;
   --shadow-lg: 0 14px 40px rgba(20, 22, 29, 0.18);
 }
 
 /* dataset vazio = "system": respeita a preferência do SO */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
-    --bg: #f5f6f9;
-    --bg-2: #eceef3;
+    --bg: #f6f5fa;
+    --bg-2: #edebf7;
     --surface: #ffffff;
-    --surface-2: #f2f4f8;
-    --surface-3: #e7eaf1;
-    --border: #d9dee8;
-    --border-soft: #e7eaf1;
-    --text: #15171e;
-    --text-2: #3a4150;
-    --text-muted: #525e73;
-    --accent: var(--accent-light, #9f3d12);
+    --surface-2: #f8f7fc;
+    --surface-3: #efedf8;
+    --border: #ccc9dd;
+    --border-soft: #efedf8;
+    --text: #1b192b;
+    --text-2: #454258;
+    --text-muted: #5a566f;
+    --accent: var(--accent-light, #4937b8);
     --on-accent: #ffffff;
-    --focus: #80430f;
-    --control-border: #69768c;
+    --flame: #4937b8;
+    --flame-2: #342489;
+    --focus: #4937b8;
+    --control-border: #858198;
     --ok: #236d44;
     --warn: #845000;
     --danger: #ab3428;
     color-scheme: light;
-    --shadow: 0 6px 24px rgba(20, 22, 29, 0.12);
+    --shadow: none;
     --shadow-lg: 0 14px 40px rgba(20, 22, 29, 0.18);
   }
 }
@@ -125,3 +130,7 @@
 :root[data-accent='rose'] { --accent-dark: #ff9bad; --accent-light: #a52648; }
 :root[data-accent='cyan'] { --accent-dark: #6ad8e9; --accent-light: #136176; }
 :root[data-accent='magenta'] { --accent-dark: #ef9df6; --accent-light: #842594; }
+
+@media (pointer: coarse) {
+  :root { --control-h: 42px; --field-h: 44px; }
+}

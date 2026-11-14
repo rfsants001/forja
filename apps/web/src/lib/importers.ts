@@ -380,6 +380,7 @@ export function parseHevy(csv: string): ImportResult {
     const effortObj =
       rpe !== undefined ? { rpe } : undefined;
 
+    const isWarmup = row['set_type']?.trim().toLowerCase() === 'warmup';
     const setLog: SetLog = {
       reps,
       weightKg,
@@ -419,12 +420,14 @@ export function parseHevy(csv: string): ImportResult {
     });
 
     if (existingEntry !== undefined) {
-      existingEntry.sets.push(setLog);
+      if (isWarmup) (existingEntry.warmupSets ??= []).push(setLog);
+      else existingEntry.sets.push(setLog);
     } else {
       wk.entries.push({
         exerciseId: exId,
-        sets: [setLog],
-        target: { sets: 1, unknown: true },
+        sets: isWarmup ? [] : [setLog],
+        ...(isWarmup ? { warmupSets: [setLog] } : {}),
+        target: { sets: isWarmup ? 0 : 1, unknown: true },
       });
     }
   }

@@ -15,7 +15,7 @@ export default defineConfig({
     host: true,
   },
   build: {
-    // O chunk exercises.generated (~1.3 MB raw / 126 KB gzip) é carregado de forma
+    // O chunk exercises.generated (~895 KB raw / 96 KB gzip) é carregado de forma
     // lazy (import dinâmico), não entra no bundle principal. O aviso de tamanho é
     // esperado e controlado.
     chunkSizeWarningLimit: 1500,
@@ -41,17 +41,19 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'icon-maskable.svg', 'apple-touch-icon.png'],
+      workbox: { globPatterns: ['**/*.{js,css,html,webp,woff2}'] },
       manifest: {
         name: 'Forja — Treino',
         short_name: 'Forja',
         description: 'Tracker de treino local-first, gamificado. Dono dos seus dados.',
-        theme_color: '#0e0f13',
-        background_color: '#0e0f13',
+        theme_color: '#151525',
+        background_color: '#151525',
         display: 'standalone',
         start_url: '/',
         icons: [
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'icon-maskable.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
         ],
       },
     }),

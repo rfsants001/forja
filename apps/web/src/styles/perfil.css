@@ -272,8 +272,8 @@
 }
 
 .accent-row .setting-label {
-  width: 100%;
-  display: flex;
+  flex: 1 1 100%;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   margin-bottom: 2px;
@@ -308,3 +308,7 @@
 
 .restore-options .btn-row { flex-wrap: wrap; }
 .starter-replace { display: flex; align-items: center; min-height: 44px; gap: 10px; margin: 8px 0; }
+
+.profile-preferences { padding-top: 15px; border-top: 1px solid var(--border-soft); margin-top: 10px; }
+.profile-preferences .field-grid input { width: 100%; }
+.bw-form > [role='status'], .bw-form > [role='alert'] { flex-basis: 100%; }

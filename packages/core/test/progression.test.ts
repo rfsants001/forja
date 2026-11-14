@@ -453,4 +453,15 @@ describe('carga registrada e prescrição', () => {
     const p = nextPrescription({ workouts: [other, second, first], config: makeConfig(), routineId: 'a' });
     expect(p.weightKg).toBe(57.5);
   });
+  it('preserva a última sessão de trabalho quando há apenas aquecimento depois', () => {
+    const work = makeEntry('squat', 5, 50);
+    const warmupOnly = { ...work, sets: work.sets.map((row) => ({ ...row, done: false })),
+      warmupSets: [{ reps: 12, weightKg: 20, done: true }] };
+    const workouts = [makeWorkout('2026-11-12', work), makeWorkout('2026-11-13', warmupOnly)];
+    const prescription = nextPrescription({ workouts, config: makeConfig() });
+
+    expect(prescription.weightKg).toBe(52.5);
+    expect(nextPrescription({ workouts: [workouts[1]!], config: makeConfig() }).kind).toBe('fresh');
+  });
+
 });

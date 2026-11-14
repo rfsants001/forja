@@ -259,3 +259,21 @@
 .hist-edit-set input[type='number'] { width: 100%; min-height: 44px; padding: 6px 8px; background: var(--surface-2); color: var(--text); border: 1px solid var(--control-border); border-radius: var(--r-sm); }
 .hist-edit-set .hist-edit-done { display: flex; align-items: center; min-height: 44px; }
 .hist-card-footer { flex-wrap: wrap; gap: 8px; }
+
+.history-filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(154px, 0.54fr) auto auto;
+  align-items: end;
+  gap: 9px 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.app .history-filters .field { margin: 0; }
+.history-count { grid-column: -2; align-self: end; padding-block-end: 8px; text-align: right; white-space: nowrap; }
+@media (max-width: 899px) {
+  .history-filters { grid-template-columns: minmax(0, 1fr) auto; }
+  .history-filter-search { grid-column: 1 / -1; }
+  .history-filter-routine { grid-column: 1; }
+  .history-count { grid-column: 2; justify-self: end; }
+  .history-clear + .history-count { grid-column: 1 / -1; }
+}

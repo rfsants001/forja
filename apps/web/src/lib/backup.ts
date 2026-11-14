@@ -77,7 +77,7 @@ const set = fields({
 });
 const settings = fields({
   unit: optional(oneOf('kg', 'lb')), theme: optional(oneOf('dark', 'light', 'system')), defaultRestSec: optNumber,
-  trackEffort: optional(boolean), weekStartsOn: optional(oneOf(0, 1)), bodyWeightGoalKg: optNumber,
+  gymEquipment: optional(list(id)), trackEffort: optional(boolean), weekStartsOn: optional(oneOf(0, 1)), bodyWeightGoalKg: optNumber,
   muscleFigure: optional(oneOf('male', 'female')), accent: optString, lang: optional(oneOf('pt', 'en')),
 });
 const validRow: Record<TableName, (value: unknown) => boolean> = {
@@ -90,8 +90,8 @@ const validRow: Record<TableName, (value: unknown) => boolean> = {
       targetSpeedKmh: optNumber, supersetGroup: optional(integer), trainingMaxKg: optNumber, trainingMaxIncrementKg: optNumber })) }),
   weekPlan: fields({ weekday, routineId: (value) => value === null || id(value) }),
   dayOverrides: fields({ dateISO: date, routine: (value) => value === null || id(value) }),
-  workouts: fields({ id, dateISO: date, createdAt: number, durationSec: optNumber, routineId: optional(id),
-    categoryId: optional(id), note: optString, entries: list(fields({ exerciseId: id, sets: list(set), target })),
+  workouts: fields({ id, dateISO: date, createdAt: number, durationSec: optNumber, routineId: optional(id), routineName: optString,
+    categoryId: optional(id), note: optString, entries: list(fields({ exerciseId: id, sets: list(set), warmupSets: optional(list(set)), target })),
     prs: optional(list(fields({ exerciseId: id, kind: oneOf('1rm', 'weight', 'reps'), value: nonnegative }))) }),
   bodyweight: fields({ dateISO: date, kg: nonnegative }),
   settings: (value) => isRow(value) && (value.id === 'app' && settings(value)

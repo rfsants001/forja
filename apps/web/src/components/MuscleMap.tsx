@@ -1,52 +1,31 @@
-// Mapa muscular simplificado — SVG próprio (frente + costas lado a lado).
-// Regiões são interpoladas de --surface-2 (sem volume) até --flame (máximo).
-// Sem dependência de asset externo.
-//
-// Props principais:
-//   volumeByMuscle  — Partial<Record<MuscleGroup, number>> (Σ reps×kg ou ratio normalizado)
-//   figure          — 'male' | 'female' (default 'male') — troca o outline
-//   preview         — quando true, usa destaque binário "acerta/não acerta" em vez de heatmap
-//   showUntrained   — quando true, exibe painel de músculos com volume 0 (modo stats)
-//   onUntrainedClick — callback ao clicar num grupo não treinado (deep link p/ biblioteca)
-
 import { useMemo } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import type { MuscleGroup } from '@forja/core';
 import { MUSCLE_LABEL } from '../lib/labels';
 import { useT } from '../lib/i18n';
-import {
-  MUSCLE_REGIONS,
-  bodyOutline,
-} from '../lib/muscle-map-paths';
-
-// ---------------------------------------------------------------------------
-// Grupos excluídos da lista de "não treinados" (não representáveis no mapa de força)
-// ---------------------------------------------------------------------------
-
-const IGNORED_FOR_UNTRAINED = new Set<MuscleGroup>(['fullbody', 'cardio', 'other']);
-
-// ---------------------------------------------------------------------------
-// Helpers de cor
-// ---------------------------------------------------------------------------
+import { MUSCLES_IN_ATLAS, MUSCLE_PATH_GROUPS, muscleGeometry } from '../lib/muscle-map-paths';
+import type { MuscleFigure, MuscleView } from '../lib/muscle-map-paths';
 
 /**
- * Heatmap: interpola entre --surface-2 (cinza escuro) e --flame (laranja) conforme ratio [0,1].
+ * Heatmap: interpola entre --surface-2 (cinza escuro) e --flame (acento) conforme ratio [0,1].
  * Usa uma escala com 5 stops para controle fino.
  */
 function muscleColor(ratio: number): string {
   if (ratio <= 0) return 'var(--surface-2)';
-  if (ratio < 0.2) return 'rgba(255, 122, 26, 0.20)';
-  if (ratio < 0.4) return 'rgba(255, 122, 26, 0.40)';
-  if (ratio < 0.65) return 'rgba(255, 122, 26, 0.62)';
-  if (ratio < 0.85) return 'rgba(255, 122, 26, 0.82)';
+  if (ratio < 0.2) return 'color-mix(in srgb, var(--accent) 20%, var(--surface-2))';
+  if (ratio < 0.4) return 'color-mix(in srgb, var(--accent) 40%, var(--surface-2))';
+  if (ratio < 0.65) return 'color-mix(in srgb, var(--accent) 62%, var(--surface-2))';
+  if (ratio < 0.85) return 'color-mix(in srgb, var(--accent) 82%, var(--surface-2))';
   return 'var(--flame)';
 }
 
 /**
- * Preview: destaque binário — acerta (laranja vivo) vs não acerta (surface-2).
+ * Preview: destaque binário — acerta (acento) vs não acerta (surface-2).
  */
 function previewColor(ratio: number): string {
-  return ratio > 0 ? 'rgba(255, 122, 26, 0.75)' : 'var(--surface-2)';
+  if (ratio >= 1) return 'var(--accent)';
+  if (ratio > 0) return 'color-mix(in srgb, var(--accent) 48%, var(--surface-2))';
+  return 'var(--surface-2)';
 }
 
 // ---------------------------------------------------------------------------
@@ -141,12 +120,13 @@ export interface MuscleMapProps {
    * Figura da silhueta. Padrão: 'male'.
    * 'female' usa outline com ombros mais estreitos e quadril mais largo.
    */
-  figure?: 'male' | 'female';
+  figure?: MuscleFigure;
   /**
-   * Quando true, exibe destaque binário em vez de heatmap de intensidade.
+   * Quando true, exibe destaque dos músculos primários e secundários.
    * Usado no editor de rotina para mostrar "quais músculos a rotina atinge".
    */
   preview?: boolean;
+  metric?: 'sets' | 'volume';
   /**
    * Quando true, exibe painel listando grupos sem volume no período.
    * Recomendado apenas no modo stats (não no preview da rotina).
@@ -160,12 +140,11 @@ export interface MuscleMapProps {
   onUntrainedClick?: (muscle: MuscleGroup) => void;
 }
 
-type View = 'front' | 'back';
-
 export function MuscleMap({
   volumeByMuscle,
   figure = 'male',
   preview = false,
+  metric = 'volume',
   showUntrained = false,
   onUntrainedClick,
   trainedMuscles,
@@ -195,116 +174,40 @@ export function MuscleMap({
     return preview ? previewColor(r) : muscleColor(r);
   }
 
-  // Outlines (frente/costas) conforme figura
-  const outlines = useMemo(() => bodyOutline(figure), [figure]);
+  const untrainedGroups = showUntrained
+    ? MUSCLES_IN_ATLAS.filter((group) =>
+        trainedMuscles ? !trainedMuscles.has(group) : (volumeByMuscle[group] ?? 0) === 0)
+    : [];
 
-  // Lista de grupos "não treinados" (apenas grupos que têm path no mapa)
-  const untrainedGroups = useMemo<MuscleGroup[]>(() => {
-    if (!showUntrained) return [];
-    const withPaths = (Object.keys(MUSCLE_REGIONS) as MuscleGroup[]).filter(
-      (g) => !IGNORED_FOR_UNTRAINED.has(g),
-    );
-    return withPaths.filter((g) => trainedMuscles ? !trainedMuscles.has(g) : (volumeByMuscle[g] ?? 0) === 0);
-  }, [showUntrained, volumeByMuscle, trainedMuscles]);
-
-  // Renderiza os paths de um lado (front ou back)
-  function renderSide(view: View) {
+  function renderSide(view: MuscleView) {
+    const { viewBox, parts } = muscleGeometry(figure, view);
     return (
-      <>
-        {/* Silhueta de fundo */}
-        <path
-          d={view === 'front' ? outlines.front : outlines.back}
-          fill="var(--surface-3)"
-          stroke="var(--border)"
-          strokeWidth={1}
-        />
-
-        {/* Regiões musculares */}
-        {(Object.entries(MUSCLE_REGIONS) as [MuscleGroup, typeof MUSCLE_REGIONS[MuscleGroup]][]).map(
-          ([muscle, region]) => {
-            if (region === undefined) return null;
-            const paths = view === 'front' ? region.front : region.back;
-            if (paths === undefined || paths.length === 0) return null;
-            const fill = fillColor(muscle);
-            const vol = volumeByMuscle[muscle] ?? 0;
-
-            return paths.map((d, i) => (
-              <path
-                key={`${muscle}-${view}-${i}`}
-                d={d}
-                fill={fill}
-                opacity={0.9}
-                style={{ transition: 'fill 0.3s ease' }}
-              >
-                <title>
-                  {MUSCLE_LABEL[muscle]}
-                  {vol > 0 && !preview
-                    ? `: ${Math.round(vol).toLocaleString('pt-BR')} kg`
-                    : vol > 0 && preview
-                    ? ' ✓'
-                    : ''}
-                </title>
-              </path>
-            ));
-          },
-        )}
-      </>
+      <figure key={view}>
+        <svg viewBox={viewBox} role="img" aria-label={tMuscle(view === 'front'
+          ? 'musclemap.frontAriaLabel' : 'musclemap.backAriaLabel')}>
+          {Object.entries(parts).map(([part, paths]) => {
+            const group = MUSCLE_PATH_GROUPS[part];
+            const volume = group ? volumeByMuscle[group] ?? 0 : 0;
+            return (
+              <g key={part} fill={group ? fillColor(group) : 'var(--surface-2)'}>
+                {group && <title>{MUSCLE_LABEL[group]}{volume > 0 && !preview
+                  ? ` · ${Math.round(volume).toLocaleString('pt-BR')} ${metric === 'sets' ? 'séries' : 'kg'}`
+                  : ''}</title>}
+                {paths.map((path, index) => <path key={index} d={path} />)}
+              </g>
+            );
+          })}
+        </svg>
+        <figcaption>{tMuscle(view === 'front' ? 'musclemap.front' : 'musclemap.back')}</figcaption>
+      </figure>
     );
   }
 
-  // ---- layout: dois SVGs lado a lado ----
-  const VB = '0 0 200 340';
-  const svgStyle: React.CSSProperties = {
-    width: '50%',
-    maxWidth: 180,
-  };
-
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 8,
-        }}
-      >
-        {/* Frente */}
-        <div style={{ textAlign: 'center' }}>
-          <span
-            style={{
-              fontSize: 10,
-              color: 'var(--text-muted)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              display: 'block',
-              marginBottom: 4,
-            }}
-          >
-            {tMuscle('musclemap.front')}
-          </span>
-          <svg viewBox={VB} style={svgStyle} aria-label={tMuscle('musclemap.frontAriaLabel')}>
-            {renderSide('front')}
-          </svg>
-        </div>
-
-        {/* Costas */}
-        <div style={{ textAlign: 'center' }}>
-          <span
-            style={{
-              fontSize: 10,
-              color: 'var(--text-muted)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              display: 'block',
-              marginBottom: 4,
-            }}
-          >
-            {tMuscle('musclemap.back')}
-          </span>
-          <svg viewBox={VB} style={svgStyle} aria-label={tMuscle('musclemap.backAriaLabel')}>
-            {renderSide('back')}
-          </svg>
-        </div>
+      <div className="muscle-atlas">
+        {renderSide('front')}
+        {renderSide('back')}
       </div>
 
       {/* Legenda só no modo heatmap */}

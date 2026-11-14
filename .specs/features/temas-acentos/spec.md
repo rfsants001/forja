@@ -4,7 +4,7 @@ Atualizado em 13/11/2026.
 
 ## Estado
 
-Tema claro, escuro e sistema persistem no Perfil. Oito acentos usam cores diferentes nos temas claro e escuro. Foco visível, feedback em texto e movimento reduzido acompanham os controles revisados.
+Tema claro, escuro e sistema persistem no Perfil. O tema explícito governa as superfícies e os controles nativos mesmo quando o SO usa outro tema. Modo Sistema acompanha a preferência do SO. Oito acentos usam cores diferentes nos temas claro e escuro. O acento padrão é índigo. Foco visível, feedback em texto e movimento reduzido acompanham os controles revisados.
 
 ## Aceite
 

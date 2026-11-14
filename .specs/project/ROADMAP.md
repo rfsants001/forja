@@ -1,6 +1,6 @@
 # Forja · Roadmap
 
-Atualizado em 13/11/2026. O [PRD](PRD.md) define o aceite de produto e o [STATE](STATE.md) registra a retomada.
+Atualizado em 14/11/2026. O [PRD](PRD.md) define o aceite de produto e o [STATE](STATE.md) registra a retomada.
 
 | Fase | Estado | Entrega |
 | --- | --- | --- |
@@ -18,7 +18,7 @@ Atualizado em 13/11/2026. O [PRD](PRD.md) define o aceite de produto e o [STATE]
 
 1. Retomar P5-003 a partir da infraestrutura existente. Validar seletor, cobertura, idioma do documento e PT → EN → reload → PT.
 2. Rodar o piloto com instalação, modo avião, atualização, dois treinos e restauração em perfil limpo. Validar teclado, leitor de tela, layout estreito e contraste contextual.
-3. Resolver direitos de uso da mídia CDN e licença do projeto antes de divulgar um beta com demos.
+3. Decidir a licença do projeto. Expandir o conjunto de demonstrações com verificação por imagem e avaliar rotação de rotinas e inventários por academia após o piloto.
 4. Priorizar APK e notificações locais conforme o piloto. Decidir o Coach depois de testar a revisão baseada nas regras.
 
 P5-006 não assume agendamento confiável de notificações web com o app fechado. P5-007 pode avaliar notificações locais no Android. Sync, passkeys, multiusuário e admin ficam fora do escopo.

@@ -1,12 +1,12 @@
 import '../styles/setup.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Dumbbell, CalendarDays, Library, Sparkles, X } from 'lucide-react';
-import { toISO } from '@forja/core';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Plus, Dumbbell, CalendarDays, Library, Sparkles, X, Trash2 } from 'lucide-react';
+import { fromISO, toISO } from '@forja/core';
 import type { Routine, Weekday } from '@forja/core';
 import { db } from '../db/db';
-import { clearDayOverride, setDayOverride, setWeekday } from '../db/repo';
+import { clearDayOverride, deleteRoutine, deleteStarterPlan, setDayOverride, setWeekday } from '../db/repo';
 import { useSessionStore } from '../store/session';
 import { STARTER_PLANS, applyStarterPlan } from '../lib/starter-plans';
 import type { ApplyResult } from '../lib/starter-plans';
@@ -163,7 +163,76 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
 // Componente
 // ---------------------------------------------------------------------------
 
-function RoutineRow({ routine, color, activeId }: { routine: Routine; color?: string; activeId: string | null | undefined }) {
+type Deletion = {
+  name: string;
+  routines: Routine[];
+  categoryId?: string;
+};
+
+function DeletePlanDialog({ target, onClose, onDeleted }: {
+  target: Deletion;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+  const isPlan = target.categoryId !== undefined;
+  const containsActive = useSessionStore((state) => target.routines.some((routine) => routine.id === state.active?.routineId));
+
+  useEffect(() => {
+    if (dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, []);
+
+  async function confirm() {
+    if (deleting) return;
+    setDeleting(true);
+    setError('');
+    try {
+      if (target.categoryId !== undefined) {
+        await deleteStarterPlan(target.categoryId, target.routines.map((routine) => routine.id));
+      } else if (target.routines[0]) {
+        await deleteRoutine(target.routines[0].id);
+      }
+      onDeleted();
+    } catch (error) {
+      setError(error instanceof Error && error.message.startsWith('O plano recebeu novas rotinas')
+        ? error.message : 'Não foi possível excluir. Tente novamente.');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <dialog ref={dialog} className="sheet form-dialog plan-delete-dialog" aria-labelledby="plan-delete-title"
+      aria-describedby="plan-delete-description" onClose={onClose}
+      onCancel={(event) => { if (deleting) event.preventDefault(); }}>
+      <header className="form-dialog-heading">
+        <h2 id="plan-delete-title">{isPlan ? 'Excluir plano?' : 'Excluir rotina?'}</h2>
+      </header>
+      <p id="plan-delete-description">
+        <strong>{target.name}</strong> será removido de Treinos e da agenda. As sessões concluídas continuarão no Histórico.
+      </p>
+      {isPlan && target.routines.length > 0 && (
+        <ul className="plan-delete-list" aria-label="Rotinas que serão excluídas">
+          {target.routines.map((routine) => <li key={routine.id}>{routine.name}</li>)}
+        </ul>
+      )}
+      {containsActive && <p className="hint">Você ainda poderá continuar a sessão em andamento.</p>}
+      {error && <p className="feedback error" role="alert">{error}</p>}
+      <div className="form-actions">
+        <button type="button" className="btn ghost" autoFocus disabled={deleting} onClick={() => dialog.current?.close()}>Cancelar</button>
+        <button type="button" className="btn danger" disabled={deleting} onClick={() => void confirm()}>
+          {deleting ? 'Excluindo…' : isPlan ? 'Excluir plano' : 'Excluir rotina'}
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
+function RoutineRow({ routine, color, activeId, onDelete }: {
+  routine: Routine; color?: string; activeId: string | null | undefined; onDelete: () => void;
+}) {
   const resume = activeId === routine.id;
   return (
     <div className="routine-list-row">
@@ -180,12 +249,14 @@ function RoutineRow({ routine, color, activeId }: { routine: Routine; color?: st
           {resume ? 'Continuar' : 'Treinar agora'}
         </Link>
       )}
+      <button type="button" className="icon-btn routine-delete" aria-label={`Excluir rotina · ${routine.name}`}
+        title="Excluir rotina" onClick={onDelete}><Trash2 size={16} aria-hidden="true" /></button>
     </div>
   );
 }
 
-function DateOverrideEditor({ routines }: { routines: Routine[] }) {
-  const [date, setDate] = useState(() => toISO(new Date()));
+function DateOverrideEditor({ routines, selectedDate }: { routines: Routine[]; selectedDate?: string }) {
+  const [date, setDate] = useState(() => selectedDate ?? toISO(new Date()));
   const [choice, setChoice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ text: string; error?: boolean } | null>(null);
@@ -211,15 +282,27 @@ function DateOverrideEditor({ routines }: { routines: Routine[] }) {
     <form className="card date-override" onSubmit={(event) => void save(event)}>
       <h2>Mudar só um dia</h2>
       <p className="hint">Troque a rotina ou marque descanso para uma data. Seu plano semanal continua valendo nos outros dias.</p>
-      <label>Data<input type="date" required value={date} disabled={busy} onChange={(event) => {
-        setDate(event.target.value); setChoice(null); setFeedback(null);
-      }} /></label>
-      <label>Treino desta data<select value={value} disabled={busy} onChange={(event) => setChoice(event.target.value)}>
-        <option value="">Seguir plano semanal</option>
-        <option value="rest">Descanso</option>
-        {routines.map((routine) => <option key={routine.id} value={routine.id}>{routine.name}</option>)}
-      </select></label>
-      <button className="btn ghost" disabled={busy || !date || row === undefined}>{busy ? 'Salvando…' : 'Salvar data'}</button>
+      <div className="field-grid">
+        <label>
+          Data
+          <input type="date" required value={date} disabled={busy} onChange={(event) => {
+            setDate(event.target.value);
+            setChoice(null);
+            setFeedback(null);
+          }} />
+        </label>
+        <label>
+          Treino desta data
+          <select value={value} disabled={busy} onChange={(event) => setChoice(event.target.value)}>
+            <option value="">Seguir plano semanal</option>
+            <option value="rest">Descanso</option>
+            {routines.map((routine) => <option key={routine.id} value={routine.id}>{routine.name}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="btn" disabled={busy || !date || row === undefined}>{busy ? 'Salvando…' : 'Salvar alteração'}</button>
+      </div>
       {feedback !== null && <p className={`feedback${feedback.error ? ' error' : ''}`} role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
     </form>
   );
@@ -228,7 +311,20 @@ function DateOverrideEditor({ routines }: { routines: Routine[] }) {
 export function Treinos() {
   const [searchParams, setSearchParams] = useSearchParams();
   const active = useSessionStore((state) => state.active);
+  const [deletion, setDeletion] = useState<Deletion | null>(null);
+  const [deletedMessage, setDeletedMessage] = useState('');
+  const routinesHeading = useRef<HTMLHeadingElement>(null);
   const activeId = active === null ? null : active.routineId;
+  const dateParam = searchParams.get('data');
+  const selectedDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && toISO(fromISO(dateParam)) === dateParam
+    ? dateParam : undefined;
+  const agendaRef = useRef<HTMLElement>(null);
+  const anchor = useLocation().hash;
+  useEffect(() => {
+    if (anchor !== '#agenda') return;
+    agendaRef.current?.focus({ preventScroll: true });
+    agendaRef.current?.scrollIntoView({ block: 'start' });
+  }, [anchor, selectedDate]);
   // Dados reativos
   const categories = useLiveQuery(
     () => db.categories.orderBy('order').toArray(),
@@ -290,6 +386,7 @@ export function Treinos() {
 
   // Saving state por dia (para feedback visual)
   const [saving, setSaving] = useState<Weekday | null>(null);
+  const [scheduleError, setScheduleError] = useState('');
 
   // Sheet de planos prontos
   const showStarterPlans = searchParams.get('planos') === '1';
@@ -303,8 +400,11 @@ export function Treinos() {
 
   async function handleWeekdayChange(day: Weekday, value: string) {
     setSaving(day);
+    setScheduleError('');
     try {
       await handleWeekday(day, value);
+    } catch {
+      setScheduleError('Não foi possível atualizar a agenda. Confira se a rotina ainda está disponível.');
     } finally {
       setSaving(null);
     }
@@ -316,6 +416,13 @@ export function Treinos() {
 
   return (
     <>
+      {deletion && (
+        <DeletePlanDialog target={deletion} onClose={() => setDeletion(null)} onDeleted={() => {
+          setDeletedMessage(deletion.categoryId ? 'Plano excluído.' : 'Rotina excluída.');
+          setDeletion(null);
+          routinesHeading.current?.focus();
+        }} />
+      )}
       {/* Sheet de planos prontos */}
       {showStarterPlans && (
         <StarterPlansSheet onClose={() => setShowStarterPlans(false)} />
@@ -326,14 +433,15 @@ export function Treinos() {
         <div className="brand">
           <h1>Treinos</h1>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="page-actions">
           <button
             className="btn ghost"
             style={{ padding: '10px 14px', fontSize: 13 }}
             onClick={() => setShowStarterPlans(true)}
             title="Planos prontos"
           >
-            <Sparkles size={16} strokeWidth={2.2} />
+            <Sparkles size={16} strokeWidth={2.2} aria-hidden />
+            Planos prontos
           </button>
           <Link
             to="/exercicios"
@@ -357,119 +465,139 @@ export function Treinos() {
       {/* ------------------------------------------------------------------ */}
       {/* Seção 1: Rotinas por categoria                                       */}
       {/* ------------------------------------------------------------------ */}
-      <div className="section-title">
-        <Dumbbell size={13} style={{ verticalAlign: 'middle', marginRight: 6, opacity: 0.7 }} />
-        Minhas rotinas
-      </div>
+      <div className="planning-layout">
+        <section className="card planning-routines" aria-labelledby="my-routines">
+        <h2 className="section-title panel-title" id="my-routines" ref={routinesHeading} tabIndex={-1}>
+          <Dumbbell size={13} style={{ verticalAlign: 'middle', marginRight: 6, opacity: 0.7 }} />
+          Minhas rotinas
+        </h2>
 
-      {totalRoutines === 0 ? (
-        <div className="empty">
-          <Dumbbell size={40} strokeWidth={1.6} style={{ opacity: 0.4 }} />
-          <p style={{ marginTop: 12 }}>Nenhuma rotina criada ainda.</p>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 16 }}>
-            <button
-              className="btn ghost-accent"
-              style={{ display: 'inline-flex', gap: 6 }}
-              onClick={() => setShowStarterPlans(true)}
-            >
-              <Sparkles size={16} strokeWidth={2.2} />
-              Começar com um plano pronto
-            </button>
-            <Link
-              to="/treinos/rotina/nova"
-              className="btn ghost"
-              style={{ display: 'inline-flex' }}
-            >
-              <Plus size={16} />
-              Criar rotina do zero
-            </Link>
+        <p role="status" className={deletedMessage ? 'feedback plan-deletion-feedback' : 'sr-only'}>{deletedMessage}</p>
+        {totalRoutines === 0 && !grouped.some(({ cat }) => cat.slug.startsWith('starter-')) ? (
+          <div className="empty">
+            <Dumbbell size={40} strokeWidth={1.6} style={{ opacity: 0.4 }} />
+            <p style={{ marginTop: 12 }}>Nenhuma rotina criada ainda.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 16 }}>
+              <button
+                className="btn ghost-accent"
+                style={{ display: 'inline-flex', gap: 6 }}
+                onClick={() => setShowStarterPlans(true)}
+              >
+                <Sparkles size={16} strokeWidth={2.2} />
+                Começar com um plano pronto
+              </button>
+              <Link
+                to="/treinos/rotina/nova"
+                className="btn ghost"
+                style={{ display: 'inline-flex' }}
+              >
+                <Plus size={16} />
+                Criar rotina do zero
+              </Link>
+            </div>
           </div>
+        ) : (
+          <>
+            {grouped.map(({ cat, routines: rots }) => {
+              const isPlan = cat.slug.startsWith('starter-');
+              if (rots.length === 0 && !isPlan) return null;
+              return (
+                <div key={cat.id} className="routine-group">
+                  <div className="routine-group-header">
+                    <span
+                      className="cat-dot"
+                      style={{ background: cat.color }}
+                    />
+                    <span className="cat-name">{cat.name}</span>
+                    {isPlan && <button type="button" className="btn ghost plan-delete"
+                      aria-label={`Excluir plano · ${cat.name}`} onClick={() => {
+                        setDeletedMessage('');
+                        setDeletion({ name: cat.name, categoryId: cat.id, routines: rots });
+                      }}><Trash2 size={14} aria-hidden="true" /> Excluir plano</button>}
+                  </div>
+                  <div className="routine-list">
+                    {rots.map((routine) => <RoutineRow key={routine.id} routine={routine} color={cat.color} activeId={activeId}
+                      onDelete={() => {
+                        setDeletedMessage('');
+                        setDeletion({ name: routine.name, routines: [routine] });
+                      }} />)}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Rotinas sem categoria reconhecida (categoria foi deletada) */}
+            {(() => {
+              const catIds = new Set((categories ?? []).map((c) => c.id));
+              const orphans = (routines ?? []).filter((r) => !catIds.has(r.categoryId));
+              if (orphans.length === 0) return null;
+              return (
+                <div className="routine-group">
+                  <div className="routine-group-header">
+                    <span className="cat-dot" style={{ background: 'var(--text-muted)' }} />
+                    <span className="cat-name">Sem categoria</span>
+                  </div>
+                  <div className="routine-list">
+                    {orphans.map((routine) => <RoutineRow key={routine.id} routine={routine} activeId={activeId}
+                      onDelete={() => {
+                        setDeletedMessage('');
+                        setDeletion({ name: routine.name, routines: [routine] });
+                      }} />)}
+                  </div>
+                </div>
+              );
+            })()}
+          </>
+        )}
+
+        {/* ------------------------------------------------------------------ */}
+        {/* Seção 2: Plano da semana                                             */}
+        </section>
+        <section className="planning-agenda" id="agenda" ref={agendaRef} tabIndex={-1} aria-labelledby="plan-week">
+        <div className="card">
+        <h2 className="section-title panel-title" id="plan-week">
+          <CalendarDays size={16} aria-hidden />
+          Plano da semana
+        </h2>
+
+        {totalRoutines === 0 ? (
+          <p className="hint" style={{ textAlign: 'center', paddingBottom: 12 }}>
+            Crie uma rotina para começar a planejar sua semana.
+          </p>
+        ) : (
+          <div className="week-plan">
+            {scheduleError && <p className="feedback error" role="alert">{scheduleError}</p>}
+            {orderedDays.map((day) => {
+              const isToday = day === todayWd;
+              const currentValue = weekPlan[day] ?? '__rest__';
+              return (
+                <div key={day} className="week-row">
+                  <span className={`wd-label${isToday ? ' today' : ''}`} title={WEEKDAY_FULL[day]}>
+                    {WEEKDAY_SHORT[day]}
+                  </span>
+                  <select
+                    value={currentValue}
+                    onChange={(e) => { void handleWeekdayChange(day, e.target.value); }}
+                    disabled={saving === day}
+                    aria-label={`Treino de ${WEEKDAY_FULL[day]}`}
+                  >
+                    <option value="__rest__">Descanso</option>
+                    {(routines ?? []).map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         </div>
-      ) : (
-        <>
-          {grouped.map(({ cat, routines: rots }) => {
-            if (rots.length === 0) return null;
-            return (
-              <div key={cat.id} className="routine-group">
-                <div className="routine-group-header">
-                  <span
-                    className="cat-dot"
-                    style={{ background: cat.color }}
-                  />
-                  <span className="cat-name">{cat.name}</span>
-                </div>
-                <div className="routine-list">
-                  {rots.map((routine) => <RoutineRow key={routine.id} routine={routine} color={cat.color} activeId={activeId} />)}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Rotinas sem categoria reconhecida (categoria foi deletada) */}
-          {(() => {
-            const catIds = new Set((categories ?? []).map((c) => c.id));
-            const orphans = (routines ?? []).filter((r) => !catIds.has(r.categoryId));
-            if (orphans.length === 0) return null;
-            return (
-              <div className="routine-group">
-                <div className="routine-group-header">
-                  <span className="cat-dot" style={{ background: 'var(--text-muted)' }} />
-                  <span className="cat-name">Sem categoria</span>
-                </div>
-                <div className="routine-list">
-                  {orphans.map((routine) => <RoutineRow key={routine.id} routine={routine} activeId={activeId} />)}
-                </div>
-              </div>
-            );
-          })()}
-        </>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Seção 2: Plano da semana                                             */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="section-title" style={{ marginTop: 28 }}>
-        <CalendarDays size={13} style={{ verticalAlign: 'middle', marginRight: 6, opacity: 0.7 }} />
-        Plano da semana
+        {totalRoutines > 0 && <DateOverrideEditor key={selectedDate ?? 'today'} selectedDate={selectedDate} routines={(routines ?? []).filter((routine) => routine.exercises.length > 0)} />}
+        </section>
       </div>
-
-      {totalRoutines === 0 ? (
-        <p className="hint" style={{ textAlign: 'center', paddingBottom: 12 }}>
-          Crie uma rotina para começar a planejar sua semana.
-        </p>
-      ) : (
-        <div className="week-plan">
-          {orderedDays.map((day) => {
-            const isToday = day === todayWd;
-            const currentValue = weekPlan[day] ?? '__rest__';
-            return (
-              <div key={day} className="week-row">
-                <span className={`wd-label${isToday ? ' today' : ''}`} title={WEEKDAY_FULL[day]}>
-                  {WEEKDAY_SHORT[day]}
-                </span>
-                <select
-                  value={currentValue}
-                  onChange={(e) => { void handleWeekdayChange(day, e.target.value); }}
-                  disabled={saving === day}
-                  aria-label={`Treino de ${WEEKDAY_FULL[day]}`}
-                >
-                  <option value="__rest__">Descanso</option>
-                  {(routines ?? []).map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <p className="hint" style={{ textAlign: 'center', marginTop: 24 }}>
-        O plano semanal é uma sugestão — você pode alterar qualquer dia antes de treinar.
-      </p>
-      {totalRoutines > 0 && <DateOverrideEditor routines={(routines ?? []).filter((routine) => routine.exercises.length > 0)} />}
     </>
   );
 }

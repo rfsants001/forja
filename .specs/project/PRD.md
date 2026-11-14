@@ -1,6 +1,6 @@
 # Forja · PRD
 
-Atualizado em 13/11/2026.
+Atualizado em 14/11/2026.
 
 ## Problema e proposta
 
@@ -19,16 +19,20 @@ Quem treina em casa precisa adaptar uma rotina ao próprio equipamento, lembrar 
 | ID | Requisito | Aceite |
 | --- | --- | --- |
 | PRD-01 | Primeiro treino em PT-BR | Home vazia oferece três caminhos. O plano de casa usa halteres, barra fixa e peso corporal, sem depender de máquinas ou banco. Um plano incompleto não altera a agenda. |
-| PRD-02 | Controle da agenda | Treinar agora, exceção por data e retorno ao plano recorrente. Excluir uma rotina limpa referências futuras e conserva os logs. |
+| PRD-02 | Controle da agenda | Treinar agora, exceção por data e retorno ao plano recorrente. Excluir uma rotina ou plano pronto exige confirmação, limpa a agenda associada e preserva nomes e notas dos treinos registrados. |
 | PRD-03 | Registro recuperável | Fechar/reabrir preserva a sessão e timestamps dos timers. Falha de escrita mantém o rascunho e uma mensagem orienta a repetir. O retry usa o mesmo ID. |
 | PRD-04 | Progressão explicável | A série editável, o alvo gravado e o histórico descrevem a mesma meta. Abaixo da carga é miss. Primeiro registro serve de referência. 5/3/1 preenche três séries individuais e avança após acertos. |
 | PRD-05 | Portabilidade | Backup v2 inclui medidas e lê v1. Preview, cancelar, mesclar e substituir são ações distintas. Plano inclui definições mínimas de exercícios. CSV informa linhas ignoradas e evita repetição por identidade de origem. |
 | PRD-06 | UX acessível | Fluxos principais com status visível, teclado, foco claro, texto e ícone além da cor, áreas de toque adequadas e contraste aferido em ambos os temas. Usar WCAG 2.2 AA como referência de teste. |
-| PRD-07 | Uso offline | Após a carga inicial em origem segura, testar navegação, dois treinos, retomada, histórico e backup sem rede. A mídia de terceiros pode ficar indisponível. |
+| PRD-07 | Uso offline | Após a carga inicial em origem segura, testar navegação, dois treinos, retomada, histórico e backup sem rede. As demonstrações locais e o atlas carregam em modo avião. |
+| PRD-08 | Biblioteca para casa e academia | Filtros por músculo principal ou auxiliar, equipamentos próprios e demonstrações. Detalhes exibem vistas frente/costas, legenda e crédito da mídia. |
+| PRD-09 | Aquecimento | Registrar antes das séries de trabalho, retomar após reload e corrigir no histórico. Aquecimento fica fora da meta, volume, PR e da próxima prescrição. |
+| PRD-10 | Formulários previsíveis | Rótulos permanecem visíveis, foco indica o campo ativo, Enter envia formulários de registro e erros preservam o que a pessoa digitou. Os botões são compactos no desktop e têm área maior em dispositivos de toque. |
+| PRD-11 | Busca no histórico | Busca e filtro de rotina ficam acima da lista, com contagem de resultados e ação de limpar filtros. |
 
 ## Validação de produto
 
-Piloto PT-BR de duas semanas com Rafael e um grupo pequeno. Observar conclusão do primeiro e do segundo treino, tempo até registrar a primeira série, correções de prescrição e restauração em outro perfil. Começar pelo Android e validar iPhone antes de prometer suporte equivalente. Revisar a licença das demos e do projeto antes da distribuição pública.
+Piloto PT-BR de duas semanas com Rafael e um grupo pequeno. Observar conclusão do primeiro e do segundo treino, tempo até registrar a primeira série, correções de prescrição e restauração em outro perfil. Começar pelo Android e validar iPhone antes de prometer suporte equivalente. Manter créditos por imagem e decidir a licença do projeto antes da distribuição pública.
 
 ## Expansão
 

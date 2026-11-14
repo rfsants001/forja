@@ -39,7 +39,7 @@ Componentes: TabBar, RestTimer, Stepper, NumField, Media (demos), LineChart, Hea
 `format` · `nav` · `mobile`. (Forja já cobre: progression, onerm, history, streak, schedule,
 wakelock, muscles-básico, effort-básico.)
 
-## Lista de features (do README oficial, canônica)
+## Funcionalidades observadas no fork em 11/11/2026
 1. **Peso corporal** — gráfico com linha de meta; ganho/perda colorido por direção à meta.
 2. **Plano semanal** — rotina por dia, sobre **1.324 exercícios** (busca + demos animados).
 3. **Remarcar qualquer dia** — override por data sem mexer no plano.
@@ -88,3 +88,10 @@ instruções de exercício em DE/PT.
 
 ## Leitura atual para a Forja
 O Forja oferece uma PWA sem instalação de servidor. A proposta testada combina um plano adequado ao equipamento disponível, treino guiado, regra de progressão escolhida pela pessoa e restauração de dados. A comparação de produto também considera FitNotes para registro local e Hevy Trainer para recomendações de progressão. O [PRD](../project/PRD.md) registra o recorte e o [gap analysis](GAP-ANALYSIS.md) registra o aceite de cada grupo. [openGym](https://github.com/alexpcosta/opengym) · [FitNotes](https://www.fitnotesapp.com/privacy/) · [Hevy Trainer](https://help.hevyapp.com/hc/en-us/articles/38385724273047-Hevy-Trainer-Explained-How-It-Builds-Your-Workout-Program)
+
+
+## Atualização de referência · upstream
+
+O upstream apresenta rotação de rotinas, inventário por academia, aquecimentos e leituras de equilíbrio, fadiga e força. A Forja adotou a geometria MIT de MuscleMap e implementou aquecimentos no treino e no Hevy, filtro por inventário local e vista do último treino no mapa. O mapa do período oferece séries e volume de carga. Rotação, múltiplos inventários e leituras de fadiga e força continuam em avaliação. Veja [integrações](INTEGRATIONS.md) para fontes e licenças.
+
+[openGym](https://opengym.ch/) · [Repositório upstream](https://github.com/DuarteSantos8/openGym)

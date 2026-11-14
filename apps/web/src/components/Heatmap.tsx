@@ -13,11 +13,10 @@ import { useT } from '../lib/i18n';
 const CELL = 14;        // tamanho da célula (px)
 const GAP = 3;          // espaçamento entre células (px)
 const WEEKS = 17;       // número de semanas exibidas
-const TOTAL_DAYS = WEEKS * 7;
 const MONTH_LABELS_Y = 14; // y dos labels de mês
 const GRID_TOP = 22;    // início da grade (abaixo dos labels de mês)
 
-const DAY_LABEL_X = -2; // x dos labels de dia da semana
+const DAY_LABEL_X = 16; // x dos labels de dia da semana
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -26,8 +25,8 @@ const DAY_LABEL_X = -2; // x dos labels de dia da semana
 /** Cor de fundo da célula baseada na intensidade (0 = sem treino). */
 function cellColor(count: number): string {
   if (count === 0) return 'var(--surface-2)';
-  if (count === 1) return 'rgba(255, 122, 26, 0.45)';
-  if (count === 2) return 'rgba(255, 122, 26, 0.70)';
+  if (count === 1) return 'color-mix(in srgb, var(--accent) 45%, var(--surface-2))';
+  if (count === 2) return 'color-mix(in srgb, var(--accent) 70%, var(--surface-2))';
   return 'var(--flame)';
 }
 
@@ -66,10 +65,8 @@ export function Heatmap({ dates }: HeatmapProps) {
     const today = toISO(new Date());
     // Recua até o domingo anterior a (hoje - TOTAL_DAYS)
     const startDate = (() => {
-      const d = fromISO(addDays(today, -(TOTAL_DAYS - 1)));
-      const wd = d.getDay(); // 0=domingo
-      d.setDate(d.getDate() - wd); // recua até domingo
-      return toISO(d);
+      const weekday = fromISO(today).getDay();
+      return addDays(today, -weekday - (WEEKS - 1) * 7);
     })();
 
     // Gera todas as células (cada uma tem col, row, iso, count)

@@ -1,0 +1,433 @@
+{
+  "agachamento-livre": {
+    "frames": [
+      615
+    ],
+    "author": "Workout Guru",
+    "license": 2,
+    "exercise": 1801
+  },
+  "barra-fixa": {
+    "frames": [
+      323
+    ],
+    "author": "Imobard",
+    "license": 2,
+    "exercise": 475
+  },
+  "cadeira-extensora": {
+    "frames": [
+      386
+    ],
+    "author": "Franpol",
+    "license": 2,
+    "exercise": 369
+  },
+  "cadeira-flexora": {
+    "frames": [
+      181,
+      182
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 366
+  },
+  "crucifixo-cabo": {
+    "frames": [
+      128,
+      127
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 323
+  },
+  "desenvolvimento-halter": {
+    "frames": [
+      173,
+      174
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 567
+  },
+  "ds-0025": {
+    "frames": [
+      68,
+      70
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 73
+  },
+  "ds-0030": {
+    "frames": [
+      15,
+      16
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 76
+  },
+  "ds-0031": {
+    "frames": [
+      27,
+      28
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 91
+  },
+  "ds-0032": {
+    "frames": [
+      "barbell-dead-lifts-1",
+      "barbell-dead-lifts-2"
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "source": [
+      "https://commons.wikimedia.org/wiki/File:Barbell_dead_lifts_1.svg",
+      "https://commons.wikimedia.org/wiki/File:Barbell_dead_lifts_2.svg"
+    ]
+  },
+  "ds-0033": {
+    "frames": [
+      115,
+      116
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 185
+  },
+  "ds-0042": {
+    "frames": [
+      149,
+      150
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 257
+  },
+  "ds-0043": {
+    "frames": [
+      615
+    ],
+    "author": "Workout Guru",
+    "license": 2,
+    "exercise": 1801
+  },
+  "ds-0047": {
+    "frames": [
+      129,
+      130
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 538
+  },
+  "ds-0070": {
+    "frames": [
+      93,
+      94
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 465
+  },
+  "ds-0091": {
+    "frames": [
+      171,
+      172
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 566
+  },
+  "ds-0095": {
+    "frames": [
+      43,
+      44
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 571
+  },
+  "ds-0118": {
+    "frames": [
+      91,
+      92
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 84
+  },
+  "ds-0289": {
+    "frames": [
+      113,
+      114
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 75
+  },
+  "ds-0292": {
+    "frames": [
+      410
+    ],
+    "author": "Franpol",
+    "license": 2,
+    "exercise": 81
+  },
+  "ds-0310": {
+    "frames": [
+      337
+    ],
+    "author": "philip",
+    "license": 2,
+    "exercise": 256
+  },
+  "ds-0313": {
+    "frames": [
+      47,
+      48
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 272
+  },
+  "ds-0314": {
+    "frames": [
+      105,
+      106
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 537
+  },
+  "ds-0334": {
+    "frames": [
+      178,
+      177
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 348
+  },
+  "ds-0405": {
+    "frames": [
+      173,
+      174
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 567
+  },
+  "ds-0406": {
+    "frames": [
+      40,
+      39
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 572
+  },
+  "ds-0585": {
+    "frames": [
+      386
+    ],
+    "author": "Franpol",
+    "license": 2,
+    "exercise": 369
+  },
+  "ds-0586": {
+    "frames": [
+      179,
+      180
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 365
+  },
+  "ds-0599": {
+    "frames": [
+      181,
+      182
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 366
+  },
+  "ds-0652": {
+    "frames": [
+      323
+    ],
+    "author": "Imobard",
+    "license": 2,
+    "exercise": 475
+  },
+  "ds-0662": {
+    "frames": [
+      "push-ups-1",
+      "push-ups-2"
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "source": [
+      "https://commons.wikimedia.org/wiki/File:Push-ups-1.png",
+      "https://commons.wikimedia.org/wiki/File:Push-ups-2.png"
+    ]
+  },
+  "ds-0861": {
+    "frames": [
+      144,
+      143
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 394
+  },
+  "ds-0868": {
+    "frames": [
+      19,
+      20
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 95
+  },
+  "ds-1373": {
+    "frames": [
+      437
+    ],
+    "author": "clafal",
+    "license": 2,
+    "exercise": 622
+  },
+  "ds-1459": {
+    "frames": [
+      590
+    ],
+    "author": "AlucardEvil40",
+    "license": 2,
+    "exercise": 1652
+  },
+  "ds-1760": {
+    "frames": [
+      328,
+      329
+    ],
+    "author": "philip",
+    "license": 2,
+    "exercise": 203
+  },
+  "elevacao-frontal": {
+    "frames": [
+      337
+    ],
+    "author": "philip",
+    "license": 2,
+    "exercise": 256
+  },
+  "elevacao-lateral": {
+    "frames": [
+      178,
+      177
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 348
+  },
+  "flexao": {
+    "frames": [
+      "push-ups-1",
+      "push-ups-2"
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "source": [
+      "https://commons.wikimedia.org/wiki/File:Push-ups-1.png",
+      "https://commons.wikimedia.org/wiki/File:Push-ups-2.png"
+    ]
+  },
+  "levantamento-terra": {
+    "frames": [
+      "barbell-dead-lifts-1",
+      "barbell-dead-lifts-2"
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "source": [
+      "https://commons.wikimedia.org/wiki/File:Barbell_dead_lifts_1.svg",
+      "https://commons.wikimedia.org/wiki/File:Barbell_dead_lifts_2.svg"
+    ]
+  },
+  "prancha": {
+    "frames": [
+      346
+    ],
+    "author": "utkb",
+    "license": 2,
+    "exercise": 458
+  },
+  "remada-halter": {
+    "frames": [
+      410
+    ],
+    "author": "Franpol",
+    "license": 2,
+    "exercise": 81
+  },
+  "rosca-cabos": {
+    "frames": [
+      19,
+      20
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 95
+  },
+  "rosca-direta-barra": {
+    "frames": [
+      27,
+      28
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 91
+  },
+  "rosca-martelo": {
+    "frames": [
+      47,
+      48
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 272
+  },
+  "supino-halter": {
+    "frames": [
+      113,
+      114
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 75
+  },
+  "supino-inclinado-barra": {
+    "frames": [
+      129,
+      130
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 538
+  },
+  "supino-reto-barra": {
+    "frames": [
+      68,
+      70
+    ],
+    "author": "Everkinetic",
+    "license": 1,
+    "exercise": 73
+  }
+}

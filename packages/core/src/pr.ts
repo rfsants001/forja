@@ -99,7 +99,7 @@ export function detectPRs(entry: WorkoutEntry, history: WorkoutLog[]): PR[] {
 
   // Verifica se há histórico anterior para este exercício
   const hasHistory = history.some((w) =>
-    w.entries.some((e) => e.exerciseId === exerciseId),
+    w.entries.some((entry) => entry.exerciseId === exerciseId && entry.sets.some((row) => row.done)),
   );
   if (!hasHistory) return [];
 

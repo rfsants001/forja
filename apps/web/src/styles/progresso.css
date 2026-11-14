@@ -458,3 +458,10 @@
 .prog-measure-del:hover {
   color: var(--danger, #e55);
 }
+
+.prog-period-btn { min-height: 42px; }
+.progress-summary .prog-stat { text-align: left; background: transparent; border: 0; border-left: 1px solid var(--border); padding: 8px 13px; }
+.progress-summary .prog-stat:first-child { border-left: 0; }
+.progress-summary .prog-stat-value { font: 700 clamp(26px, 4.8vw, 51px)/1 var(--font-heading); }
+.progress-summary .prog-stat-label { letter-spacing: 0.035em; }
+.prog-effort-curve-select:focus-visible { outline: 2px solid var(--focus); }

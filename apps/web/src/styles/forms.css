@@ -1,0 +1,143 @@
+/* Shared field appearance. Keep native keyboard, option and calendar behavior. */
+html .app :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden']), select, textarea) {
+  min-inline-size: 0;
+  min-block-size: var(--field-h);
+  max-inline-size: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: 500 14px/1.4 var(--font-body);
+  box-shadow: none;
+  appearance: none;
+}
+
+html .app :is(input, textarea)::placeholder { color: var(--text-muted); opacity: 1; }
+html .app :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-color: var(--focus);
+}
+html .app :is(input, select, textarea):disabled { opacity: 0.62; cursor: not-allowed; }
+html .app :is(input, select, textarea)[aria-invalid='true'] { border-color: var(--danger); }
+html .app :is(input, textarea):autofill {
+  box-shadow: 0 0 0 1000px var(--surface-2) inset;
+  -webkit-text-fill-color: var(--text);
+}
+html .app input[type='number'] { appearance: textfield; font-variant-numeric: tabular-nums; }
+html .app input[type='number']::-webkit-inner-spin-button,
+html .app input[type='number']::-webkit-outer-spin-button { appearance: none; margin: 0; }
+html .app input[type='date'] { display: block; inline-size: 100%; }
+html .app input[type='date']::-webkit-date-and-time-value { text-align: start; min-height: 1.4em; }
+html .app input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; padding: 3px; }
+
+html .app select:not([multiple]) {
+  padding-inline-end: 31px;
+  background-image:
+    linear-gradient(45deg, transparent 47%, currentColor 52%, currentColor 68%, transparent 73%),
+    linear-gradient(135deg, transparent 27%, currentColor 32%, currentColor 48%, transparent 53%);
+  background-size: 6px 6px;
+  background-position: right 15px center, right 9px center;
+  background-repeat: no-repeat;
+}
+html .app select:not(:disabled) { cursor: pointer; }
+html .app select option { background: var(--surface); color: var(--text); }
+html .app textarea { resize: vertical; min-block-size: 80px; }
+html .app input[type='checkbox'], html .app input[type='radio'] {
+  inline-size: 17px;
+  block-size: 17px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+
+html .app .search-bar {
+  min-height: var(--field-h);
+  border: 1px solid var(--control-border);
+  border-radius: var(--r-sm);
+  padding: 0 10px;
+}
+html .app .search-bar:focus-within {
+  border-color: var(--focus);
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+html .app .search-bar input[type] {
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 6px 0;
+  min-block-size: calc(var(--field-h) - 2px);
+}
+html .app .search-bar button { min-width: 28px; min-height: 28px; }
+
+.app :is(.field, .bw-field, .catalog-filter, .date-override > label) { display: grid; align-content: start; gap: 5px; }
+.app :is(.field > label, .field > legend, .bw-field > label, .catalog-filter, .date-override > label) {
+  color: var(--text-2);
+  font: 600 13px/1.4 var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.app :is(.field, .catalog-filter) { margin-bottom: 12px; }
+.app .field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 14px;
+}
+.app .field-grid > .full { grid-column: 1 / -1; }
+.app fieldset.field { min-width: 0; border: 0; }
+.app fieldset.field { display: block; }
+.app .field legend { margin-bottom: 6px; }
+.app .field-error { color: var(--danger); font-size: 12px; margin: 2px 0 8px; }
+.app .form-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.app .form-actions .btn { flex: 0 1 auto; }
+
+html .app :is(.tg-input, .tg-rir-input) {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+html .app .tg-input { font-size: 17px; font-weight: 650; }
+html .app .tg-rir-input { min-block-size: 30px; padding: 3px 6px; }
+
+@media (max-width: 480px) {
+  .app .field-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (pointer: coarse) {
+  html .app :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden']), select, textarea) { font-size: 16px; }
+}
+@media (forced-colors: active) {
+  html .app select:not([multiple]) { appearance: auto; background-image: none; padding-inline-end: 7px; }
+  html .app .search-bar:focus-within { outline-color: Highlight; }
+}
+
+.app .form-fields { min-width: 0; border: 0; }
+.app .form-fields > .field > :is(input, select, textarea) { inline-size: 100%; }
+dialog.sheet.form-dialog {
+  position: fixed;
+  inset: 0;
+  width: calc(100% - 32px);
+  max-width: 590px;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: clamp(15px, 3vw, 24px);
+  color: var(--text);
+}
+.form-dialog::backdrop { background: rgb(12 10 28 / 74%); }
+.form-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 15px; }
+.app .form-dialog-heading h2 { margin: 0; font: 700 24px/1.15 var(--font-heading); }
+.form-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.form-chips .chip { min-height: 30px; border-radius: var(--r-sm); }
+.form-chips .chip[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); background: var(--surface-3); }
+@media (pointer: coarse) {
+  .form-chips .chip { min-height: 36px; }
+}
+.date-override .field-grid > label { display: grid; align-content: start; gap: 5px; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.routine-save-error { margin: 0 0 14px; }
+.rex-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rex-controls label:has(> input) { display: grid; gap: 5px; }
+.ex-picker-content { display: grid; gap: 12px; }
+.ex-picker-content > .ex-list { max-height: min(52dvh, 420px); overflow-y: auto; padding: 3px; }
+.ex-picker-content h3 { font-size: 22px; }

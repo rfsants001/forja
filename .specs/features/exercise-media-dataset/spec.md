@@ -4,7 +4,9 @@ Atualizado em 13/11/2026.
 
 ## Estado
 
-O app carrega 36 seeds e 1.324 registros em JSON. Imagens/GIFs via CDN, crédito Gym visual e fallback. SVG de exercícios personalizados é isolado em uma imagem. Atualização do catálogo mantém notas.
+O app carrega 36 seeds e 1.324 registros de texto em JSON. A mídia local cobre 48 entradas por ID. O seletor de posições e os créditos aparecem no detalhe e na sessão. O catálogo tem filtro para exercícios com demonstração. SVG de exercícios personalizados é isolado em uma imagem. Atualização do catálogo mantém notas.
+
+As seções do plano original abaixo descrevem a integração histórica via CDN. A implementação vigente está no [SDD](../../codebase/ARCHITECTURE.md) e nas [integrações](../../codebase/INTEGRATIONS.md).
 
 ## Aceite
 

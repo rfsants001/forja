@@ -101,7 +101,7 @@
   padding: 10px 8px;
   text-align: center;
   width: 100%;
-  min-height: 44px;
+  min-height: var(--control-h);
   -moz-appearance: textfield;
   min-width: 0;
   transition: border-color 0.12s ease;
@@ -124,8 +124,8 @@
 
 /* Botão "feito" por série */
 .tg-done-btn {
-  min-height: 44px;
-  min-width: 44px;
+  min-height: var(--control-h);
+  min-width: var(--control-h);
   border-radius: var(--r-sm);
   background: var(--surface-2);
   border: 1px solid var(--control-border);
@@ -152,7 +152,7 @@
 }
 
 .tg-ex-nav .btn {
-  flex: 1;
+  flex: 0 1 auto;
   justify-content: center;
 }
 
@@ -203,7 +203,7 @@
   border: 1px solid var(--control-border);
   background: var(--surface-2);
   cursor: pointer;
-  min-height: 44px;
+  min-height: var(--control-h);
 }
 
 /* Tela de descanso/null (sem treino hoje) */
@@ -234,12 +234,12 @@
 .tg-footer {
   display: flex;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 12px;
   padding-bottom: 8px;
 }
 
 .tg-footer .btn {
-  flex: 1;
+  flex: 0 1 auto;
   justify-content: center;
 }
 
@@ -286,8 +286,8 @@
 
 /* ---- G3: botão play (iniciar série) ---- */
 .tg-work-btn {
-  min-height: 44px;
-  min-width: 44px;
+  min-height: var(--control-h);
+  min-width: var(--control-h);
   border-radius: var(--r-sm);
   background: color-mix(in srgb, var(--ok) 14%, var(--surface-2));
   border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent);

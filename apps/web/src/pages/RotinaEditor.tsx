@@ -1,5 +1,5 @@
 import '../styles/setup.css';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -108,25 +108,28 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
     });
   }, [exercises, query, muscleFilter]);
 
-  // Reset paginação ao mudar filtros
-  const prevFiltered = useMemo(() => filtered, [filtered]);
   useEffect(() => {
-    void prevFiltered; // referência estável para silenciar lint
     setVisibleCount(PICKER_PAGE_SIZE);
   }, [query, muscleFilter]);
 
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) {
+      dialog.showModal();
+      dialog.querySelector<HTMLInputElement>('input[type="search"]')?.focus();
+    }
+  }, []);
   const visible = filtered.slice(0, visibleCount);
   const hasMore = filtered.length > visibleCount;
 
   return (
-    <div
-      className="ex-picker-overlay"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="ex-picker">
+    <dialog ref={dialogRef} className="sheet form-dialog ex-picker-dialog"
+      aria-labelledby="exercise-picker-title" onClose={onClose}>
+      <div className="ex-picker-content">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3>Adicionar exercício</h3>
-          <button className="icon-btn" onClick={onClose} aria-label="Fechar">
+          <h3 id="exercise-picker-title">Adicionar exercício</h3>
+          <button className="icon-btn" type="button" onClick={() => dialogRef.current?.close()} aria-label="Fechar">
             <X size={16} />
           </button>
         </div>
@@ -135,14 +138,12 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
         <div className="search-bar">
           <Search size={15} color="var(--text-muted)" />
           <input
-            type="text"
-            placeholder="Buscar…"
+            type="search" aria-label="Buscar exercício para a rotina"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            autoFocus
           />
           {query.length > 0 && (
-            <button onClick={() => setQuery('')} style={{ color: 'var(--text-muted)', display: 'grid', placeItems: 'center' }}>
+            <button type="button" aria-label="Limpar busca" onClick={() => setQuery('')} style={{ color: 'var(--text-muted)', display: 'grid', placeItems: 'center' }}>
               <X size={13} />
             </button>
           )}
@@ -187,7 +188,7 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
               onKeyDown={(e) => { if (e.key === 'Enter') { onSelect(ex.id); onClose(); } }}
             >
               {/* G1: miniatura da demo */}
-              <Media demo={ex.demo} name={ex.name} size="sm" staticOnly />
+              <Media exerciseId={ex.id} demo={ex.demo} name={ex.name} size="sm" staticOnly />
               <div className="ex-info">
                 <div className="ex-name">{ex.name}</div>
                 <div className="ex-meta">
@@ -216,7 +217,7 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
           )}
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
 
@@ -263,10 +264,10 @@ function RexRow({
 
       <div className="rex-item-header">
         {/* G1: miniatura demo */}
-        <Media demo={demo} name={exName} size="sm" staticOnly />
+        <Media exerciseId={rex.exerciseId} demo={demo} name={exName} size="sm" staticOnly />
 
         {/* Checkbox de seleção para agrupar */}
-        <button
+        <button type="button"
           className={`rex-select-btn${selected ? ' active' : ''}`}
           onClick={() => onToggleSelect(rex._key)}
           aria-label={selected ? 'Desselecionar' : 'Selecionar para superset'}
@@ -292,21 +293,22 @@ function RexRow({
       <div className="rex-controls">
         {/* Sets — sempre */}
         <div className="field">
-          <label>Séries</label>
-          <input
-            type="number"
+          <label htmlFor={`rex-sets-${rex._key}`}>Séries</label>
+          <input id={`rex-sets-${rex._key}`}
+            type="number" inputMode="numeric"
             min={1}
             max={20}
-            value={rex.sets}
-            onChange={(e) => onChange(rex._key, { sets: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+            value={rex.sets || ''}
+            onChange={(event) => onChange(rex._key, { sets: event.target.valueAsNumber || 0 })}
+            required
           />
         </div>
 
         {/* G3: campos condicionais por modo */}
         {mode === 'reps' && (
           <div className="field">
-            <label>Reps-alvo</label>
-            <input
+            <label htmlFor={`rex-reps-${rex._key}`}>Repetições-alvo</label>
+            <input id={`rex-reps-${rex._key}`}
               type="text"
               placeholder="Ex.: 8–12"
               value={rex.targetReps ?? ''}
@@ -317,9 +319,9 @@ function RexRow({
 
         {mode === 'time' && (
           <div className="field">
-            <label>Tempo (seg)</label>
-            <input
-              type="number"
+            <label htmlFor={`rex-seconds-${rex._key}`}>Tempo (s)</label>
+            <input id={`rex-seconds-${rex._key}`}
+              type="number" inputMode="decimal"
               min={1}
               placeholder="Ex.: 60"
               value={rex.targetSec ?? ''}
@@ -335,9 +337,9 @@ function RexRow({
         {mode === 'cardio' && (
           <>
             <div className="field">
-              <label>Tempo (seg)</label>
-              <input
-                type="number"
+              <label htmlFor={`rex-seconds-${rex._key}`}>Tempo (s)</label>
+              <input id={`rex-seconds-${rex._key}`}
+                type="number" inputMode="decimal"
                 min={1}
                 placeholder="Opcional"
                 value={rex.targetSec ?? ''}
@@ -349,11 +351,11 @@ function RexRow({
               />
             </div>
             <div className="field">
-              <label>Distância (m)</label>
-              <input
-                type="number"
+              <label htmlFor={`rex-distance-${rex._key}`}>Distância (m)</label>
+              <input id={`rex-distance-${rex._key}`}
+                type="number" inputMode="decimal"
                 min={0}
-                step={100}
+                step="any"
                 placeholder="Ex.: 1000"
                 value={rex.targetDistanceM ?? ''}
                 onChange={(e) =>
@@ -364,11 +366,11 @@ function RexRow({
               />
             </div>
             <div className="field">
-              <label>Velocidade (km/h)</label>
-              <input
-                type="number"
+              <label htmlFor={`rex-speed-${rex._key}`}>Velocidade (km/h)</label>
+              <input id={`rex-speed-${rex._key}`}
+                type="number" inputMode="decimal"
                 min={0}
-                step={0.5}
+                step="any"
                 placeholder="Ex.: 10"
                 value={rex.targetSpeedKmh ?? ''}
                 onChange={(e) =>
@@ -383,9 +385,9 @@ function RexRow({
 
         {/* Descanso — sempre */}
         <div className="field">
-          <label>Descanso (seg)</label>
-          <input
-            type="number"
+          <label htmlFor={`rex-rest-${rex._key}`}>Descanso (s)</label>
+          <input id={`rex-rest-${rex._key}`}
+            type="number" inputMode="decimal"
             min={0}
             placeholder="Ex.: 90"
             value={rex.restSec ?? ''}
@@ -400,11 +402,11 @@ function RexRow({
         {/* Incremento — só para reps */}
         {mode === 'reps' && (
           <div className="field">
-            <label>Incremento (kg)</label>
-            <input
-              type="number"
+            <label htmlFor={`rex-increment-${rex._key}`}>Incremento (kg)</label>
+            <input id={`rex-increment-${rex._key}`}
+              type="number" inputMode="decimal"
               min={0}
-              step={0.5}
+              step="any"
               placeholder="Ex.: 2.5"
               value={rex.incrementKg ?? ''}
               onChange={(e) =>
@@ -418,8 +420,8 @@ function RexRow({
 
         {/* Progressão */}
         <div className="field full">
-          <label>Progressão</label>
-          <select
+          <label htmlFor={`rex-progression-${rex._key}`}>Progressão</label>
+          <select id={`rex-progression-${rex._key}`}
             value={rex.progression ?? 'off'}
             onChange={(e) =>
               onChange(rex._key, { progression: e.target.value as ProgressionPolicy })
@@ -435,11 +437,11 @@ function RexRow({
         {rex.progression === '531' && (
           <>
             <div className="field">
-              <label>Training max (kg)</label>
-              <input
-                type="number"
+              <label htmlFor={`rex-tm-${rex._key}`}>Máximo de treino (kg)</label>
+              <input id={`rex-tm-${rex._key}`}
+                type="number" inputMode="decimal"
                 min={1}
-                step={2.5}
+                step="any"
                 placeholder="Ex.: 100"
                 value={rex.trainingMaxKg ?? ''}
                 onChange={(e) =>
@@ -451,8 +453,8 @@ function RexRow({
             </div>
             <div className="field">
               <label>
-                Aumento do TM por ciclo (kg)
-                <input type="number" min={0} step="any" placeholder="2,5" value={rex.trainingMaxIncrementKg ?? ''}
+                Aumento por ciclo (kg)
+                <input type="number" inputMode="decimal" min={0} step="any" placeholder="2,5" value={rex.trainingMaxIncrementKg ?? ''}
                   onChange={(event) => onChange(rex._key, {
                     trainingMaxIncrementKg: event.target.value === '' ? undefined : Math.max(0, Number(event.target.value)),
                   })} />
@@ -466,7 +468,7 @@ function RexRow({
                 onClick={() => onDeriveTM(rex._key)}
                 title="Calcula o TM como 90% do seu melhor 1RM estimado no histórico"
               >
-                Derivar do 1RM
+                Calcular pelo histórico
               </button>
             </div>
           </>
@@ -476,7 +478,7 @@ function RexRow({
       {/* Ações da linha */}
       <div className="rex-actions">
         {hasGroup && (
-          <button
+          <button type="button"
             className="icon-btn"
             onClick={() => onUngroup(rex._key)}
             aria-label="Remover do superset"
@@ -485,7 +487,7 @@ function RexRow({
             <Unlink2 size={15} />
           </button>
         )}
-        <button
+        <button type="button"
           className="icon-btn"
           disabled={index === 0}
           onClick={() => onMoveUp(rex._key)}
@@ -493,7 +495,7 @@ function RexRow({
         >
           <ChevronUp size={15} />
         </button>
-        <button
+        <button type="button"
           className="icon-btn"
           disabled={index === total - 1}
           onClick={() => onMoveDown(rex._key)}
@@ -501,7 +503,7 @@ function RexRow({
         >
           <ChevronDown size={15} />
         </button>
-        <button
+        <button type="button"
           className="icon-btn danger"
           onClick={() => onRemove(rex._key)}
           aria-label="Remover exercício"
@@ -543,6 +545,7 @@ export function RotinaEditor() {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
 
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -726,8 +729,15 @@ export function RotinaEditor() {
 
   async function handleSave() {
     const trimmed = name.trim();
-    if (!canSave) return;
+    if (saving) return;
+    if (!canSave) {
+      setSaveError(!trimmed ? 'Digite o nome da rotina.' : !categoryId ? 'Escolha uma categoria.'
+        : rexList.length === 0 ? 'Adicione um exercício para salvar a rotina.'
+        : 'Confira as séries e preencha o máximo de treino dos exercícios em 5/3/1.');
+      return;
+    }
 
+    setSaveError('');
     setSaving(true);
     try {
       // Strip _key antes de persistir
@@ -739,8 +749,11 @@ export function RotinaEditor() {
         note: note.trim() || undefined,
         exercises: exs,
         order: 0,
-      });
+      }, { mustExist: !isNew });
       navigate('/treinos');
+    } catch (error) {
+      setSaveError(error instanceof Error && error.message === 'Esta rotina já foi excluída.'
+        ? error.message : 'Não foi possível salvar a rotina. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -748,15 +761,24 @@ export function RotinaEditor() {
 
   async function handleDelete() {
     if (isNew || id === undefined) return;
-    await deleteRoutine(id);
-    navigate('/treinos', { replace: true });
+    if (saving) return;
+    setSaving(true);
+    setSaveError('');
+    try {
+      await deleteRoutine(id);
+      navigate('/treinos', { replace: true });
+    } catch {
+      setSaveError('Não foi possível excluir a rotina. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
-  const validExercises = rexList.length > 0 && rexList.every((rex) => Number.isInteger(rex.sets) && rex.sets > 0
+  const validExercises = rexList.length > 0 && rexList.every((rex) => Number.isInteger(rex.sets) && rex.sets > 0 && rex.sets <= 20
     && exerciseMap.has(rex.exerciseId) && (rex.progression !== '531' || (rex.trainingMaxKg ?? 0) > 0));
   const canSave = name.trim().length > 0 && categoryId !== '' && validExercises;
   const canGroup = selectedKeys.size >= 2;
@@ -765,7 +787,7 @@ export function RotinaEditor() {
     <>
       {/* Topbar */}
       <div className="topbar">
-        <button
+        <button type="button"
           className="icon-btn"
           onClick={() => navigate('/treinos')}
           aria-label="Voltar"
@@ -774,26 +796,33 @@ export function RotinaEditor() {
           <ArrowLeft size={18} />
         </button>
         <div className="brand" style={{ flex: 1 }}>
-          <h1 style={{ fontSize: 20 }}>{isNew ? 'Nova rotina' : 'Editar rotina'}</h1>
+          <h1>{isNew ? 'Nova rotina' : 'Editar rotina'}</h1>
         </div>
         <button
           className="btn"
-          onClick={() => { void handleSave(); }}
-          disabled={saving || !canSave}
-          style={{ padding: '10px 16px', fontSize: 13 }}
+          type="submit"
+          form="routine-form"
+          disabled={saving}
         >
           <Save size={15} />
-          {saving ? 'Salvando…' : 'Salvar'}
+          {saving ? 'Salvando…' : 'Salvar rotina'}
         </button>
       </div>
 
+      {saveError && <p className="feedback error routine-save-error" role="alert">{saveError}</p>}
+      <form id="routine-form" className="routine-editor-layout" onSubmit={(event) => {
+        event.preventDefault();
+        void handleSave();
+      }}>
+        <div className="routine-editor-side">
       {/* Dados básicos */}
-      <div className="card" style={{ marginBottom: 20 }}>
+      <div className="card">
+        <h2 className="panel-title">Dados da rotina</h2>
         <div className="field" style={{ marginBottom: 14 }}>
-          <label>Nome da rotina *</label>
-          <input
+          <label htmlFor="routine-name">Nome da rotina</label>
+          <input id="routine-name"
             type="text"
-            placeholder="Ex.: Peito e Tríceps"
+            required
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoFocus={isNew}
@@ -801,8 +830,8 @@ export function RotinaEditor() {
         </div>
 
         <div className="field" style={{ marginBottom: 14 }}>
-          <label>Categoria *</label>
-          <select
+          <label htmlFor="routine-category">Categoria</label>
+          <select id="routine-category" required
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
           >
@@ -817,8 +846,8 @@ export function RotinaEditor() {
         </div>
 
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Nota (opcional)</label>
-          <textarea
+          <label htmlFor="routine-note">Nota (opcional)</label>
+          <textarea id="routine-note"
             placeholder="Observações sobre este treino…"
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -826,13 +855,23 @@ export function RotinaEditor() {
         </div>
       </div>
 
+      {/* G7: preview muscular da rotina */}
+      {hasAnyVolume && (
+        <div className="card muscle-preview-card">
+          <h2 className="panel-title">O que esta rotina treina</h2>
+          <MuscleMap volumeByMuscle={volumeByMuscle} preview />
+        </div>
+      )}
+
+        </div>
+        <section className="routine-editor-exercises" aria-label="Exercícios da rotina">
       {/* Exercícios */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div className="section-title" style={{ marginBottom: 0 }}>Exercícios</div>
 
         {/* G2: botão agrupar em superset */}
         {selectedKeys.size > 0 && (
-          <button
+          <button type="button"
             className={`btn${canGroup ? '' : ' ghost'}`}
             onClick={groupSelected}
             disabled={!canGroup}
@@ -884,7 +923,7 @@ export function RotinaEditor() {
         </div>
       )}
 
-      <button
+      <button type="button"
         className="btn ghost"
         onClick={() => setPickerOpen(true)}
         style={{ width: '100%', justifyContent: 'center', marginBottom: 24 }}
@@ -893,13 +932,8 @@ export function RotinaEditor() {
         Adicionar exercício
       </button>
 
-      {/* G7: preview muscular da rotina */}
-      {hasAnyVolume && (
-        <div className="card muscle-preview-card" style={{ marginBottom: 24 }}>
-          <div className="section-title" style={{ marginBottom: 12 }}>O que esta rotina treina</div>
-          <MuscleMap volumeByMuscle={volumeByMuscle} preview />
-        </div>
-      )}
+        </section>
+      </form>
 
       {/* Danger zone — só em edição */}
       {!isNew && (
@@ -919,7 +953,7 @@ export function RotinaEditor() {
               <button className="btn ghost" onClick={() => setConfirmDelete(false)}>
                 Cancelar
               </button>
-              <button className="btn danger" onClick={() => { void handleDelete(); }}>
+              <button className="btn danger" disabled={saving} onClick={() => { void handleDelete(); }}>
                 <Trash2 size={15} />
                 Confirmar exclusão
               </button>

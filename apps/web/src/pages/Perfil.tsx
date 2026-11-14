@@ -5,10 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  User, Trash2, CheckCircle2, TrendingUp, Download, Upload,
+  User, Trash2, CheckCircle2, Download, Upload,
   Database, ArrowDownToLine, Share2, Printer, FileInput,
 } from 'lucide-react';
-import { DEFAULT_SETTINGS } from '@forja/core';
+import { DEFAULT_SETTINGS, toISO } from '@forja/core';
 import type { Settings, BodyWeight } from '@forja/core';
 import { db } from '../db/db';
 import { updateSettings, addBodyWeight, deleteBodyWeight } from '../db/repo';
@@ -25,10 +25,6 @@ import { downloadPlan, importPlan, printPlan } from '../lib/plan-share';
 // Utilitários
 // ---------------------------------------------------------------------------
 
-function toISO(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
 function fmtDate(iso: string): string {
   // "2024-11-10" → "10/11/24"
   const parts = iso.split('-');
@@ -36,19 +32,6 @@ function fmtDate(iso: string): string {
   const m = parts[1] ?? '';
   const d = parts[2] ?? '';
   return `${d}/${m}/${y.slice(2)}`;
-}
-
-// ---------------------------------------------------------------------------
-// Hook de debounce para settings
-// ---------------------------------------------------------------------------
-
-function useDebounce<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = window.setTimeout(() => setDebounced(value), delayMs);
-    return () => window.clearTimeout(id);
-  }, [value, delayMs]);
-  return debounced;
 }
 
 // ---------------------------------------------------------------------------
@@ -251,16 +234,21 @@ function BodyWeightForm() {
   const [kg, setKg] = useState('');
   const [date, setDate] = useState(toISO(new Date()));
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<{ text: string; error?: boolean } | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = parseFloat(kg);
     if (isNaN(parsed) || parsed <= 0) return;
     setBusy(true);
+    setStatus(null);
     try {
       await addBodyWeight({ dateISO: date, kg: parsed });
       setKg('');
       setDate(toISO(new Date()));
+      setStatus({ text: 'Peso registrado.' });
+    } catch {
+      setStatus({ text: 'Não foi possível registrar o peso. Tente novamente.', error: true });
     } finally {
       setBusy(false);
     }
@@ -274,10 +262,10 @@ function BodyWeightForm() {
           id="bw-kg"
           className="bw-input"
           type="number"
-          step="0.1"
+          inputMode="decimal"
+          step="any"
           min="1"
           max="500"
-          placeholder="80.5"
           value={kg}
           onChange={(e) => setKg(e.target.value)}
           required
@@ -301,8 +289,9 @@ function BodyWeightForm() {
         disabled={busy}
         style={{ flexShrink: 0, alignSelf: 'flex-end' }}
       >
-        Registrar
+        {busy ? 'Registrando…' : 'Registrar peso'}
       </button>
+      {status && <p className={status.error ? 'field-error' : 'hint'} role={status.error ? 'alert' : 'status'}>{status.text}</p>}
     </form>
   );
 }
@@ -353,7 +342,7 @@ type SettingKey = 'unit' | 'defaultRestSec' | 'theme' | 'accent' | 'weekStartsOn
 
 /** Paletas de acento disponíveis */
 const ACCENT_PALETTES: { name: string; label: string; color: string }[] = [
-  { name: 'flame',   label: 'Chama',   color: '#ff7a1a' },
+  { name: 'flame',   label: 'Índigo',  color: '#6551dd' },
   { name: 'blue',    label: 'Azul',    color: '#3b8ff5' },
   { name: 'violet',  label: 'Violeta', color: '#9b5de5' },
   { name: 'green',   label: 'Verde',   color: '#22c55e' },
@@ -386,41 +375,31 @@ function SettingsSection({ settings }: { settings: Settings }) {
     }
   }, [settings.defaultRestSec, settings.bodyWeightGoalKg]);
 
-  // Debounce para campos numéricos
-  const debouncedRestSec = useDebounce(restSec, 600);
-  const debouncedGoalKg = useDebounce(goalKg, 600);
+  const [settingsError, setSettingsError] = useState('');
+  const [savingNumbers, setSavingNumbers] = useState(false);
+  const numbersChanged = restSec !== String(settings.defaultRestSec)
+    || goalKg !== String(settings.bodyWeightGoalKg ?? '');
 
-  // Referência para evitar gravar no mount
-  const mountedRef = useRef(false);
-
-  useEffect(() => {
-    if (!mountedRef.current) return;
-    const parsed = parseInt(debouncedRestSec, 10);
-    if (!isNaN(parsed) && parsed > 0 && parsed !== settings.defaultRestSec) {
-      void updateSettings({ defaultRestSec: parsed }).then(() => flashSaved('defaultRestSec'));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedRestSec]);
-
-  useEffect(() => {
-    if (!mountedRef.current) return;
-    if (debouncedGoalKg === '') {
-      if (settings.bodyWeightGoalKg !== undefined) {
-        // Remove a meta
-        void updateSettings({ bodyWeightGoalKg: undefined }).then(() => flashSaved('bodyWeightGoalKg'));
-      }
+  async function saveNumbers(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (savingNumbers) return;
+    setSettingsError('');
+    const rest = Number(restSec);
+    const goal = goalKg.trim() ? Number(goalKg) : undefined;
+    if (!Number.isInteger(rest) || rest < 0 || rest > 600 || (goal !== undefined && (goal < 1 || goal > 500 || !Number.isFinite(goal)))) {
+      setSettingsError('Informe um descanso entre 0 e 600 segundos e uma meta entre 1 e 500 kg.');
       return;
     }
-    const parsed = parseFloat(debouncedGoalKg);
-    if (!isNaN(parsed) && parsed > 0 && parsed !== settings.bodyWeightGoalKg) {
-      void updateSettings({ bodyWeightGoalKg: parsed }).then(() => flashSaved('bodyWeightGoalKg'));
+    setSavingNumbers(true);
+    try {
+      await updateSettings({ defaultRestSec: rest, bodyWeightGoalKg: goal });
+      flashSaved('defaultRestSec');
+    } catch {
+      setSettingsError('Não foi possível salvar as preferências. Tente novamente.');
+    } finally {
+      setSavingNumbers(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedGoalKg]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-  }, []);
+  }
 
   function flashSaved(key: SettingKey) {
     setSavedKey(key);
@@ -428,62 +407,20 @@ function SettingsSection({ settings }: { settings: Settings }) {
     saveTimer.current = window.setTimeout(() => setSavedKey(null), 2000);
   }
 
-  // Aplica o tema no documento
-  function applyTheme(theme: Settings['theme']) {
-    if (theme === 'system') {
-      delete document.documentElement.dataset['theme'];
-    } else {
-      document.documentElement.dataset['theme'] = theme;
+  async function saveSetting(patch: Partial<Settings>, key: SettingKey) {
+    setSettingsError('');
+    try {
+      await updateSettings(patch);
+      flashSaved(key);
+    } catch {
+      setSettingsError('Não foi possível salvar a preferência. Tente novamente.');
     }
-  }
-
-  // Aplica o acento no documento
-  function applyAccent(accent: string) {
-    document.documentElement.dataset['accent'] = accent;
-  }
-
-  // Aplica tema e acento no mount conforme settings salvas
-  useEffect(() => {
-    applyTheme(settings.theme);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.theme]);
-
-  useEffect(() => {
-    applyAccent(settings.accent ?? 'flame');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.accent]);
-
-  async function handleUnit(unit: Settings['unit']) {
-    await updateSettings({ unit });
-    flashSaved('unit');
-  }
-
-  async function handleTheme(theme: Settings['theme']) {
-    applyTheme(theme);
-    await updateSettings({ theme });
-    flashSaved('theme');
-  }
-
-  async function handleAccent(accent: string) {
-    applyAccent(accent);
-    await updateSettings({ accent });
-    flashSaved('accent');
-  }
-
-  async function handleWeekStartsOn(day: 0 | 1) {
-    await updateSettings({ weekStartsOn: day });
-    flashSaved('weekStartsOn');
-  }
-
-  async function handleTrackEffort(val: boolean) {
-    await updateSettings({ trackEffort: val });
-    flashSaved('trackEffort');
   }
 
   function SavedBadge({ k }: { k: SettingKey }) {
     if (savedKey !== k) return null;
     return (
-      <span className="save-badge">
+      <span className="save-badge" role="status">
         <CheckCircle2 size={12} />
         salvo
       </span>
@@ -500,37 +437,18 @@ function SettingsSection({ settings }: { settings: Settings }) {
         <SavedBadge k="unit" />
         <div className="toggle-group">
           <button
-            className={settings.unit === 'kg' ? 'active' : ''}
-            onClick={() => { void handleUnit('kg'); }}
+            className={settings.unit === 'kg' ? 'active' : ''} aria-pressed={settings.unit === 'kg'}
+            onClick={() => { void saveSetting({ unit: 'kg' }, 'unit'); }}
           >
             kg
           </button>
           <button
-            className={settings.unit === 'lb' ? 'active' : ''}
-            onClick={() => { void handleUnit('lb'); }}
+            className={settings.unit === 'lb' ? 'active' : ''} aria-pressed={settings.unit === 'lb'}
+            onClick={() => { void saveSetting({ unit: 'lb' }, 'unit'); }}
           >
             lb
           </button>
         </div>
-      </div>
-
-      {/* Descanso padrão */}
-      <div className="setting-row">
-        <div className="setting-label">
-          <span className="lbl">Descanso padrão</span>
-          <span className="sub">segundos entre séries</span>
-        </div>
-        <SavedBadge k="defaultRestSec" />
-        <input
-          className="setting-input"
-          type="number"
-          min="10"
-          max="600"
-          step="5"
-          value={restSec}
-          onChange={(e) => setRestSec(e.target.value)}
-          aria-label="Descanso padrão em segundos"
-        />
       </div>
 
       {/* Tema */}
@@ -542,7 +460,7 @@ function SettingsSection({ settings }: { settings: Settings }) {
         <select
           className="setting-select"
           value={settings.theme}
-          onChange={(e) => { void handleTheme(e.target.value as Settings['theme']); }}
+          onChange={(e) => { void saveSetting({ theme: e.target.value as Settings['theme'] }, 'theme'); }}
           aria-label="Tema do aplicativo"
         >
           <option value="dark">Escuro</option>
@@ -557,7 +475,7 @@ function SettingsSection({ settings }: { settings: Settings }) {
           <span className="lbl">Cor de acento</span>
           <SavedBadge k="accent" />
         </div>
-        <div className="accent-swatches" role="radiogroup" aria-label="Cor de acento">
+        <div className="accent-swatches" role="group" aria-label="Cor de acento">
           {ACCENT_PALETTES.map((p) => {
             const active = (settings.accent ?? 'flame') === p.name;
             return (
@@ -568,7 +486,7 @@ function SettingsSection({ settings }: { settings: Settings }) {
                 aria-label={p.label}
                 aria-pressed={active}
                 title={p.label}
-                onClick={() => { void handleAccent(p.name); }}
+                onClick={() => { void saveSetting({ accent: p.name }, 'accent'); }}
               />
             );
           })}
@@ -583,14 +501,14 @@ function SettingsSection({ settings }: { settings: Settings }) {
         <SavedBadge k="weekStartsOn" />
         <div className="toggle-group">
           <button
-            className={settings.weekStartsOn === 0 ? 'active' : ''}
-            onClick={() => { void handleWeekStartsOn(0); }}
+            className={settings.weekStartsOn === 0 ? 'active' : ''} aria-pressed={settings.weekStartsOn === 0}
+            onClick={() => { void saveSetting({ weekStartsOn: 0 }, 'weekStartsOn'); }}
           >
             Dom
           </button>
           <button
-            className={settings.weekStartsOn === 1 ? 'active' : ''}
-            onClick={() => { void handleWeekStartsOn(1); }}
+            className={settings.weekStartsOn === 1 ? 'active' : ''} aria-pressed={settings.weekStartsOn === 1}
+            onClick={() => { void saveSetting({ weekStartsOn: 1 }, 'weekStartsOn'); }}
           >
             Seg
           </button>
@@ -606,39 +524,42 @@ function SettingsSection({ settings }: { settings: Settings }) {
         <SavedBadge k="trackEffort" />
         <div className="toggle-group">
           <button
-            className={settings.trackEffort ? 'active' : ''}
-            onClick={() => { void handleTrackEffort(true); }}
+            className={settings.trackEffort ? 'active' : ''} aria-pressed={settings.trackEffort}
+            onClick={() => { void saveSetting({ trackEffort: true }, 'trackEffort'); }}
           >
             Ligado
           </button>
           <button
-            className={!settings.trackEffort ? 'active' : ''}
-            onClick={() => { void handleTrackEffort(false); }}
+            className={!settings.trackEffort ? 'active' : ''} aria-pressed={!settings.trackEffort}
+            onClick={() => { void saveSetting({ trackEffort: false }, 'trackEffort'); }}
           >
             Desligado
           </button>
         </div>
       </div>
 
-      {/* Meta de peso */}
-      <div className="setting-row">
-        <div className="setting-label">
-          <span className="lbl">Meta de peso</span>
-          <span className="sub">kg (opcional)</span>
+      <form className="profile-preferences" onSubmit={(event) => void saveNumbers(event)}>
+        <div className="field-grid">
+          <div className="field">
+            <label htmlFor="profile-rest">Descanso entre séries</label>
+            <input id="profile-rest" type="number" inputMode="numeric" min={0} max={600} step={1}
+              value={restSec} onChange={(event) => setRestSec(event.target.value)}
+              aria-label="Descanso padrão em segundos" aria-describedby="profile-rest-help" required />
+            <span className="hint" id="profile-rest-help">Em segundos. Use 0 para pular.</span>
+          </div>
+          <div className="field">
+            <label htmlFor="profile-goal">Meta de peso (kg)</label>
+            <input id="profile-goal" type="number" inputMode="decimal" min={1} max={500} step="any"
+              value={goalKg} onChange={(event) => setGoalKg(event.target.value)} aria-label="Meta de peso corporal em kg" />
+            <span className="hint">Deixe em branco para remover a meta.</span>
+          </div>
         </div>
-        <SavedBadge k="bodyWeightGoalKg" />
-        <input
-          className="setting-input"
-          type="number"
-          min="1"
-          max="500"
-          step="0.5"
-          placeholder="—"
-          value={goalKg}
-          onChange={(e) => setGoalKg(e.target.value)}
-          aria-label="Meta de peso corporal em kg"
-        />
-      </div>
+        <div className="form-actions">
+          <SavedBadge k="defaultRestSec" />
+          <button className="btn" type="submit" disabled={!numbersChanged || savingNumbers}>{savingNumbers ? 'Salvando…' : 'Salvar preferências'}</button>
+        </div>
+      </form>
+      {settingsError && <p className="field-error" role="alert">{settingsError}</p>}
     </div>
   );
 }
@@ -1170,65 +1091,39 @@ export function Perfil() {
             <User size={20} strokeWidth={2.4} />
           </span>
           <h1>
-            Per<em>fil</em>
+            Perfil
           </h1>
         </div>
       </div>
 
-      {/* Seção 1 — Configurações */}
-      <div className="section-title perfil-section">Configurações</div>
-      {rawSettings !== undefined ? (
-        <SettingsSection settings={settings} />
-      ) : (
-        // Loading — usa defaults enquanto o Dexie responde
-        <SettingsSection settings={{ ...DEFAULT_SETTINGS }} />
-      )}
-
-      {/* Seção 2 — Peso corporal */}
-      <div className="section-title perfil-section">
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <TrendingUp size={15} style={{ opacity: 0.7 }} />
-          Peso corporal
-        </span>
+      <div className="profile-layout">
+        <section aria-labelledby="profile-settings">
+          <h2 className="section-title" id="profile-settings">Configurações</h2>
+          {rawSettings === undefined ? <p role="status" className="hint">Carregando preferências…</p> : <SettingsSection settings={settings} />}
+        </section>
+        <div className="profile-data">
+          <section aria-labelledby="profile-weight">
+            <h2 className="section-title" id="profile-weight">Peso corporal</h2>
+            <div className="card">
+              <WeightChart points={entries} goalKg={settings.bodyWeightGoalKg} />
+              <BodyWeightForm />
+              <BodyWeightList entries={entriesDesc} />
+            </div>
+          </section>
+          <section aria-labelledby="profile-backup">
+            <h2 className="section-title" id="profile-backup">Seus dados</h2>
+            <SeusDadosSection />
+          </section>
+          <section aria-labelledby="importar-historico">
+            <h2 className="section-title" id="importar-historico" tabIndex={-1}>Importar de outro app</h2>
+            <ImportarAppSection />
+          </section>
+          <section aria-labelledby="profile-plan">
+            <h2 className="section-title" id="profile-plan">Compartilhar plano</h2>
+            <CompartilharPlanoSection />
+          </section>
+        </div>
       </div>
-      <div className="card">
-        <BodyWeightForm />
-        <BodyWeightList entries={entriesDesc} />
-      </div>
-
-      {/* Seção 3 — Gráfico */}
-      <div className="section-title">Evolução do peso</div>
-      <div className="card">
-        <WeightChart
-          points={entries}
-          goalKg={settings.bodyWeightGoalKg}
-        />
-      </div>
-
-      {/* Seção 4 — Seus dados */}
-      <div className="section-title perfil-section">Seus dados</div>
-      <SeusDadosSection />
-
-      <h2 className="section-title perfil-section" id="importar-historico" tabIndex={-1}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <FileInput size={15} style={{ opacity: 0.7 }} />
-          Importar de outro app
-        </span>
-      </h2>
-      <ImportarAppSection />
-
-      {/* Seção 6 — Compartilhar plano (G6) */}
-      <div className="section-title perfil-section">
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Share2 size={15} style={{ opacity: 0.7 }} />
-          Compartilhar plano
-        </span>
-      </div>
-      <CompartilharPlanoSection />
-
-      <p className="hint" style={{ textAlign: 'center', marginTop: 24 }}>
-        Login por passkey e sync entre dispositivos chegam na Fase 6.
-      </p>
     </>
   );
 }

@@ -38,6 +38,7 @@ export interface ActiveExercise {
    * O store muta os campos via logSet/toggleSetDone.
    */
   sets: SetLog[];
+  warmupSets?: SetLog[];
 }
 
 /** Estado do timer de descanso. */
@@ -89,6 +90,10 @@ interface SessionState {
    */
   toggleSetDone: (exIndex: number, setIndex: number) => void;
 
+  addWarmup: (exIndex: number) => void;
+  logWarmup: (exIndex: number, setIndex: number, patch: Partial<SetLog>) => void;
+  removeWarmup: (exIndex: number, setIndex: number) => void;
+
   /** Move o cursor para o exercício de índice i. */
   goToExercise: (i: number) => void;
 
@@ -115,6 +120,17 @@ interface SessionState {
    * @returns Promise<WorkoutLog> — o log gravado.
    */
   finish: (prs?: PR[]) => Promise<WorkoutLog>;
+}
+
+function updateWarmups(
+  state: SessionState, exIndex: number, change: (sets: SetLog[]) => SetLog[],
+): Partial<SessionState> {
+  const { active, saving } = state;
+  if (!active || saving) return state;
+  const exercises = active.exercises.map((exercise, index) => index === exIndex
+    ? { ...exercise, warmupSets: change(exercise.warmupSets ?? []) }
+    : exercise);
+  return { active: { ...active, exercises } };
 }
 
 export const useSessionStore = create<SessionState>()(
@@ -167,6 +183,20 @@ export const useSessionStore = create<SessionState>()(
         });
       },
 
+      addWarmup(exIndex) {
+        set((state) => updateWarmups(state, exIndex, (sets) => [...sets, { done: false }]));
+      },
+
+      logWarmup(exIndex, setIndex, patch) {
+        set((state) => updateWarmups(state, exIndex, (sets) =>
+          sets.map((row, index) => index === setIndex ? { ...row, ...patch } : row)));
+      },
+
+      removeWarmup(exIndex, setIndex) {
+        set((state) => updateWarmups(state, exIndex, (sets) =>
+          sets.filter((_, index) => index !== setIndex)));
+      },
+
       goToExercise(i) {
         set((state) => {
           if (state.active === null || state.saving) return state;
@@ -216,12 +246,19 @@ export const useSessionStore = create<SessionState>()(
           throw new Error('Nenhuma sessão ativa para finalizar.');
         }
 
-        // Monta as entries do WorkoutLog a partir dos exercícios ativos
-        const entries: WorkoutEntry[] = active.exercises.map((ex) => ({
-          exerciseId: ex.exerciseId,
-          sets: ex.sets,
-          target: ex.target,
-        }));
+        if (!active.exercises.some((exercise) => exercise.sets.some((row) => row.done))) {
+          throw new Error('Registre pelo menos uma série de trabalho.');
+        }
+
+        const entries: WorkoutEntry[] = active.exercises.map((exercise) => {
+          const warmupSets = exercise.warmupSets?.filter((row) => row.done);
+          return {
+            exerciseId: exercise.exerciseId,
+            sets: exercise.sets,
+            target: exercise.target,
+            ...(warmupSets?.length ? { warmupSets } : {}),
+          };
+        });
 
         const durationSec = Math.round((Date.now() - active.startedAt) / 1000);
 
@@ -229,6 +266,7 @@ export const useSessionStore = create<SessionState>()(
           id: active.id,
           dateISO: active.dateISO,
           routineId: active.routineId,
+          routineName: active.routineName,
           categoryId: active.categoryId,
           entries,
           durationSec,

@@ -1,113 +1,115 @@
 <p align="center">
-  <img src="apps/web/public/logo.svg" alt="Forja" width="440" />
+  <img src="apps/web/public/logo.svg" width="210" alt="Forja" />
 </p>
 
-# Forja
+<h1 align="center">Seu próximo treino começa aqui.</h1>
 
-**Forja is a local-first strength training log.** Build a routine, follow it set by set, and see what to try next and why. The guided workout fills in targets from your training history and the progression rule you picked. Your records stay in the browser, and you can export them to move to another device.
+<p align="center">
+  Planeje a semana, registre cada série e saiba o que tentar na próxima sessão.
+  <br />
+  Um diário de treino de força instalável, com seus dados no próprio dispositivo.
+</p>
 
-Forja is built for people who plan their own strength or calisthenics training, at home or in a gym. It runs as a web app and can be installed as a PWA from a supported browser. The current interface is in Brazilian Portuguese, with English translation in progress.
+<p align="center">
+  <a href="#telas">Ver o app</a> · <a href="#rodar-localmente">Rodar localmente</a> ·
+  <a href="#instalar-como-app">Instalar como app</a> · <a href="#seus-dados">Fazer backup</a>
+</p>
 
-[See the app](#screenshots) · [Clone and run](#clone-and-run) · [Install as a PWA](#install-as-a-pwa) · [Back up your data](#backups-and-moving-devices)
+<a name="screenshots"></a>
 
-## Screenshots
+## Telas
 
-Screenshots from the app with demo workouts and measurements.
+[![Forja no desktop. Caderno de treino com a sessão de hoje, agenda semanal e últimos treinos.](assets/screenshots/hoje-desktop.webp)](assets/screenshots/hoje-desktop.webp)
 
 <table>
   <tr>
-    <th scope="col">Today</th>
-    <th scope="col">Guided workout</th>
+    <th scope="col">Hoje no celular</th>
+    <th scope="col">Treino guiado no celular</th>
   </tr>
   <tr>
-    <td><img src="assets/screenshots/hoje.png" width="290" alt="Today screen with the planned Força em casa routine and weekly activity"></td>
-    <td><img src="assets/screenshots/treino-guiado.png" width="290" alt="Guided workout showing a dumbbell lunge, prescribed reps and load, and the set log"></td>
-  </tr>
-  <tr>
-    <th scope="col">History</th>
-    <th scope="col">Progress</th>
-  </tr>
-  <tr>
-    <td><img src="assets/screenshots/historico.png" width="290" alt="Workout history comparing completed sets with their original targets"></td>
-    <td><img src="assets/screenshots/progresso.png" width="290" alt="Progress screen showing an activity heatmap, training volume and muscle map"></td>
+    <td><a href="assets/screenshots/hoje.webp"><img src="assets/screenshots/hoje.webp" width="240" alt="Tela Hoje em tema claro, com atalho para continuar o treino e agenda da semana"></a></td>
+    <td><a href="assets/screenshots/treino-mobile.webp"><img src="assets/screenshots/treino-mobile.webp" width="240" alt="Registro de aquecimento, repetições e carga no treino guiado"></a></td>
   </tr>
 </table>
 
-## Your first two workouts
+<details>
+  <summary><strong>Ver mais telas do desktop</strong></summary>
+  <br />
+  <table>
+    <tr><th scope="col">Histórico</th><th scope="col">Progresso</th></tr>
+    <tr>
+      <td><a href="assets/screenshots/historico.webp"><img src="assets/screenshots/historico.webp" width="480" alt="Histórico com busca, filtro por rotina e séries realizadas"></a></td>
+      <td><a href="assets/screenshots/progresso.webp"><img src="assets/screenshots/progresso.webp" width="480" alt="Painel de progresso com atividade, volume e mapa muscular"></a></td>
+    </tr>
+    <tr><th scope="col">Atlas de exercícios</th><th scope="col">Treino guiado</th></tr>
+    <tr>
+      <td><a href="assets/screenshots/atlas.webp"><img src="assets/screenshots/atlas.webp" width="480" alt="Demonstração de supino com os músculos principais e auxiliares destacados"></a></td>
+      <td><a href="assets/screenshots/treino-guiado.webp"><img src="assets/screenshots/treino-guiado.webp" width="480" alt="Treino guiado com séries, roteiro da sessão e demonstração"></a></td>
+    </tr>
+  </table>
+</details>
 
-1. **Set up a routine.** On **Hoje**, choose **Começar com um plano**, **Criar rotina**, or **Importar histórico**. The ready-made plans include home strength, full body, upper/lower, and 5×5. **Força em casa · 3×** uses adjustable dumbbells, a pull-up bar and bodyweight exercises.
-2. **Schedule it.** In **Treinos**, assign routines to weekdays. Use **Mudar só um dia** to change a single date, or **Treinar agora** to start a routine on demand.
-3. **Log what you did.** The guided screen shows the target and its rationale. Enter your actual reps, load, time or cardio metrics, then mark the set complete. It supports supersets, work and rest timers, and optional RIR. You can reload and continue an in-progress workout in the same browser.
-4. **Review and return.** In **Histórico**, compare actual sets with their targets and correct recording mistakes with **Corrigir séries**. The next session uses the updated history. **Progresso** shows your activity, muscle coverage, estimated 1RM, effort, and body measurements.
+<sub>Capturas da aplicação com dados de demonstração.</sub>
 
-### How progression works
+## Do primeiro treino ao próximo
 
-The routine editor lets you pick a rule per exercise. Forja saves the target that was in effect for each workout alongside the actual sets. That keeps older sessions readable after you change the routine.
-
-| Rule | How it sets the next target |
+| Etapa | O que você faz na Forja |
 | --- | --- |
-| Manual | Uses the last recorded load as a starting point. |
-| Linear | Increases the load after a successful session and can reduce it after repeated misses. |
-| Greyskull LP | Uses the last set's reps to decide the increase and can reduce the load after a miss. |
-| Double progression | Builds reps through a range before increasing the load. |
-| Time | Adjusts the duration target for timed exercises. |
-| 5/3/1 | Prescribes individual sets from a training max and advances the cycle as you meet the targets. |
+| **Planejar** | Comece com um plano de força em casa, corpo inteiro, superior/inferior ou 5×5. Crie suas rotinas, distribua na semana e ajuste uma data quando precisar. |
+| **Treinar** | Siga o roteiro e registre repetições, carga, tempo ou distância. Use cronômetros, superséries e aquecimentos. A sessão em andamento pode ser retomada no mesmo navegador. |
+| **Evoluir** | Veja a próxima meta e o motivo. Compare o realizado com o planejado, corrija registros e acompanhe volume, recordes, esforço e medidas corporais. |
+| **Encontrar exercícios** | Filtre pelo equipamento que você tem ou pelos músculos envolvidos. Consulte o atlas e as demonstrações disponíveis offline. |
 
-If you log reps below the prescribed load, that set does not count as meeting the target. Imported sets with no original prescription can provide a starting reference.
+Em **Treinos → Minhas rotinas**, o botão **Excluir plano** remove o conjunto criado a partir de um plano pronto. Use a lixeira de uma rotina para removê-la individualmente. Os agendamentos associados são retirados e as sessões já registradas continuam no Histórico.
 
-## Clone and run
+<details>
+  <summary><strong>Como funcionam as regras de progressão</strong></summary>
 
-Use **Git**, **Node.js 24**, and **pnpm 12.16.1** to reproduce the verified setup. If you need pnpm, install it with `npm install --global pnpm@12.16.1`.
+| Regra | Como a Forja calcula o próximo alvo |
+| --- | --- |
+| Manual | Usa o último registro como referência. |
+| Linear | Sobe a carga após atingir o alvo e pode reduzi-la depois de falhas repetidas. |
+| Greyskull LP | Usa as repetições da última série para decidir o incremento. |
+| Dupla | Aumenta as repetições dentro da faixa antes de subir a carga. |
+| Tempo | Ajusta a meta de duração dos exercícios cronometrados. |
+| 5/3/1 | Prescreve séries por percentual e avança o máximo de treino ao concluir o ciclo. |
 
-```bash
+Aquecimentos ficam no Histórico, fora do cálculo de metas, volume e recordes. Cada sessão guarda o alvo que valia na hora do treino.
+
+</details>
+
+## Rodar localmente
+
+Você precisa de **Git**, **Node.js 24** e **pnpm 12.16.1**. Se precisar instalar o pnpm, rode `npm install --global pnpm@12.16.1`.
+
+```sh
 git clone https://github.com/rfsants001/forja.git
 cd forja
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open [http://localhost:5577](http://localhost:5577/). If that port is busy, use the URL Vite prints. The first launch initializes a fresh local catalog and settings. No account, database server, or environment variables are required.
+Abra **http://localhost:5577**. Em **Hoje**, selecione **Começar com um plano** para preparar o primeiro treino.
 
-### Install as a PWA
+## Instalar como app
 
-Build and preview the production version to try installation and offline use:
+Para testar instalação e modo offline, use o build de produção.
 
-```bash
+```sh
 pnpm build
 pnpm --filter @forja/web preview --host 127.0.0.1 --port 4173 --strictPort
 ```
 
-1. Open [http://127.0.0.1:4173](http://127.0.0.1:4173/) and let the first load finish online.
-2. In a supported browser, choose **Install app** or **Add to Home Screen**.
-3. Open the app again and try navigating or logging a workout offline. The catalog and training screens are cached. Third-party photos and GIFs can be unavailable without a connection.
+Abra **http://127.0.0.1:4173** e aguarde o carregamento inicial. No navegador compatível, use **Instalar aplicativo** ou **Adicionar à Tela de Início**. Em outro dispositivo, sirva o build por HTTPS para habilitar a PWA.
 
-To host it for another device, serve the contents of `apps/web/dist/` at an HTTPS origin. Configure your static host to serve `index.html` for app routes such as `/treinos` and `/historico`. The browser treats the dev URL, preview URL and deployed URL as separate storage origins.
+## Seus dados
 
-## Backups and moving devices
+Os registros ficam no IndexedDB do navegador. Em **Perfil → Seus dados**, exporte um backup JSON para guardar ou transferir seus treinos. Na restauração, revise a prévia e escolha mesclar os registros ou substituir os dados locais.
 
-In **Perfil → Seus dados**, choose **Exportar backup** and save the JSON outside the browser. This file includes workouts, routines, exercise records, weight, preferences, and body measurements. To restore, open the Forja instance on the destination and select **Importar backup**.
+Você também pode importar CSVs de **FitNotes**, **Strong** e **Hevy**, importar peso de um XML do **Apple Health** ou compartilhar só o plano semanal em JSON ou PDF.
 
-- **Mesclar dados** adds records and updates matching IDs.
-- **Substituir dados** replaces the local records covered by the backup after confirmation.
-- **Cancelar** closes the restore flow without writing data.
+## Desenvolvimento e créditos
 
-Backup v2 includes body measurements. When you restore a v1 file, measurements already on the destination stay there. Forja stores the active workout draft separately from the completed workout log. Finish the session before exporting it.
+O domínio TypeScript vive em `packages/core`. A PWA React/Vite vive em `apps/web`. Rode `pnpm test`, `pnpm typecheck` e `pnpm build` antes de enviar uma alteração.
 
-Use **Perfil → Compartilhar plano** to send a plan as JSON or print it to PDF without including your workout history or weight. Use **Importar de outro app** for FitNotes, Strong, and Hevy CSV files, or for body weight from an Apple Health XML export.
-
-## Development
-
-| Command | What it does |
-| --- | --- |
-| `pnpm dev` | Runs the web app in development. |
-| `pnpm test` | Runs the domain tests. |
-| `pnpm typecheck` | Checks both workspaces. |
-| `pnpm build` | Builds the domain and the production PWA. |
-
-`packages/core` contains the TypeScript rules for progression, scheduling, history, PRs and plate calculations. `apps/web` is the React and Vite client. Dexie stores records in IndexedDB, Zustand persists the active session, and a service worker caches the app for offline use.
-
-[Product requirements](.specs/project/PRD.md) · [Architecture](.specs/codebase/ARCHITECTURE.md) · [Roadmap](.specs/project/ROADMAP.md) · [Current state](.specs/project/STATE.md)
-
-## Credits and licensing
-
-Forja is a TypeScript reimplementation inspired by [openGym](https://github.com/alexpcosta/opengym). Exercise metadata and instructions come from [hasaneyldrm/exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset). The exercise photos and GIFs have separate terms from Gym visual. Forja's source license is still to be decided. See the [integration notes](.specs/codebase/INTEGRATIONS.md) for the pinned dataset license and media terms.
+Forja é inspirada no [openGym](https://github.com/DuarteSantos8/openGym). A anatomia vem do [MuscleMap](https://github.com/melihcolpan/MuscleMap) sob MIT. As demonstrações usam imagens do wger e do Wikimedia Commons com [crédito e licença por arquivo](apps/web/public/exercise-media/CREDITS.md). A [documentação de integrações](.specs/codebase/INTEGRATIONS.md) registra as fontes e o status da licença do projeto.

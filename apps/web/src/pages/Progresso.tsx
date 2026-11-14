@@ -14,6 +14,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { TrendingUp, Dumbbell, User, Users, Zap, Ruler, Trash2 } from 'lucide-react';
+import { compareWorkouts, toISO } from '@forja/core';
 import type { BodyMeasurement, Exercise, MuscleGroup, WorkoutLog } from '@forja/core';
 import { db } from '../db/db';
 import * as repo from '../db/repo';
@@ -24,7 +25,7 @@ import {
   computePRs,
   computeVolumeByMuscle,
   workoutDates,
-  trainedMuscles,
+  completedSetsByMuscle,
   effortByWeek,
   effortSpread,
   topSetEffortCurve,
@@ -675,7 +676,7 @@ interface MeasureFormState {
 }
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toISO(new Date());
 }
 
 function emptyMeasureForm(): MeasureFormState {
@@ -699,6 +700,8 @@ function MeasurementsSection() {
   const [form, setForm] = useState<MeasureFormState>(emptyMeasureForm);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [measureError, setMeasureError] = useState('');
+  const [measureStatus, setMeasureStatus] = useState('');
   const [chartField, setChartField] = useState<keyof BodyMeasurement>('waistCm');
 
   // Campos com ao menos um dado (para o seletor do gráfico)
@@ -709,7 +712,12 @@ function MeasurementsSection() {
 
   async function handleSave() {
     const dateISO = form.dateISO.trim();
-    if (!dateISO) return;
+    if (!dateISO || saving) return;
+    if (!MEASURE_FIELDS.some(({ key }) => parseCm(form[key]) !== undefined)) {
+      setMeasureError('Informe pelo menos uma medida maior que zero.');
+      return;
+    }
+    setMeasureError('');
     setSaving(true);
     try {
       const m: BodyMeasurement = {
@@ -728,6 +736,9 @@ function MeasurementsSection() {
       await repo.addMeasurement(m);
       setForm(emptyMeasureForm());
       setFormOpen(false);
+      setMeasureStatus('Medidas registradas.');
+    } catch {
+      setMeasureError('Não foi possível registrar as medidas. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -750,19 +761,27 @@ function MeasurementsSection() {
         <button
           className="btn"
           style={{ padding: '6px 12px', fontSize: 12 }}
-          onClick={() => setFormOpen((o) => !o)}
+          type="button" aria-expanded={formOpen}
+          onClick={() => {
+            setMeasureError('');
+            setMeasureStatus('');
+            setFormOpen((open) => !open);
+          }}
         >
-          {formOpen ? 'Cancelar' : '+ Registrar'}
+          {formOpen ? 'Fechar formulário' : 'Registrar medidas'}
         </button>
       </div>
 
       {/* Formulário de entrada */}
       {formOpen && (
-        <div className="prog-measure-form">
+        <form className="prog-measure-form" onSubmit={(event) => {
+          event.preventDefault();
+          void handleSave();
+        }}>
           <div className="field" style={{ marginBottom: 8 }}>
-            <label>Data</label>
+            <label htmlFor="measure-date">Data</label>
             <input
-              type="date"
+              id="measure-date" type="date" max={todayISO()} required
               value={form.dateISO}
               onChange={(e) => setForm((f) => ({ ...f, dateISO: e.target.value }))}
             />
@@ -770,12 +789,12 @@ function MeasurementsSection() {
           <div className="prog-measure-grid">
             {MEASURE_FIELDS.map(({ key, label }) => (
               <div key={key} className="field" style={{ marginBottom: 6 }}>
-                <label style={{ fontSize: 11 }}>{label} (cm)</label>
+                <label htmlFor={`measure-${key}`}>{label} (cm)</label>
                 <input
-                  type="number"
+                  id={`measure-${key}`} type="number"
                   inputMode="decimal"
-                  min={0}
-                  step={0.1}
+                  min={0.1}
+                  step="any"
                   placeholder="—"
                   value={(form as unknown as Record<string, string>)[key] ?? ''}
                   onChange={(e) =>
@@ -786,25 +805,27 @@ function MeasurementsSection() {
             ))}
           </div>
           <div className="field" style={{ marginBottom: 8 }}>
-            <label>Nota (opcional)</label>
+            <label htmlFor="measure-note">Nota (opcional)</label>
             <textarea
-              placeholder="Observações…"
+              id="measure-note"
               value={form.note}
               onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
               rows={2}
             />
           </div>
-          <div className="btn-row">
+          {measureError && <p className="field-error" role="alert">{measureError}</p>}
+          <div className="form-actions">
             <button
               className="btn"
-              onClick={() => { void handleSave(); }}
+              type="submit"
               disabled={saving || form.dateISO.trim().length === 0}
             >
-              {saving ? 'Salvando…' : 'Salvar'}
+              {saving ? 'Salvando…' : 'Salvar medidas'}
             </button>
           </div>
-        </div>
+        </form>
       )}
+      {measureStatus && <p className="hint" role="status">{measureStatus}</p>}
 
       {/* Gráfico com seletor de campo */}
       {fieldsWithData.length > 0 && (
@@ -869,6 +890,7 @@ function MeasurementsSection() {
 export function Progresso() {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>(loadPeriod);
+  const [muscleMetric, setMuscleMetric] = useState<'sets' | 'volume' | 'latest'>('sets');
 
   // ---- dados reativos ----
   const workouts = useLiveQuery(() => db.workouts.toArray(), []);
@@ -901,21 +923,18 @@ export function Progresso() {
     [workouts],
   );
 
-  const musclesWithSets = useMemo(() => trainedMuscles(workouts ?? [], exerciseMap, period), [workouts, exerciseMap, period]);
-
-  const volumeByMuscleMap = useMemo(
+  const muscleSets = useMemo(() => completedSetsByMuscle(workouts ?? [], exerciseMap, period), [workouts, exerciseMap, period]);
+  const musclesWithSets = useMemo(() => new Set(muscleSets.keys()), [muscleSets]);
+  const volumeByMuscle = useMemo(
     () => computeVolumeByMuscle(workouts ?? [], exerciseMap, period),
     [workouts, exerciseMap, period],
   );
-
-  // Converte Map→Partial<Record> para o MuscleMap atualizado
-  const volumeByMuscle = useMemo(() => {
-    const rec: Partial<Record<MuscleGroup, number>> = {};
-    for (const [k, v] of volumeByMuscleMap) {
-      rec[k] = v;
-    }
-    return rec;
-  }, [volumeByMuscleMap]);
+  const latestWorkout = useMemo(() => (workouts ?? [])
+    .filter((workout) => workout.entries.some((entry) => entry.sets.some((set) => set.done)))
+    .sort((first, second) => compareWorkouts(second, first))[0], [workouts]);
+  const latestMuscles = useMemo(() => completedSetsByMuscle(latestWorkout ? [latestWorkout] : [], exerciseMap, period),
+    [latestWorkout, exerciseMap, period]);
+  const muscleData = muscleMetric === 'latest' ? latestMuscles : muscleMetric === 'sets' ? muscleSets : volumeByMuscle;
 
   const prs = useMemo(
     () => computePRs(workouts ?? [], exerciseMap, period).slice(0, MAX_PRS),
@@ -973,7 +992,7 @@ export function Progresso() {
 
       {/* Conteúdo principal */}
       {!isLoading && workouts.length > 0 && (
-        <>
+        <div className="progress-layout">
           {/* Seletor de período */}
           <div className="prog-period-bar">
             {PERIOD_OPTIONS.map((opt) => (
@@ -981,6 +1000,7 @@ export function Progresso() {
                 key={String(opt.value)}
                 className={`prog-period-btn${period === opt.value ? ' active' : ''}`}
                 onClick={() => handlePeriod(opt.value)}
+                aria-pressed={period === opt.value}
               >
                 {opt.label}
               </button>
@@ -988,20 +1008,18 @@ export function Progresso() {
           </div>
 
           {/* Heatmap */}
-          <div className="card" style={{ marginBottom: 'var(--gap)' }}>
-            <div className="section-title" style={{ margin: '0 0 12px' }}>
+          <div className="card progress-activity">
+            <h2 className="section-title panel-title">
               Atividade
-            </div>
+            </h2>
             <div className="prog-heatmap-wrap">
               <Heatmap dates={heatmapDates} />
             </div>
           </div>
 
           {/* Resumo */}
-          <div className="card" style={{ marginBottom: 'var(--gap)' }}>
-            <div className="section-title" style={{ margin: '0 0 8px' }}>
-              Resumo
-            </div>
+          <div className="card progress-summary">
+            <h2 className="section-title panel-title">Resumo</h2>
             <SummaryGrid
               workoutCount={summary.workoutCount}
               daysCount={summary.daysCount}
@@ -1010,9 +1028,9 @@ export function Progresso() {
           </div>
 
           {/* Mapa muscular */}
-          <div className="card" style={{ marginBottom: 'var(--gap)' }}>
+          <div className="card progress-muscles">
             <div className="prog-muscle-header">
-              <div className="section-title">Músculos</div>
+              <h2 className="section-title panel-title">Músculos</h2>
               {/* Toggle figura masculina/feminina */}
               <button
                 className={`prog-figure-btn${figure === 'female' ? ' active' : ''}`}
@@ -1033,16 +1051,27 @@ export function Progresso() {
                 )}
               </button>
             </div>
+            <div className="muscle-view-options" role="group" aria-label="Métrica do mapa muscular">
+              <button type="button" className="chip" aria-pressed={muscleMetric === 'sets'} onClick={() => setMuscleMetric('sets')}>Séries</button>
+              <button type="button" className="chip" aria-pressed={muscleMetric === 'volume'} onClick={() => setMuscleMetric('volume')}>Volume em kg</button>
+              <button type="button" className="chip" aria-pressed={muscleMetric === 'latest'} onClick={() => setMuscleMetric('latest')}>Último treino</button>
+            </div>
             <div className="prog-muscle-wrap">
-              {volumeByMuscleMap.size === 0 ? (
+              {muscleMetric === 'latest' && latestWorkout && latestMuscles.size > 0 && (
+                <p className="hint muscle-latest-date">
+                  Sessão de <time dateTime={latestWorkout.dateISO}>{latestWorkout.dateISO.split('-').reverse().join('/')}</time>
+                </p>
+              )}
+              {muscleData.size === 0 ? (
                 <p className="hint" style={{ textAlign: 'center', padding: '12px 0' }}>
-                  Sem dados de volume neste período.
+                  Sem registros para esta métrica no período.
                 </p>
               ) : (
                 <MuscleMap
-                  volumeByMuscle={volumeByMuscle}
+                  volumeByMuscle={Object.fromEntries(muscleData)}
+                  metric={muscleMetric === 'volume' ? 'volume' : 'sets'}
                   figure={figure}
-                  showUntrained
+                  showUntrained={muscleMetric !== 'latest'}
                   trainedMuscles={musclesWithSets}
                   onUntrainedClick={handleUntrainedClick}
                 />
@@ -1051,10 +1080,8 @@ export function Progresso() {
           </div>
 
           {/* PRs */}
-          <div className="card" style={{ marginBottom: 'var(--gap)' }}>
-            <div className="section-title" style={{ margin: '0 0 8px' }}>
-              Recordes (1RM est.)
-            </div>
+          <div className="card progress-records">
+            <h2 className="section-title panel-title">Recordes (1RM est.)</h2>
             {prs.length === 0 ? (
               <p className="hint" style={{ textAlign: 'center', padding: '8px 0' }}>
                 Nenhum PR com carga registrado neste período.
@@ -1089,7 +1116,7 @@ export function Progresso() {
             period={period}
             trackEffort={trackEffort}
           />
-        </>
+        </div>
       )}
 
       {/* Medidas corporais (G14) — sempre visível, independente do histórico de treinos */}

@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight, X, Timer, Zap, Play, Square, Trophy } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, X, Timer, Zap, Play, Square, Trophy, Plus, Trash2 } from 'lucide-react';
 
 import {
   effectiveRoutine,
@@ -44,6 +44,7 @@ import { getWeekPlan, listOverrides, getSettings } from '../db/repo';
 import { useSessionStore } from '../store/session';
 import type { ActiveExercise } from '../store/session';
 import { useWakeLock } from '../lib/useWakeLock';
+import { hasExerciseMedia, Media } from '../components/Media';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -349,10 +350,11 @@ interface SetRowProps {
   workTimerSetIndex: number | null; // qual série está com work timer ativo
   onDone: (elapsed?: number) => void;
   onChange: (patch: Partial<SetLog>) => void;
-  onStartWork: (setIndex: number) => void;
-  onStopWork: (elapsedSec: number) => void;
+  onStartWork?: (setIndex: number) => void;
+  onStopWork?: (elapsedSec: number) => void;
   workStartedAt: number | null;
   targetSec?: number;
+  warmup?: boolean;
 }
 
 function SetRow({
@@ -372,14 +374,16 @@ function SetRow({
   onStopWork,
   workStartedAt,
   targetSec,
+  warmup = false,
 }: SetRowProps) {
   const repsRef = useRef<HTMLInputElement>(null);
   const isWorkActive = workTimerSetIndex === setIndex && workStartedAt !== null;
+  const rowLabel = warmup ? `Aquecimento ${setIndex + 1}` : `Série ${setIndex + 1}`;
 
   return (
-    <fieldset className={`tg-set-wrap${set.done ? ' done' : ''}`} disabled={disabled} aria-label={`Série ${setIndex + 1}`}>
+    <fieldset className={`tg-set-wrap${set.done ? ' done' : ''}`} disabled={disabled} aria-label={rowLabel}>
       <div className="tg-set-row">
-        <span className="tg-set-idx">{setIndex + 1}</span>
+        <span className="tg-set-idx">{warmup && "A"}{setIndex + 1}</span>
 
         {/* Modo cardio: tempo + distância + velocidade */}
         {isCardio ? (
@@ -392,7 +396,7 @@ function SetRow({
               min={0}
               value={set.sec ?? ''}
               onChange={(e) => onChange({ sec: e.target.value === '' ? undefined : Number(e.target.value) })}
-              aria-label={`Série ${setIndex + 1} — segundos`}
+              aria-label={`${rowLabel} — segundos`}
               placeholder="seg"
             />
             {/* coluna kg reutilizada para distância */}
@@ -404,7 +408,7 @@ function SetRow({
               step={10}
               value={set.distanceM ?? ''}
               onChange={(e) => onChange({ distanceM: e.target.value === '' ? undefined : Number(e.target.value) })}
-              aria-label={`Série ${setIndex + 1} — distância metros`}
+              aria-label={`${rowLabel} — distância metros`}
               placeholder="m"
             />
           </>
@@ -418,7 +422,7 @@ function SetRow({
               min={0}
               value={set.sec ?? ''}
               onChange={(e) => onChange({ sec: e.target.value === '' ? undefined : Number(e.target.value) })}
-              aria-label={`Série ${setIndex + 1} — segundos`}
+              aria-label={`${rowLabel} — segundos`}
             />
             {/* ocupa coluna de peso no modo time para manter o grid alinhado */}
             <span />
@@ -433,7 +437,7 @@ function SetRow({
               min={0}
               value={set.reps ?? ''}
               onChange={(e) => onChange({ reps: e.target.value === '' ? undefined : Number(e.target.value) })}
-              aria-label={`Série ${setIndex + 1} — reps`}
+              aria-label={`${rowLabel} — reps`}
             />
             <input
               className="tg-input"
@@ -446,7 +450,7 @@ function SetRow({
                 const value = event.target.value === '' ? undefined : event.target.valueAsNumber;
                 onChange({ weightKg: value === undefined || !Number.isFinite(value) ? undefined : unit === 'lb' ? value / KG_TO_LB : value });
               }}
-              aria-label={`Série ${setIndex + 1} — carga em ${unit}`}
+              aria-label={`${rowLabel} — carga em ${unit}`}
             />
           </>
         )}
@@ -455,7 +459,7 @@ function SetRow({
         {(isTime || isCardio) && !set.done ? (
           <button
             className={`tg-work-btn${isWorkActive ? ' active' : ''}`}
-            onClick={() => isWorkActive ? undefined : onStartWork(setIndex)}
+            onClick={() => isWorkActive ? undefined : onStartWork?.(setIndex)}
             aria-label={isWorkActive ? 'Série em andamento' : 'Iniciar série'}
             disabled={timerBusy}
           >
@@ -465,7 +469,9 @@ function SetRow({
           <button
             className={`tg-done-btn${set.done ? ' done' : ''}`}
             onClick={() => onDone()}
-            aria-label={set.done ? 'Desmarcar série' : 'Marcar série como feita'}
+            aria-label={warmup
+              ? set.done ? 'Desmarcar aquecimento' : 'Marcar aquecimento como feito'
+              : set.done ? 'Desmarcar série' : 'Marcar série como feita'}
             aria-pressed={set.done}
           >
             <Check size={20} strokeWidth={2.6} />
@@ -482,7 +488,7 @@ function SetRow({
           startedAt={workStartedAt}
           targetSec={targetSec}
           onStop={(elapsed) => {
-            onStopWork(elapsed);
+            onStopWork?.(elapsed);
             onChange({ sec: elapsed });
             onDone(elapsed);
           }}
@@ -501,7 +507,7 @@ function SetRow({
             step={0.1}
             value={set.speedKmh ?? ''}
             onChange={(e) => onChange({ speedKmh: e.target.value === '' ? undefined : Number(e.target.value) })}
-            aria-label={`Série ${setIndex + 1} — velocidade km/h`}
+            aria-label={`${rowLabel} — velocidade km/h`}
             placeholder="—"
           />
         </div>
@@ -523,7 +529,7 @@ function SetRow({
               const val = e.target.value === '' ? undefined : Math.min(10, Math.max(0, Number(e.target.value)));
               onChange({ effort: { ...set.effort, rir: val } });
             }}
-            aria-label={`Série ${setIndex + 1} — RIR (repetições na reserva)`}
+            aria-label={`${rowLabel} — RIR (repetições na reserva)`}
           />
           <span className="tg-rir-hint">reps na reserva</span>
         </div>
@@ -646,7 +652,7 @@ export function TreinoGuiado() {
   const [searchParams] = useSearchParams();
   const routineIdParam = searchParams.get('routineId');
 
-  const { active, saving, start, logSet, toggleSetDone, goToExercise, startRest, stopRest, startWork, stopWork, cancel, finish } =
+  const { active, saving, start, logSet, toggleSetDone, addWarmup, logWarmup, removeWarmup, goToExercise, startRest, stopRest, startWork, stopWork, cancel, finish } =
     useSessionStore();
 
   // Dados do banco (leitura reativa)
@@ -858,20 +864,20 @@ export function TreinoGuiado() {
       const roundComplete = isRoundComplete(updatedExercises, routineExercises, exIndex, setIndex);
       if (roundComplete) {
         const effectiveRest = cfg.restSec ?? defaultRestSecRef.current;
-        startRest(effectiveRest);
+        if (effectiveRest > 0) startRest(effectiveRest);
       }
       return;
     }
 
     // ---- Comportamento padrão (sem superset) ----
     const effectiveRest = cfg?.restSec ?? defaultRestSecRef.current;
-    startRest(effectiveRest);
+    if (effectiveRest > 0) startRest(effectiveRest);
   }
 
   async function handleFinish() {
     if (useSessionStore.getState().saving) return;
     if (!active?.exercises.some((exercise) => exercise.sets.some((set) => set.done))) {
-      setFinishError('Registre pelo menos uma série antes de finalizar.');
+      setFinishError('Registre pelo menos uma série de trabalho antes de finalizar.');
       return;
     }
     if (active.work !== undefined) {
@@ -976,8 +982,13 @@ export function TreinoGuiado() {
   // Work timer ativo para o exercício atual
   const activeWorkSetIndex = work?.exerciseIndex === active.currentIndex ? work.setIndex : null;
 
+  const completedSets = active.exercises.reduce((count, exercise) => count + exercise.sets.filter((set) => set.done).length, 0);
+  const exerciseDemo = exercisesMap?.get(currentEx.exerciseId);
+  const plannedSets = active.exercises.reduce((count, exercise) => count + exercise.sets.length, 0);
+  const canChangeExercise = !saving && !restActive && work === undefined;
+
   return (
-    <>
+    <div className="training-session">
       {/* Toast de PR — acima do rest overlay (z-index maior) */}
       <AnimatePresence>
         {prQueue[0] !== undefined && (
@@ -1003,175 +1014,250 @@ export function TreinoGuiado() {
 
       <p className="sr-only" role="status">{restAnnouncement}</p>
       {/* Topbar */}
-      <div className="tg-topbar">
-        <span className="tg-title">
-          {active.routineName ?? routine?.name ?? 'Treino livre'}
-        </span>
-        <span className="tg-progress">
-          {active.currentIndex + 1}/{totalExercises}
-        </span>
-      </div>
+      <header className="tg-topbar">
+        <div>
+          <p className="session-label">Treino em andamento</p>
+          <h1 className="tg-title">{active.routineName ?? routine?.name ?? 'Treino livre'}</h1>
+        </div>
+        <div className="session-tally">
+          <span>{completedSets} de {plannedSets} séries</span>
+          <progress aria-label="Séries concluídas na sessão" value={completedSets} max={Math.max(1, plannedSets)} />
+        </div>
+      </header>
 
-      {/* Card do exercício */}
-      <div className="tg-ex-card">
-        {/* Badge de superset */}
-        {isInSuperset && supersetGroupNum !== undefined && (
-          <div className="tg-superset-badge">
-            {supersetLabel(supersetGroupNum)}
-            <span className="tg-superset-round">
-              {' '}— Round {Math.min(roundsDone + 1, totalRounds)} de {totalRounds}
-            </span>
-          </div>
-        )}
+      <div className="session-layout">
+        <section className="session-log" aria-labelledby="current-exercise-title">
+        <div className="tg-ex-card">
+          {/* Badge de superset */}
+          {isInSuperset && supersetGroupNum !== undefined && (
+            <div className="tg-superset-badge">
+              {supersetLabel(supersetGroupNum)}
+              <span className="tg-superset-round">
+                {' '}— Round {Math.min(roundsDone + 1, totalRounds)} de {totalRounds}
+              </span>
+            </div>
+          )}
 
-        <div className="tg-ex-name">{exName}</div>
-        <div className="tg-ex-meta">
-          {currentEx.target.sets} série{currentEx.target.sets !== 1 ? 's' : ''}
-          {isTimedMode
-            ? currentEx.target.sec !== undefined
-              ? ` · ${currentEx.target.sec}s`
-              : ''
-            : currentEx.target.reps !== undefined
-              ? ` · ${currentEx.target.reps} reps`
+          <p className="session-label">Exercício {active.currentIndex + 1} de {totalExercises}</p>
+          <h2 className="tg-ex-name" id="current-exercise-title">{exName}</h2>
+          <div className="tg-ex-meta">
+            {currentEx.target.sets} série{currentEx.target.sets !== 1 ? 's' : ''}
+            {isTimedMode
+              ? currentEx.target.sec !== undefined
+                ? ` · ${currentEx.target.sec}s`
+                : ''
+              : currentEx.target.reps !== undefined
+                ? ` · ${currentEx.target.reps} reps`
+                : ''}
+            {currentEx.target.weightKg !== undefined
+              ? ` · ${unit === 'lb' ? round1(currentEx.target.weightKg * KG_TO_LB) : currentEx.target.weightKg} ${unit}`
               : ''}
-          {currentEx.target.weightKg !== undefined
-            ? ` · ${unit === 'lb' ? round1(currentEx.target.weightKg * KG_TO_LB) : currentEx.target.weightKg} ${unit}`
-            : ''}
-          {isCardio && currentEx.target.distanceM !== undefined
-            ? ` · ${currentEx.target.distanceM}m`
-            : ''}
-          {isCardio && currentEx.target.speedKmh !== undefined
-            ? ` · ${currentEx.target.speedKmh}km/h`
-            : ''}
+            {isCardio && currentEx.target.distanceM !== undefined
+              ? ` · ${currentEx.target.distanceM}m`
+              : ''}
+            {isCardio && currentEx.target.speedKmh !== undefined
+              ? ` · ${currentEx.target.speedKmh}km/h`
+              : ''}
+          </div>
+
+          {/* Dica discreta de prescrição */}
+          {prescription !== undefined && <p className="tg-why">{prescription.why}</p>}
+
+          {/* Sets principais do 5/3/1 — guia visual de %, carga e reps */}
+          {prescription?.kind === '531' && prescription.mainSets !== undefined && (
+            <div className="tg-531-sets">
+              {prescription.mainSets.map((ms: MainSet531, i: number) => {
+                const displayW = unit === 'lb' ? (ms.weightKg * 2.20462).toFixed(1) : ms.weightKg.toFixed(1);
+                const unitLabel = unit === 'lb' ? 'lb' : 'kg';
+                return (
+                  <div key={i} className={`tg-531-set${ms.amrap ? ' tg-531-set--amrap' : ''}`}>
+                    <span className="tg-531-pct">{ms.percentOfTM}%</span>
+                    <span className="tg-531-weight">{displayW} {unitLabel}</span>
+                    <span className="tg-531-reps">
+                      {ms.reps} rep{ms.reps !== 1 ? 's' : ''}
+                      {ms.amrap ? <span className="tg-531-amrap-badge"> AMRAP</span> : null}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {!isTimedMode && (
+            <section className="tg-warmups" aria-label="Aquecimento">
+              {(currentEx.warmupSets ?? []).map((set, index) => (
+                <div className="tg-warmup-row" key={index}>
+                  <SetRow
+                    exIndex={active.currentIndex}
+                    setIndex={index}
+                    set={set}
+                    warmup
+                    unit={unit}
+                    isTime={false}
+                    isCardio={false}
+                    disabled={saving || restActive}
+                    timerBusy={false}
+                    trackEffort={false}
+                    workTimerSetIndex={null}
+                    workStartedAt={null}
+                    onChange={(patch) => logWarmup(active.currentIndex, index, patch)}
+                    onDone={() => {
+                      if (!set.done && (!Number.isInteger(set.reps) || (set.reps ?? 0) <= 0 || (set.weightKg ?? 0) < 0)) {
+                        setFinishError('Informe repetições inteiras e uma carga válida para o aquecimento.');
+                        return;
+                      }
+                      setFinishError(null);
+                      logWarmup(active.currentIndex, index, { done: !set.done });
+                    }}
+                  />
+                  <button type="button" className="tg-warmup-remove" disabled={saving || restActive}
+                    onClick={() => removeWarmup(active.currentIndex, index)} aria-label={`Remover aquecimento ${index + 1}`}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+              <button type="button" className="tg-warmup-add" disabled={saving || restActive}
+                onClick={() => addWarmup(active.currentIndex)}><Plus size={17} /> Adicionar aquecimento</button>
+            </section>
+          )}
+
+          {/* Labels de coluna */}
+          <div className="tg-col-labels">
+            <span />
+            <span className="tg-col-label">{isTimedMode ? 'Tempo (s)' : 'Repetições'}</span>
+            <span className="tg-col-label">{isCardio ? 'Distância (m)' : isTime ? '' : `Carga (${unit})`}</span>
+            <span className="tg-col-label"><span className="sr-only">Concluir série</span></span>
+          </div>
+
+          {/* Séries */}
+          <div className="tg-sets">
+            {currentEx.sets.map((set, si) => (
+              <SetRow
+                key={si}
+                exIndex={active.currentIndex}
+                setIndex={si}
+                set={set}
+                isTime={isTime}
+                isCardio={isCardio}
+                unit={unit}
+                disabled={saving || restActive}
+                timerBusy={work !== undefined}
+                trackEffort={trackEffort}
+                workTimerSetIndex={activeWorkSetIndex}
+                workStartedAt={
+                  activeWorkSetIndex === si ? (work?.startedAt ?? null) : null
+                }
+                targetSec={currentEx.target.sec}
+                onDone={(elapsed) => handleToggleDone(active.currentIndex, si, elapsed)}
+                onChange={(patch) => logSet(active.currentIndex, si, patch)}
+                onStartWork={(setIdx) => handleStartWork(active.currentIndex, setIdx)}
+                onStopWork={handleStopWork}
+              />
+            ))}
+          </div>
+
+          {/* Calculadora de anilhas (G15) — só no modo reps com peso */}
+          {!isTimedMode && (
+            <PlateCalc
+              weightKg={currentEx.sets[0]?.weightKg}
+              unit={unit}
+            />
+          )}
         </div>
 
-        {/* Dica discreta de prescrição */}
-        {prescription !== undefined && <p className="tg-why">{prescription.why}</p>}
+        {finishError !== null && <p className="feedback error" role="alert">{finishError}</p>}
 
-        {/* Sets principais do 5/3/1 — guia visual de %, carga e reps */}
-        {prescription?.kind === '531' && prescription.mainSets !== undefined && (
-          <div className="tg-531-sets">
-            {prescription.mainSets.map((ms: MainSet531, i: number) => {
-              const displayW = unit === 'lb' ? (ms.weightKg * 2.20462).toFixed(1) : ms.weightKg.toFixed(1);
-              const unitLabel = unit === 'lb' ? 'lb' : 'kg';
+        {/* Navegação entre exercícios */}
+        <div className="tg-ex-nav">
+          <button
+            className="btn ghost"
+            disabled={saving || restActive || work !== undefined || active.currentIndex === 0}
+            onClick={() => goToExercise(active.currentIndex - 1)}
+            aria-label="Exercício anterior"
+          >
+            <ChevronLeft size={18} />
+            Anterior
+          </button>
+          {active.currentIndex < totalExercises - 1 ? (
+            <button
+              className="btn"
+              disabled={saving || restActive || work !== undefined}
+              onClick={() => goToExercise(active.currentIndex + 1)}
+              aria-label="Próximo exercício"
+            >
+              Próximo
+              <ChevronRight size={18} />
+            </button>
+          ) : (
+            <button
+              className="btn"
+              disabled={saving || restActive}
+              onClick={() => void handleFinish()}
+              aria-label="Finalizar treino"
+            >
+              {saving ? 'Salvando…' : 'Finalizar'}
+              <Check size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Rodapé */}
+        <div className="tg-footer">
+          <button
+            className="btn ghost"
+            disabled={saving || restActive}
+            onClick={handleCancel}
+            aria-label="Cancelar treino"
+          >
+            <X size={16} />
+            Cancelar
+          </button>
+          {active.currentIndex < totalExercises - 1 && (
+            <button
+              className="btn"
+              disabled={saving || restActive}
+              onClick={() => void handleFinish()}
+              aria-label="Finalizar treino agora"
+            >
+              <Check size={16} />
+              {saving ? 'Salvando…' : 'Finalizar treino'}
+            </button>
+          )}
+        </div>
+        </section>
+
+        <aside className="session-sidebar" aria-label="Roteiro e demonstração">
+        <details className="session-exercises card" open>
+          <summary>Exercícios da sessão</summary>
+          <ol>
+            {active.exercises.map((item, index) => {
+              const done = item.sets.filter((set) => set.done).length;
+              const name = item.name ?? exercisesMap?.get(item.exerciseId)?.name ?? item.exerciseId;
               return (
-                <div key={i} className={`tg-531-set${ms.amrap ? ' tg-531-set--amrap' : ''}`}>
-                  <span className="tg-531-pct">{ms.percentOfTM}%</span>
-                  <span className="tg-531-weight">{displayW} {unitLabel}</span>
-                  <span className="tg-531-reps">
-                    {ms.reps} rep{ms.reps !== 1 ? 's' : ''}
-                    {ms.amrap ? <span className="tg-531-amrap-badge"> AMRAP</span> : null}
-                  </span>
-                </div>
+                <li key={`${item.exerciseId}-${index}`}>
+                  <button
+                    type="button"
+                    onClick={() => goToExercise(index)}
+                    aria-current={index === active.currentIndex ? 'step' : undefined}
+                    disabled={!canChangeExercise}
+                  >
+                    <span className="session-step">{done === item.sets.length ? <Check size={16} aria-label="Concluído" /> : index + 1}</span>
+                    <span>{name}</span>
+                    <small>{done}/{item.sets.length}</small>
+                  </button>
+                </li>
               );
             })}
-          </div>
-        )}
-
-        {/* Labels de coluna */}
-        <div className="tg-col-labels">
-          <span />
-          <span className="tg-col-label">{isCardio ? 'Seg' : isTime ? 'Seg' : 'Reps'}</span>
-          <span className="tg-col-label">{isCardio ? 'Dist (m)' : isTime ? '' : unit}</span>
-          <span className="tg-col-label">OK</span>
-        </div>
-
-        {/* Séries */}
-        <div className="tg-sets">
-          {currentEx.sets.map((set, si) => (
-            <SetRow
-              key={si}
-              exIndex={active.currentIndex}
-              setIndex={si}
-              set={set}
-              isTime={isTime}
-              isCardio={isCardio}
-              unit={unit}
-              disabled={saving || restActive}
-              timerBusy={work !== undefined}
-              trackEffort={trackEffort}
-              workTimerSetIndex={activeWorkSetIndex}
-              workStartedAt={
-                activeWorkSetIndex === si ? (work?.startedAt ?? null) : null
-              }
-              targetSec={currentEx.target.sec}
-              onDone={(elapsed) => handleToggleDone(active.currentIndex, si, elapsed)}
-              onChange={(patch) => logSet(active.currentIndex, si, patch)}
-              onStartWork={(setIdx) => handleStartWork(active.currentIndex, setIdx)}
-              onStopWork={handleStopWork}
-            />
-          ))}
-        </div>
-
-        {/* Calculadora de anilhas (G15) — só no modo reps com peso */}
-        {!isTimedMode && (
-          <PlateCalc
-            weightKg={currentEx.sets[0]?.weightKg}
-            unit={unit}
-          />
-        )}
+          </ol>
+        </details>
+          {exerciseDemo && hasExerciseMedia(exerciseDemo.id, exerciseDemo.demo) && (
+            <details className="session-demo card">
+              <summary>Demonstração do exercício</summary>
+              <Media exerciseId={exerciseDemo.id} demo={exerciseDemo.demo} name={exerciseDemo.name} size="lg" />
+            </details>
+          )}
+        </aside>
       </div>
-
-      {finishError !== null && <p className="feedback error" role="alert">{finishError}</p>}
-
-      {/* Navegação entre exercícios */}
-      <div className="tg-ex-nav">
-        <button
-          className="btn ghost"
-          disabled={saving || restActive || work !== undefined || active.currentIndex === 0}
-          onClick={() => goToExercise(active.currentIndex - 1)}
-          aria-label="Exercício anterior"
-        >
-          <ChevronLeft size={18} />
-          Anterior
-        </button>
-        {active.currentIndex < totalExercises - 1 ? (
-          <button
-            className="btn"
-            disabled={saving || restActive || work !== undefined}
-            onClick={() => goToExercise(active.currentIndex + 1)}
-            aria-label="Próximo exercício"
-          >
-            Próximo
-            <ChevronRight size={18} />
-          </button>
-        ) : (
-          <button
-            className="btn"
-            disabled={saving || restActive}
-            onClick={() => void handleFinish()}
-            aria-label="Finalizar treino"
-          >
-            {saving ? 'Salvando…' : 'Finalizar'}
-            <Check size={18} />
-          </button>
-        )}
-      </div>
-
-      {/* Rodapé */}
-      <div className="tg-footer">
-        <button
-          className="btn ghost"
-          disabled={saving || restActive}
-          onClick={handleCancel}
-          aria-label="Cancelar treino"
-          style={{ flex: 'unset', padding: '12px 16px' }}
-        >
-          <X size={16} />
-          Cancelar
-        </button>
-        {active.currentIndex < totalExercises - 1 && (
-          <button
-            className="btn"
-            disabled={saving || restActive}
-            onClick={() => void handleFinish()}
-            aria-label="Finalizar treino agora"
-          >
-            <Check size={16} />
-            {saving ? 'Salvando…' : 'Finalizar treino'}
-          </button>
-        )}
-      </div>
-    </>
+    </div>
   );
 }

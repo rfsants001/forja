@@ -12,7 +12,6 @@
 // - updatedAt/createdAt: sempre em ms (Date.now()).
 
 import { db, uid } from './db';
-import type { WeekPlanRow, DayOverrideRow } from './db';
 import {
   DEFAULT_SETTINGS,
 } from '@forja/core';
@@ -168,38 +167,71 @@ export async function searchExercises(
  */
 export async function upsertRoutine(
   data: Omit<Routine, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; createdAt?: number },
+  { mustExist = false }: { mustExist?: boolean } = {},
 ): Promise<Routine> {
-  const now = Date.now();
+  return db.transaction('rw', db.routines, async () => {
+    const now = Date.now();
 
-  if (data.id !== undefined) {
-    const existing = await db.routines.get(data.id);
-    if (existing !== undefined) {
-      const updated: Routine = { ...existing, ...data, id: existing.id, updatedAt: now };
-      await db.routines.put(updated);
-      return updated;
+    if (data.id !== undefined) {
+      const existing = await db.routines.get(data.id);
+      if (existing !== undefined) {
+        const updated: Routine = { ...existing, ...data, id: existing.id, updatedAt: now };
+        await db.routines.put(updated);
+        return updated;
+      }
     }
-  }
 
-  const routine: Routine = {
-    id: data.id ?? uid('rot_'),
-    name: data.name,
-    categoryId: data.categoryId,
-    note: data.note,
-    exercises: data.exercises,
-    order: data.order,
-    createdAt: data.createdAt ?? now,
-    updatedAt: now,
-  };
-  await db.routines.put(routine);
-  return routine;
+    if (mustExist) throw new Error('Esta rotina já foi excluída.');
+
+    const routine: Routine = {
+      id: data.id ?? uid('rot_'),
+      name: data.name,
+      categoryId: data.categoryId,
+      note: data.note,
+      exercises: data.exercises,
+      order: data.order,
+      createdAt: data.createdAt ?? now,
+      updatedAt: now,
+    };
+    await db.routines.put(routine);
+    return routine;
+  });
 }
 
-/** Remove uma rotina pelo id. */
+async function removeRoutines(routines: Routine[]): Promise<void> {
+  if (routines.length === 0) return;
+  const names = new Map(routines.map((routine) => [routine.id, routine.name]));
+  const ids = [...names.keys()];
+
+  await db.workouts.where('routineId').anyOf(ids).modify((workout) => {
+    workout.routineName ??= names.get(workout.routineId ?? '');
+  });
+  await db.weekPlan.filter((row) => row.routineId !== null && names.has(row.routineId))
+    .modify({ routineId: null });
+  await db.dayOverrides.filter((row) => row.routine !== null && names.has(row.routine)).delete();
+  await db.routines.bulkDelete(ids);
+}
+
+/** Remove a rotina e suas referências na agenda, preservando o histórico. */
 export async function deleteRoutine(id: string): Promise<void> {
-  await db.transaction('rw', [db.routines, db.weekPlan, db.dayOverrides], async () => {
-    await db.routines.delete(id);
-    await db.weekPlan.filter((row) => row.routineId === id).modify({ routineId: null });
-    await db.dayOverrides.filter((row) => row.routine === id).delete();
+  await db.transaction('rw', [db.routines, db.weekPlan, db.dayOverrides, db.workouts], async () => {
+    const routine = await db.routines.get(id);
+    if (routine) await removeRoutines([routine]);
+  });
+}
+
+/** Remove as rotinas confirmadas de uma categoria criada por um plano pronto. */
+export async function deleteStarterPlan(categoryId: string, confirmedIds: string[]): Promise<void> {
+  await db.transaction('rw', [db.categories, db.routines, db.weekPlan, db.dayOverrides, db.workouts], async () => {
+    const category = await db.categories.get(categoryId);
+    if (!category?.slug.startsWith('starter-')) throw new Error('Plano pronto indisponível.');
+    const routines = await db.routines.where('categoryId').equals(categoryId).toArray();
+    const confirmed = new Set(confirmedIds);
+    if (routines.some((routine) => !confirmed.has(routine.id))) {
+      throw new Error('O plano recebeu novas rotinas. Revise a lista e confirme novamente.');
+    }
+    await removeRoutines(routines);
+    await db.categories.delete(categoryId);
   });
 }
 
@@ -253,8 +285,10 @@ export async function getWeekPlan(): Promise<WeekPlan> {
  * @param routineId  ID da rotina, ou null para "sem treino"
  */
 export async function setWeekday(weekday: Weekday, routineId: string | null): Promise<void> {
-  const row: WeekPlanRow = { weekday, routineId };
-  await db.weekPlan.put(row);
+  await db.transaction('rw', [db.routines, db.weekPlan], async () => {
+    if (routineId !== null && !(await db.routines.get(routineId))) throw new Error('Esta rotina já foi excluída.');
+    await db.weekPlan.put({ weekday, routineId });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -268,8 +302,12 @@ export async function setWeekday(weekday: Weekday, routineId: string | null): Pr
  * @param routine   routineId, 'rest', ou null ("volta ao plano semanal")
  */
 export async function setDayOverride(dateISO: string, routine: string | 'rest' | null): Promise<void> {
-  const row: DayOverrideRow = { dateISO, routine };
-  await db.dayOverrides.put(row);
+  await db.transaction('rw', [db.routines, db.dayOverrides], async () => {
+    if (routine !== null && routine !== 'rest' && !(await db.routines.get(routine))) {
+      throw new Error('Esta rotina já foi excluída.');
+    }
+    await db.dayOverrides.put({ dateISO, routine });
+  });
 }
 
 /** Remove o override de uma data ISO, se existir. */
@@ -369,8 +407,10 @@ export async function getSettings(): Promise<Settings> {
  * Cria a linha 'app' se ainda não existir.
  */
 export async function updateSettings(patch: Partial<Settings>): Promise<Settings> {
-  const current = await getSettings();
-  const updated: Settings = { ...current, ...patch };
-  await db.settings.put({ id: 'app', ...updated });
-  return updated;
+  return db.transaction('rw', db.settings, async () => {
+    const current = await getSettings();
+    const updated: Settings = { ...current, ...patch };
+    await db.settings.put({ id: 'app', ...updated });
+    return updated;
+  });
 }

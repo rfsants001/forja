@@ -1,6 +1,6 @@
 # P5-003 · i18n PT/EN
 
-**Estado em 13/11/2026: iniciado e incompleto.** A interrupção do trabalho anterior deixou dicionários, `useT()`, `Settings.lang` e componentes parcialmente traduzidos. O controle de demo em Media usa as chaves já criadas. A compilação voltou a funcionar.
+**Estado em 13/11/2026: iniciado e incompleto.** A interrupção do trabalho anterior deixou dicionários, `useT()`, `Settings.lang` e componentes parcialmente traduzidos. A compilação voltou a funcionar. O componente Media ganhou controles de posições e créditos. A biblioteca ganhou o diálogo do atlas, o inventário e filtros, e a sessão ganhou aquecimento. Inclua essas mensagens e os nomes acessíveis na cobertura.
 
 ## Retomada
 

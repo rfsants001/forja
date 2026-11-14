@@ -221,19 +221,20 @@ export function computeVolumeByMuscle(
   return result;
 }
 
-export function trainedMuscles(
+export function completedSetsByMuscle(
   workouts: WorkoutLog[],
   exerciseMap: Map<string, Exercise>,
   days: number | null,
-): Set<MuscleGroup> {
-  const groups = new Set<MuscleGroup>();
+): Map<MuscleGroup, number> {
+  const groups = new Map<MuscleGroup, number>();
   for (const workout of filterByPeriod(workouts, days)) {
     for (const entry of workout.entries) {
-      if (!entry.sets.some((set) => set.done)) continue;
+      const completed = entry.sets.filter((set) => set.done).length;
       const exercise = exerciseMap.get(entry.exerciseId);
-      if (exercise === undefined) continue;
-      groups.add(exercise.primaryMuscle);
-      for (const muscle of exercise.secondaryMuscles) groups.add(muscle);
+      if (exercise === undefined || completed === 0) continue;
+      for (const muscle of new Set([exercise.primaryMuscle, ...exercise.secondaryMuscles])) {
+        groups.set(muscle, (groups.get(muscle) ?? 0) + completed);
+      }
     }
   }
   return groups;
