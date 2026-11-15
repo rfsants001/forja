@@ -22,6 +22,7 @@ const messages: Record<Lang, Record<string, string>> = {
   // ── Português (fonte-de-verdade) ──────────────────────────────────────────
   pt: {
     "ui.sessionExercisesCount": "Exercícios na sessão: {0}",
+    "ui.sessionSetsCount": "Séries: {0}",
     "ui.moreExercises": "Carregar mais ({0} restantes)",
     "ui.exercisesTotal": "{0} exercício{1}",
     "ui.planExisting": "Rotinas já existentes: {0}",
@@ -684,6 +685,7 @@ const messages: Record<Lang, Record<string, string>> = {
   // ── English ───────────────────────────────────────────────────────────────
   en: {
     "ui.sessionExercisesCount": "Exercises in this session: {0}",
+    "ui.sessionSetsCount": "Sets: {0}",
     "ui.moreExercises": "Load more ({0} remaining)",
     "ui.exercisesTotal": "{0} exercise{1}",
     "ui.planExisting": "Existing routines: {0}",

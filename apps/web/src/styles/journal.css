@@ -55,40 +55,32 @@
 .journal-plan { flex-shrink: 0; white-space: nowrap; }
 .journal-grid { display: grid; gap: var(--gap); min-width: 0; }
 .journal-grid > * { min-width: 0; }
-.journal-session {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  align-content: end;
-  min-height: clamp(270px, 32vw, 350px);
-  padding: clamp(20px, 4vw, 37px);
-  border-radius: var(--r-lg);
-  background-color: #221d16;
-  color: #f5f0e6;
-  background-image: linear-gradient(100deg, #211b13 3%, rgb(32 26 18 / 95%) 36%, rgb(25 22 17 / 32%) 100%), url('../assets/forja-training.webp');
-  background-blend-mode: normal, luminosity;
-  background-size: cover;
-  background-position: center, 66% center;
-  border: 1px solid var(--border);
+.journal-session { align-content: start; display: grid; gap: 10px; }
+.journal-session > p { color: var(--text-muted); font-size: 13px; }
+.journal-session-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 650;
 }
-.journal-session-content { max-width: 490px; }
-.journal-session-content > p { color: #e4dacc; }
-.journal-session-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 9px; }
+.journal-session-label svg { color: var(--accent); }
 .journal-session h2 {
-  font: 700 clamp(30px, 4vw, 52px)/1.02 var(--font-heading);
+  font: 700 clamp(24px, 3vw, 34px)/1.08 var(--font-heading);
   letter-spacing: -0.025em;
   overflow-wrap: anywhere;
-  margin-bottom: 13px;
 }
-.journal-session .journal-start {
-  --session-cta: var(--accent-dark, #bdb4ff);
-  margin-top: 22px;
-  padding-inline: 17px;
-  background: var(--session-cta);
-  color: #191511;
+.journal-routine-preview { list-style: none; }
+.journal-routine-preview li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 9px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 13px;
 }
-.journal-session .journal-start:focus-visible { outline-color: #fff3df; }
-.journal-session .journal-start:hover { background: color-mix(in srgb, var(--session-cta) 82%, white); }
+.journal-routine-preview li span { overflow-wrap: anywhere; }
+.journal-routine-preview strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.journal-session .journal-start { justify-self: start; margin-top: 4px; }
 
 .journal-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 17px 20px; }
 .journal-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -166,15 +158,25 @@
 }
 @media (min-width: 1030px) {
   .journal-grid { grid-template-columns: minmax(0, 1.65fr) minmax(260px, 1fr); align-items: stretch; }
-  .journal-week { grid-column: 2; grid-row: 1; }
-  .journal-recent { grid-column: 1; grid-row: 2; }
-  .journal-stats { grid-column: 2; grid-row: 2; }
+  .journal-grid > .load-trend { grid-column: 1; grid-row: 1; }
+  .journal-session { grid-column: 2; grid-row: 1; }
+  .journal-week { grid-column: 1 / -1; }
+  .journal-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .journal-days a {
+    grid-template-columns: minmax(0, 1fr) 18px;
+    align-content: start;
+    padding: 9px 8px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-sm);
+    height: 100%;
+  }
+  .journal-days a[aria-current="date"] { border-color: var(--accent); padding-inline-start: 8px; }
+  .journal-days time { grid-column: 1 / -1; padding-right: 0; }
 }
 @media (max-width: 540px) {
   .journal-heading { align-items: start; flex-direction: column; gap: 12px; }
   .journal-plan { min-height: var(--control-h); }
   .journal-grid { gap: 14px; }
-  .journal-session { min-height: 258px; background-position: center, 59% center; }
   .journal-panel { padding-inline: 14px; }
 }
 
@@ -292,7 +294,6 @@
 
 @media (max-width: 399px) {
   .journal-heading h1 { font-size: 34px; }
-  .journal-session h2 { font-size: 34px; }
   .routine-list-row { flex-wrap: wrap; }
   .routine-list-row .routine-item { flex: 1 0 100%; }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -17,6 +17,7 @@ export function Assistente() {
   const t = useT();
   const [end, setEnd] = useState(toISO(new Date()));
   const [providers, setProviders] = useState<Providers>();
+  const [connectionError, setConnectionError] = useState<SyncError>();
   const [model, setModel] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -34,11 +35,26 @@ export function Assistente() {
   const preview = end && workouts && routines && exercises
     ? weeklyReview(end, workouts, routines, exercises, settings?.gymEquipment ?? []) : undefined;
 
-  async function refreshProvider() {
-    const next = await api<Providers>('/coach/providers');
-    setProviders(next);
-    setModel((current) => next.models.includes(current) ? current : (next.models[0] ?? ''));
-  }
+  const refreshProvider = useCallback(async (initializeDate = false) => {
+    try {
+      const session = await sessionInfo();
+      if (initializeDate) {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+          year: 'numeric', month: '2-digit', day: '2-digit', timeZone: session.timeZone,
+        }).formatToParts(new Date());
+        setEnd(['year', 'month', 'day'].map((part) => parts.find((item) => item.type === part)?.value).join('-'));
+      }
+      if (!session.device) throw new SyncError('PAIR_REQUIRED');
+      const next = await api<Providers>('/coach/providers');
+      setProviders(next);
+      setModel((current) => next.models.includes(current) ? current : (next.models[0] ?? ''));
+      setConnectionError(undefined);
+    } catch (error) {
+      setProviders(undefined);
+      setModel('');
+      setConnectionError(error instanceof SyncError ? error : new SyncError('SERVER_ERROR'));
+    }
+  }, []);
   async function run(work: () => Promise<void>) {
     setBusy(true);
     setError('');
@@ -49,15 +65,17 @@ export function Assistente() {
   }
 
   useEffect(() => {
-    void sessionInfo().then(async (session) => {
-      const parts = new Intl.DateTimeFormat('en-CA', {
-        year: 'numeric', month: '2-digit', day: '2-digit', timeZone: session.timeZone,
-      }).formatToParts(new Date());
-      setEnd(['year', 'month', 'day'].map((part) => parts.find((item) => item.type === part)?.value).join('-'));
-      if (session.device) await refreshProvider();
-    }).catch(() => {});
+    void refreshProvider(true);
     return () => call.current?.abort();
-  }, []);
+  }, [refreshProvider]);
+
+  const noServer = connectionError?.code === 'NO_SERVER';
+  const needsPairing = connectionError?.code === 'PAIR_REQUIRED';
+  const providerStatus = noServer ? t('coach.serverRequired')
+    : needsPairing ? t('coach.deviceRequired')
+    : connectionError ? syncMessage(connectionError, t)
+    : providers ? (providers.available ? 'Ollama' : t('coach.unavailable'))
+    : t('coach.checking');
 
   function generate() {
     if (!preview || !routines) return;
@@ -154,21 +172,25 @@ export function Assistente() {
         </section>
         <section className="card self-host-card">
           <h2>{t('coach.provider')}</h2>
-          <p>{providers?.available ? 'Ollama' : t('coach.unavailable')}</p>
-          {providers && !providers.models.length && <p className="hint">{t('coach.modelUnavailable')}</p>}
+          <p role="status">{providerStatus}</p>
+          {providers?.available && !providers.models.length && <p className="hint">{t('coach.modelUnavailable')}</p>}
           {providers && providers.models.length > 0 && (
             <label>{t('coach.model')}<select disabled={busy} value={model} onChange={(event) => setModel(event.target.value)}>
               {providers.models.map((name) => <option key={name}>{name}</option>)}
             </select></label>
           )}
           <div className="self-host-actions">
-            <button type="button" className="btn ghost" disabled={busy} onClick={() => void run(refreshProvider)}>{t('coach.refresh')}</button>
-            <button type="button" className="btn ghost" disabled={busy || !model} onClick={() => void run(async () => {
-              await post('/coach/test', { model });
-              setNotice(t('coach.testOk'));
-            })}>{t('coach.test')}</button>
+            {!noServer && !needsPairing && (
+              <button type="button" className="btn ghost" disabled={busy || !(providers || connectionError)} onClick={() => void run(() => refreshProvider())}>{t('coach.refresh')}</button>
+            )}
+            {providers && (
+              <button type="button" className="btn ghost" disabled={busy || !model} onClick={() => void run(async () => {
+                await post('/coach/test', { model });
+                setNotice(t('coach.testOk'));
+              })}>{t('coach.test')}</button>
+            )}
+            {!noServer && <Link className="btn ghost" to="/perfil/dispositivos">{t('sync.devices')}</Link>}
           </div>
-          <Link className="btn ghost" to="/perfil/dispositivos">{t('sync.devices')}</Link>
         </section>
       </div>
     </>

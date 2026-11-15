@@ -7,7 +7,7 @@ Documentos da expansão: [PRD](PRD.md), [TRD](TRD.md), [SDD](SDD.md) e [UX/UI](U
 - F6-01 a F6-03 usam Node.js 24 e SQLite, sessão de aparelho por cookie, QR ou código e fila transacional do Dexie. A PWA conserva o uso local sem vínculo.
 - F6-04 lista modelos locais do Ollama, mostra a prévia da semana, valida as sugestões e aplica ou desfaz uma troca na versão esperada da rotina. Aplicar e desfazer foram testados com Ollama simulado. A geração com dados fictícios foi confirmada no Ollama local com `qwen2.5:7b`, que retornou uma sugestão válida.
 - F6-05 fornece uma prova opt-in do Codex CLI em Linux isolada por Bubblewrap. Validar em ambiente com login dedicado antes de considerar uma integração para dados reais.
-- P10 mostra a maior carga por exercício em Hoje e Progresso, com janela de 4 ou 8 semanas, pontos, navegação por teclado e tabela.
+- P10 mostra a maior carga por exercício em Hoje e Progresso, com janela de 4 ou 8 semanas, pontos, navegação por teclado e tabela. Hoje reúne gráfico, prévia da rotina e agenda. O Assistente informa quando o endereço local precisa da API self-hosted ou quando falta parear o aparelho.
 - O teste de navegador usa dois contextos independentes, simula desconexão, confirma a chegada de uma única sessão após reconectar e resolve a edição concorrente de uma rotina. Validar em PC e celular físicos com HTTPS em LAN ou VPN e medir os tempos de pareamento e reconexão.
 
 ## Questões registradas no planejamento original

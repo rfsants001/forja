@@ -19,7 +19,7 @@
 
 ## Telas
 
-[![Forja no desktop. Caderno de treino com a sessão de hoje, agenda semanal e últimos treinos.](assets/screenshots/hoje-desktop.webp)](assets/screenshots/hoje-desktop.webp)
+[![Forja no desktop. Caderno de treino com evolução de carga, sessão de hoje e agenda semanal.](assets/screenshots/hoje-desktop.webp)](assets/screenshots/hoje-desktop.webp)
 
 <table>
   <tr>
@@ -155,6 +155,8 @@ Se você já usava a Forja em outro endereço, exporte um backup JSON de lá e i
 Para copiar a instalação inteira, pare o servidor e copie a pasta de dados, incluindo a chave do dono e os arquivos do SQLite. Guarde a cópia em local privado. Restaure com o servidor parado e confira o vínculo dos aparelhos ao voltar. A janela de revisão usa o fuso de `FORJA_TIME_ZONE` ou o fuso do host.
 
 ## Assistente local
+
+O Assistente usa a API da instalação self-hosted. Rode `pnpm build` e `pnpm self-host`, abra **http://127.0.0.1:8787** e identifique-se como dono ou pareie o aparelho em **Perfil → Dispositivos**. `npm run dev` e `pnpm dev` abrem a interface de desenvolvimento na porta 5577. Se seus treinos estão no endereço de desenvolvimento, exporte um backup em **Perfil → Seus dados** e importe no endereço self-hosted.
 
 Com o Ollama e um modelo local instalados no host, abra **Perfil → Assistente de treino**. Use **Atualizar modelos**, teste o modelo e confira o período e os dados que serão usados antes de gerar uma revisão. O endpoint padrão é `http://127.0.0.1:11434`. Use `FORJA_OLLAMA_URL` se a instância estiver em outro endereço administrado por você.
 

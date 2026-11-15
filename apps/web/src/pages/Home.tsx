@@ -22,6 +22,9 @@ export function Home() {
       const id = effectiveRoutine(date, plan, overrides);
       return id === null ? undefined : routineById.get(id);
     };
+    const todayRoutine = routineOn(today);
+    const preview = todayRoutine?.exercises.slice(0, 3) ?? [];
+    const exerciseNames = await db.exercises.bulkGet(preview.map(({ exerciseId }) => exerciseId));
     const start = startOfWeek(today, settings?.weekStartsOn ?? 1);
     const completedDates = new Set(workouts.map((workout) => workout.dateISO));
     const next = Array.from({ length: 14 }, (_, offset) => {
@@ -33,7 +36,11 @@ export function Home() {
       return { date, routine: routineOn(date), completed: completedDates.has(date) };
     });
     return {
-      lang: settings?.lang, todayRoutine: routineOn(today), next, week, routineById, total: workouts.length, latestWeight,
+      lang: settings?.lang, todayRoutine, next, week, routineById, total: workouts.length, latestWeight,
+      todayExercises: preview.flatMap((item, index) => {
+        const exercise = exerciseNames[index];
+        return exercise ? [{ name: exercise.name, sets: item.sets, reps: item.targetReps }] : [];
+      }),
       streak: computeStreak([...completedDates], today),
       ready: routines.some((routine) => routine.exercises.length > 0),
       recent: workouts.sort((a, b) => compareWorkouts(b, a)).slice(0, 3),
@@ -65,31 +72,39 @@ export function Home() {
       </header>
 
       <div className="journal-grid">
-        <section className="journal-session" aria-labelledby="today-workout">
-          <div className="journal-session-content">
-            <p className="journal-session-label">{active ? t("ui.activeSession") : t("home.today")}</p>
-            <h2 id="today-workout">{title}</h2>
-            {active ? (
-              <p>{t('ui.sessionExercisesCount', [active.exercises.length])}</p>
-            ) : hasToday ? (
-              <p>{routine.exercises.length} exercícios · {routine.exercises.reduce((count, exercise) => count + exercise.sets, 0)} séries</p>
-            ) : firstVisit ? (
-              <p>{t("ui.chooseFirst")}</p>
-            ) : dashboard ? (
-              <p>{dashboard.next?.routine
-                ? `Próximo treino: ${dashboard.next.routine.name} · ${dateShort.format(fromISO(dashboard.next.date))}`
-                : t("ui.noScheduled")}</p>
-            ) : (
-              <p role="status">{t("ui.agendaLoading")}</p>
-            )}
-            {active || hasToday ? (
-              <Link className="btn journal-start" to="/treino"><Play size={17} fill="currentColor" aria-hidden />{active ? t("home.continue") : t("home.start")}</Link>
-            ) : firstVisit ? (
-              <Link className="btn journal-start" to="/treinos?planos=1">{t("ui.startWithPlan")} <ArrowRight size={18} aria-hidden /></Link>
-            ) : dashboard ? (
-              <Link className="btn journal-start" to="/treinos">{t("ui.chooseRoutine")} <ArrowRight size={18} aria-hidden /></Link>
-            ) : null}
-          </div>
+        <section className="journal-panel journal-session" aria-labelledby="today-workout">
+          <p className="journal-session-label"><Dumbbell size={16} aria-hidden />{active ? t("ui.activeSession") : t("home.today")}</p>
+          <h2 id="today-workout">{title}</h2>
+          {active ? (
+            <p>{t('ui.sessionExercisesCount', [active.exercises.length])}</p>
+          ) : hasToday ? (
+            <p>{t('ui.sessionExercisesCount', [routine.exercises.length])}</p>
+          ) : firstVisit ? (
+            <p>{t("ui.chooseFirst")}</p>
+          ) : dashboard ? (
+            <p>{dashboard.next?.routine
+              ? `Próximo treino: ${dashboard.next.routine.name} · ${dateShort.format(fromISO(dashboard.next.date))}`
+              : t("ui.noScheduled")}</p>
+          ) : (
+            <p role="status">{t("ui.agendaLoading")}</p>
+          )}
+          {!active && !!dashboard?.todayExercises.length && (
+            <ul className="journal-routine-preview">
+              {dashboard.todayExercises.map(({ name, sets, reps }, index) => (
+                <li key={index}>
+                  <span>{name}</span>
+                  <strong>{reps ? `${sets} × ${reps}` : t('ui.sessionSetsCount', [sets])}</strong>
+                </li>
+              ))}
+            </ul>
+          )}
+          {active || hasToday ? (
+            <Link className="btn journal-start" to="/treino"><Play size={17} fill="currentColor" aria-hidden />{active ? t("home.continue") : t("home.start")}</Link>
+          ) : firstVisit ? (
+            <Link className="btn journal-start" to="/treinos?planos=1">{t("ui.startWithPlan")} <ArrowRight size={18} aria-hidden /></Link>
+          ) : dashboard ? (
+            <Link className="btn journal-start" to="/treinos">{t("ui.chooseRoutine")} <ArrowRight size={18} aria-hidden /></Link>
+          ) : null}
         </section>
 
         <LoadTrend />
