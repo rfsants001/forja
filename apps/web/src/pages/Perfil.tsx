@@ -1,3 +1,6 @@
+import { errorMessage } from '../lib/ui-error';
+import { Link } from 'react-router-dom';
+import { useT } from '../lib/i18n';
 import '../styles/perfil.css';
 import '../styles/print.css';
 
@@ -44,12 +47,11 @@ interface WeightChartProps {
 }
 
 function WeightChart({ points, goalKg }: WeightChartProps) {
+  const t = useT();
   // Precisamos de ao menos 2 pontos para traçar uma linha
   if (points.length < 2) {
     return (
-      <p className="hint" style={{ textAlign: 'center', padding: '20px 0' }}>
-        Registre ao menos 2 pesos pra ver a tendência.
-      </p>
+      <p className="hint" style={{ textAlign: 'center', padding: '20px 0' }}>{t("perf.atLeast2")}</p>
     );
   }
 
@@ -113,7 +115,7 @@ function WeightChart({ points, goalKg }: WeightChartProps) {
 
   return (
     <div className="chart-wrap">
-      <svg viewBox={`0 0 ${W} ${H}`} aria-label="Gráfico de evolução de peso">
+      <svg viewBox={`0 0 ${W} ${H}`} aria-label={t("perf.weightChartAriaLabel")}>
         {/* Eixo Y: linha e ticks */}
         <line
           x1={PAD_LEFT}
@@ -231,6 +233,7 @@ function WeightChart({ points, goalKg }: WeightChartProps) {
 // ---------------------------------------------------------------------------
 
 function BodyWeightForm() {
+  const t = useT();
   const [kg, setKg] = useState('');
   const [date, setDate] = useState(toISO(new Date()));
   const [busy, setBusy] = useState(false);
@@ -246,9 +249,9 @@ function BodyWeightForm() {
       await addBodyWeight({ dateISO: date, kg: parsed });
       setKg('');
       setDate(toISO(new Date()));
-      setStatus({ text: 'Peso registrado.' });
+      setStatus({ text: t('ui.weightSaved') });
     } catch {
-      setStatus({ text: 'Não foi possível registrar o peso. Tente novamente.', error: true });
+      setStatus({ text: t('ui.weightFailed'), error: true });
     } finally {
       setBusy(false);
     }
@@ -257,7 +260,7 @@ function BodyWeightForm() {
   return (
     <form className="bw-form" onSubmit={(e) => { void handleSubmit(e); }}>
       <div className="bw-field" style={{ maxWidth: 100 }}>
-        <label htmlFor="bw-kg">Peso (kg)</label>
+        <label htmlFor="bw-kg">{t("perf.weightKgLabel")}</label>
         <input
           id="bw-kg"
           className="bw-input"
@@ -272,7 +275,7 @@ function BodyWeightForm() {
         />
       </div>
       <div className="bw-field">
-        <label htmlFor="bw-date">Data</label>
+        <label htmlFor="bw-date">{t("perf.dateLabel")}</label>
         <input
           id="bw-date"
           className="bw-input"
@@ -289,7 +292,7 @@ function BodyWeightForm() {
         disabled={busy}
         style={{ flexShrink: 0, alignSelf: 'flex-end' }}
       >
-        {busy ? 'Registrando…' : 'Registrar peso'}
+        {busy ? t("ui.logging") : t("ui.logWeight")}
       </button>
       {status && <p className={status.error ? 'field-error' : 'hint'} role={status.error ? 'alert' : 'status'}>{status.text}</p>}
     </form>
@@ -301,11 +304,10 @@ function BodyWeightForm() {
 // ---------------------------------------------------------------------------
 
 function BodyWeightList({ entries }: { entries: BodyWeight[] }) {
+  const t = useT();
   if (entries.length === 0) {
     return (
-      <p className="hint" style={{ textAlign: 'center', padding: '12px 0' }}>
-        Nenhum registro ainda.
-      </p>
+      <p className="hint" style={{ textAlign: 'center', padding: '12px 0' }}>{t("perf.noEntries")}</p>
     );
   }
 
@@ -338,7 +340,7 @@ function BodyWeightList({ entries }: { entries: BodyWeight[] }) {
 // ---------------------------------------------------------------------------
 
 /** Chave usada para feedback de "salvo" */
-type SettingKey = 'unit' | 'defaultRestSec' | 'theme' | 'accent' | 'weekStartsOn' | 'trackEffort' | 'bodyWeightGoalKg';
+type SettingKey = 'lang' | 'unit' | 'defaultRestSec' | 'theme' | 'accent' | 'weekStartsOn' | 'trackEffort' | 'bodyWeightGoalKg';
 
 /** Paletas de acento disponíveis */
 const ACCENT_PALETTES: { name: string; label: string; color: string }[] = [
@@ -353,6 +355,7 @@ const ACCENT_PALETTES: { name: string; label: string; color: string }[] = [
 ];
 
 function SettingsSection({ settings }: { settings: Settings }) {
+  const t = useT();
   // Estados locais sincronizados com a setting reativa
   const [restSec, setRestSec] = useState(String(settings.defaultRestSec));
   const [goalKg, setGoalKg] = useState(
@@ -387,7 +390,7 @@ function SettingsSection({ settings }: { settings: Settings }) {
     const rest = Number(restSec);
     const goal = goalKg.trim() ? Number(goalKg) : undefined;
     if (!Number.isInteger(rest) || rest < 0 || rest > 600 || (goal !== undefined && (goal < 1 || goal > 500 || !Number.isFinite(goal)))) {
-      setSettingsError('Informe um descanso entre 0 e 600 segundos e uma meta entre 1 e 500 kg.');
+      setSettingsError(t('ui.prefRange'));
       return;
     }
     setSavingNumbers(true);
@@ -395,7 +398,7 @@ function SettingsSection({ settings }: { settings: Settings }) {
       await updateSettings({ defaultRestSec: rest, bodyWeightGoalKg: goal });
       flashSaved('defaultRestSec');
     } catch {
-      setSettingsError('Não foi possível salvar as preferências. Tente novamente.');
+      setSettingsError(t('ui.prefSaveFailed'));
     } finally {
       setSavingNumbers(false);
     }
@@ -413,17 +416,16 @@ function SettingsSection({ settings }: { settings: Settings }) {
       await updateSettings(patch);
       flashSaved(key);
     } catch {
-      setSettingsError('Não foi possível salvar a preferência. Tente novamente.');
+      setSettingsError(t('ui.settingSaveFailed'));
     }
   }
 
   function SavedBadge({ k }: { k: SettingKey }) {
+  const t = useT();
     if (savedKey !== k) return null;
     return (
       <span className="save-badge" role="status">
-        <CheckCircle2 size={12} />
-        salvo
-      </span>
+        <CheckCircle2 size={12} />{t("perf.savedBadge")}</span>
     );
   }
 
@@ -432,7 +434,7 @@ function SettingsSection({ settings }: { settings: Settings }) {
       {/* Unidade */}
       <div className="setting-row">
         <div className="setting-label">
-          <span className="lbl">Unidade de peso</span>
+          <span className="lbl">{t("perf.unitLabel")}</span>
         </div>
         <SavedBadge k="unit" />
         <div className="toggle-group">
@@ -451,31 +453,41 @@ function SettingsSection({ settings }: { settings: Settings }) {
         </div>
       </div>
 
+      <div className="setting-row">
+        <label className="setting-label" htmlFor="profile-lang"><span className="lbl">{t('locale.language')}</span></label>
+        <SavedBadge k="lang" />
+        <select className="setting-select" id="profile-lang" value={settings.lang ?? 'pt'}
+          onChange={(event) => void saveSetting({ lang: event.target.value === 'en' ? 'en' : 'pt' }, 'lang')}>
+          <option value="pt">Português (Brasil)</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+
       {/* Tema */}
       <div className="setting-row">
         <div className="setting-label">
-          <span className="lbl">Tema</span>
+          <span className="lbl">{t('locale.theme')}</span>
         </div>
         <SavedBadge k="theme" />
         <select
           className="setting-select"
           value={settings.theme}
           onChange={(e) => { void saveSetting({ theme: e.target.value as Settings['theme'] }, 'theme'); }}
-          aria-label="Tema do aplicativo"
+          aria-label={t('locale.appearance')}
         >
-          <option value="dark">Escuro</option>
-          <option value="light">Claro</option>
-          <option value="system">Sistema</option>
+          <option value="dark">{t('locale.dark')}</option>
+          <option value="light">{t('locale.light')}</option>
+          <option value="system">{t('locale.system')}</option>
         </select>
       </div>
 
       {/* Cor de acento */}
       <div className="setting-row accent-row">
         <div className="setting-label">
-          <span className="lbl">Cor de acento</span>
+          <span className="lbl">{t('locale.accent')}</span>
           <SavedBadge k="accent" />
         </div>
-        <div className="accent-swatches" role="group" aria-label="Cor de acento">
+        <div className="accent-swatches" role="group" aria-label={t('locale.accent')}>
           {ACCENT_PALETTES.map((p) => {
             const active = (settings.accent ?? 'flame') === p.name;
             return (
@@ -496,67 +508,59 @@ function SettingsSection({ settings }: { settings: Settings }) {
       {/* Início da semana */}
       <div className="setting-row">
         <div className="setting-label">
-          <span className="lbl">Semana começa em</span>
+          <span className="lbl">{t("perf.weekStartLabel")}</span>
         </div>
         <SavedBadge k="weekStartsOn" />
         <div className="toggle-group">
           <button
             className={settings.weekStartsOn === 0 ? 'active' : ''} aria-pressed={settings.weekStartsOn === 0}
             onClick={() => { void saveSetting({ weekStartsOn: 0 }, 'weekStartsOn'); }}
-          >
-            Dom
-          </button>
+          >{t("perf.weekSun")}</button>
           <button
             className={settings.weekStartsOn === 1 ? 'active' : ''} aria-pressed={settings.weekStartsOn === 1}
             onClick={() => { void saveSetting({ weekStartsOn: 1 }, 'weekStartsOn'); }}
-          >
-            Seg
-          </button>
+          >{t("perf.weekMon")}</button>
         </div>
       </div>
 
       {/* Rastrear esforço */}
       <div className="setting-row">
         <div className="setting-label">
-          <span className="lbl">Registrar esforço</span>
-          <span className="sub">RIR / RPE por série</span>
+          <span className="lbl">{t("perf.effortLabel")}</span>
+          <span className="sub">{t("perf.effortSub")}</span>
         </div>
         <SavedBadge k="trackEffort" />
         <div className="toggle-group">
           <button
             className={settings.trackEffort ? 'active' : ''} aria-pressed={settings.trackEffort}
             onClick={() => { void saveSetting({ trackEffort: true }, 'trackEffort'); }}
-          >
-            Ligado
-          </button>
+          >{t("perf.effortOn")}</button>
           <button
             className={!settings.trackEffort ? 'active' : ''} aria-pressed={!settings.trackEffort}
             onClick={() => { void saveSetting({ trackEffort: false }, 'trackEffort'); }}
-          >
-            Desligado
-          </button>
+          >{t("perf.effortOff")}</button>
         </div>
       </div>
 
       <form className="profile-preferences" onSubmit={(event) => void saveNumbers(event)}>
         <div className="field-grid">
           <div className="field">
-            <label htmlFor="profile-rest">Descanso entre séries</label>
+            <label htmlFor="profile-rest">{t("ui.restBetweenSets")}</label>
             <input id="profile-rest" type="number" inputMode="numeric" min={0} max={600} step={1}
               value={restSec} onChange={(event) => setRestSec(event.target.value)}
-              aria-label="Descanso padrão em segundos" aria-describedby="profile-rest-help" required />
-            <span className="hint" id="profile-rest-help">Em segundos. Use 0 para pular.</span>
+              aria-label={t("perf.restAriaLabel")} aria-describedby="profile-rest-help" required />
+            <span className="hint" id="profile-rest-help">{t("ui.restHelp")}</span>
           </div>
           <div className="field">
-            <label htmlFor="profile-goal">Meta de peso (kg)</label>
+            <label htmlFor="profile-goal">{t("ui.weightGoal")}</label>
             <input id="profile-goal" type="number" inputMode="decimal" min={1} max={500} step="any"
-              value={goalKg} onChange={(event) => setGoalKg(event.target.value)} aria-label="Meta de peso corporal em kg" />
-            <span className="hint">Deixe em branco para remover a meta.</span>
+              value={goalKg} onChange={(event) => setGoalKg(event.target.value)} aria-label={t("perf.goalAriaLabel")} />
+            <span className="hint">{t("ui.removeGoal")}</span>
           </div>
         </div>
         <div className="form-actions">
           <SavedBadge k="defaultRestSec" />
-          <button className="btn" type="submit" disabled={!numbersChanged || savingNumbers}>{savingNumbers ? 'Salvando…' : 'Salvar preferências'}</button>
+          <button className="btn" type="submit" disabled={!numbersChanged || savingNumbers}>{savingNumbers ? t("ex.savingNote") : t("ui.savePreferences")}</button>
         </div>
       </form>
       {settingsError && <p className="field-error" role="alert">{settingsError}</p>}
@@ -569,6 +573,7 @@ function SettingsSection({ settings }: { settings: Settings }) {
 // ---------------------------------------------------------------------------
 
 function SeusDadosSection() {
+  const t = useT();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<'idle' | 'busy' | 'ok' | 'error'>('idle');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -592,7 +597,7 @@ function SeusDadosSection() {
       showFeedback('Backup exportado com sucesso!', 'ok');
     } catch (err) {
       showFeedback(
-        err instanceof Error ? err.message : 'Erro ao exportar.',
+        errorMessage(err, t, 'ui.exportError'),
         'error',
       );
     }
@@ -611,7 +616,7 @@ function SeusDadosSection() {
       setPending({ name: file.name, backup: parseBackup(await file.text()) });
       setStatus('idle');
     } catch (err) {
-      showFeedback(err instanceof Error ? err.message : 'Não foi possível ler o backup.', 'error');
+      showFeedback(errorMessage(err, t, 'ui.importError'), 'error');
     }
   }
 
@@ -622,9 +627,9 @@ function SeusDadosSection() {
     try {
       const counts = await restoreBackup(pending.backup, mode);
       setPending(null);
-      showFeedback(`Backup restaurado. ${counts.workouts ?? 0} treino(s) no arquivo.`, 'ok');
-    } catch {
-      showFeedback('Não foi possível restaurar o backup. Tente novamente.', 'error');
+      showFeedback(t('ui.backupRestored', [counts.workouts ?? 0]), 'ok');
+    } catch (error) {
+      showFeedback(errorMessage(error, t, 'ui.restoreError'), 'error');
     }
   }
 
@@ -633,10 +638,7 @@ function SeusDadosSection() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <Database size={15} style={{ opacity: 0.6, flexShrink: 0 }} />
         <p className="hint" style={{ lineHeight: 1.5 }}>
-          <strong style={{ color: 'var(--text)' }}>Local-first:</strong> seus dados ficam
-          neste aparelho, sem passar por servidores. Exporte um backup JSON para guardar
-          ou transferir para outro dispositivo.
-        </p>
+          <strong style={{ color: 'var(--text)' }}>{t("perf.localFirstStrong")}</strong>{t("ui.backupExplainer")}</p>
       </div>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
@@ -647,9 +649,7 @@ function SeusDadosSection() {
           onClick={() => { void handleExport(); }}
           style={{ flex: '1 1 auto' }}
         >
-          <Download size={15} />
-          Exportar backup
-        </button>
+          <Download size={15} />{t("perf.exportBackup")}</button>
 
         {/* Importar — input oculto disparado pelo botão ghost */}
         <input
@@ -666,33 +666,31 @@ function SeusDadosSection() {
           onClick={() => fileInputRef.current?.click()}
           style={{ flex: '1 1 auto' }}
         >
-          <Upload size={15} />
-          Importar backup
-        </button>
+          <Upload size={15} />{t("perf.importBackup")}</button>
       </div>
 
       {pending !== null && (
         <section className="restore-options" aria-labelledby="restore-title" aria-busy={status === 'busy'}>
-          <h3 id="restore-title" tabIndex={-1} ref={heading}>Restaurar backup</h3>
-          <p>{pending.name} · {pending.backup.data.workouts?.length ?? 0} treino(s)</p>
-          {pending.backup.version === 1 && <p className="hint">Este formato antigo não inclui medidas corporais. As medidas locais serão mantidas.</p>}
-          <p className="hint">Mesclar atualiza registros com a mesma identificação. Substituir troca os dados locais pelos do arquivo.</p>
+          <h3 id="restore-title" tabIndex={-1} ref={heading}>{t("ui.restore")}</h3>
+          <p>{pending.name} · {t('hist.manyWorkouts', [pending.backup.data.workouts?.length ?? 0])}</p>
+          {pending.backup.version === 1 && <p className="hint">{t("ui.legacyBackup")}</p>}
+          <p className="hint">{t("ui.restoreHelp")}</p>
           <div className="btn-row">
             <button className="btn ghost" disabled={status === 'busy'} onClick={() => {
               setPending(null); setReplacing(false); importButton.current?.focus();
-            }}>Cancelar</button>
-            <button className="btn" disabled={status === 'busy'} onClick={() => void handleRestore('merge')}>Mesclar dados</button>
-            <button className="btn danger" disabled={status === 'busy'} onClick={() => setReplacing(true)}>Substituir dados</button>
+            }}>{t("perf.cancel")}</button>
+            <button className="btn" disabled={status === 'busy'} onClick={() => void handleRestore('merge')}>{t("ui.mergeData")}</button>
+            <button className="btn danger" disabled={status === 'busy'} onClick={() => setReplacing(true)}>{t("ui.replaceData")}</button>
           </div>
           {replacing && (
             <div className="feedback error">
-              <p>Confirme para remover os registros locais que não estão no backup.</p>
-              <button className="btn danger" disabled={status === 'busy'} onClick={() => void handleRestore('replace')}>Confirmar substituição</button>
+              <p>{t("ui.confirmReplaceHelp")}</p>
+              <button className="btn danger" disabled={status === 'busy'} onClick={() => void handleRestore('replace')}>{t("ui.confirmReplace")}</button>
             </div>
           )}
         </section>
       )}
-      {status === 'busy' && <p role="status" className="feedback">Processando backup…</p>}
+      {status === 'busy' && <p role="status" className="feedback">{t("ui.processingBackup")}</p>}
 
       {/* Feedback */}
       {feedback !== null && (
@@ -730,6 +728,7 @@ interface ImportPreview {
 }
 
 function ImportarAppSection() {
+  const t = useT();
   const [source, setSource] = useState<ImportSource>('fitnotes');
   const [status, setStatus] = useState<'idle' | 'parsing' | 'preview' | 'applying' | 'done' | 'error'>('idle');
   const [applying, setApplying] = useState(false);
@@ -784,7 +783,7 @@ function ImportarAppSection() {
       });
       setStatus('preview');
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Erro ao processar o arquivo.');
+      showError(errorMessage(err, t, 'ui.importError'));
     }
   }
 
@@ -802,7 +801,7 @@ function ImportarAppSection() {
       setStatus('done');
       setPreview(null);
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Erro ao gravar os dados.');
+      showError(errorMessage(err, t, 'ui.importError'));
     } finally {
       setApplying(false);
     }
@@ -814,9 +813,7 @@ function ImportarAppSection() {
     <div className="card">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <FileInput size={15} style={{ opacity: 0.6, flexShrink: 0 }} />
-        <p className="hint" style={{ lineHeight: 1.5 }}>
-          Importe treinos de outros apps. Revise a prévia antes de criar exercícios personalizados e salvar o histórico.
-        </p>
+        <p className="hint" style={{ lineHeight: 1.5 }}>{t("ui.importHelp")}</p>
       </div>
 
       {/* Seletor de origem */}
@@ -854,7 +851,7 @@ function ImportarAppSection() {
             onClick={() => fileInputRef.current?.click()}
           >
             <ArrowDownToLine size={15} />
-            {status === 'parsing' ? 'Processando…' : `Selecionar arquivo ${currentSource?.label ?? ''}`}
+            {status === 'parsing' ? t("perf.processing") : `Selecionar arquivo ${currentSource?.label ?? ''}`}
           </button>
         </>
       )}
@@ -862,17 +859,17 @@ function ImportarAppSection() {
       {/* Preview */}
       {status === 'preview' && preview !== null && (
         <div style={{ marginTop: 14, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
-          <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Prévia da importação</p>
+          <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>{t("perf.previewTitle")}</p>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
-            <li><span style={{ color: 'var(--text-muted)' }}>Treinos:</span> <strong>{preview.workouts}</strong></li>
-            <li><span style={{ color: 'var(--text-muted)' }}>Exercícios novos:</span> <strong>{preview.exercises}</strong></li>
-            {(preview.result.skippedRows ?? 0) > 0 && <li>{preview.result.skippedRows} linha(s) ignorada(s) por falta de data ou exercício válido.</li>}
+            <li><span style={{ color: 'var(--text-muted)' }}>{t("perf.previewWorkouts")}</span> <strong>{preview.workouts}</strong></li>
+            <li><span style={{ color: 'var(--text-muted)' }}>{t("perf.previewNewEx")}</span> <strong>{preview.exercises}</strong></li>
+            {(preview.result.skippedRows ?? 0) > 0 && <li>{t('ui.ignoredRows', [preview.result.skippedRows ?? 0])}</li>}
             {preview.bodyweight > 0 && (
-              <li><span style={{ color: 'var(--text-muted)' }}>Pesos:</span> <strong>{preview.bodyweight}</strong></li>
+              <li><span style={{ color: 'var(--text-muted)' }}>{t("perf.previewWeights")}</span> <strong>{preview.bodyweight}</strong></li>
             )}
             {preview.unrecognized.length > 0 && (
               <li style={{ marginTop: 4 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Exercícios não reconhecidos (serão criados como personalizados):</span>
+                <span style={{ color: 'var(--text-muted)' }}>{t("perf.previewUnrecognized")}</span>
                 <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
                   {preview.unrecognized.slice(0, 8).join(', ')}
                   {preview.unrecognized.length > 8 && ` … +${preview.unrecognized.length - 8}`}
@@ -888,11 +885,9 @@ function ImportarAppSection() {
               onClick={() => { void handleConfirm(); }}
             >
               <CheckCircle2 size={14} />
-              {applying ? 'Gravando…' : 'Confirmar importação'}
+              {applying ? t("perf.applying") : t("perf.confirmImport")}
             </button>
-            <button className="btn ghost" onClick={resetState}>
-              Cancelar
-            </button>
+            <button className="btn ghost" onClick={resetState}>{t("perf.cancel")}</button>
           </div>
         </div>
       )}
@@ -914,9 +909,7 @@ function ImportarAppSection() {
         </p>
       )}
       {status === 'done' && (
-        <button className="btn ghost" style={{ marginTop: 10, width: '100%' }} onClick={resetState}>
-          Importar outro arquivo
-        </button>
+        <button className="btn ghost" style={{ marginTop: 10, width: '100%' }} onClick={resetState}>{t("perf.importAnother")}</button>
       )}
     </div>
   );
@@ -927,6 +920,7 @@ function ImportarAppSection() {
 // ---------------------------------------------------------------------------
 
 function CompartilharPlanoSection() {
+  const t = useT();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<'idle' | 'busy' | 'ok' | 'error'>('idle');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -944,7 +938,7 @@ function CompartilharPlanoSection() {
       await downloadPlan();
       showFeedback('Plano exportado com sucesso!', 'ok');
     } catch (err) {
-      showFeedback(err instanceof Error ? err.message : 'Erro ao exportar.', 'error');
+      showFeedback(errorMessage(err, t, 'ui.exportError'), 'error');
     }
   }
 
@@ -954,7 +948,7 @@ function CompartilharPlanoSection() {
       await printPlan();
       setStatus('idle');
     } catch (err) {
-      showFeedback(err instanceof Error ? err.message : 'Erro ao abrir impressão.', 'error');
+      showFeedback(errorMessage(err, t, 'file.printWindow'), 'error');
     }
   }
 
@@ -973,7 +967,7 @@ function CompartilharPlanoSection() {
         'ok',
       );
     } catch (err) {
-      showFeedback(err instanceof Error ? err.message : 'Erro ao importar.', 'error');
+      showFeedback(errorMessage(err, t, 'ui.importError'), 'error');
     }
   }
 
@@ -981,15 +975,11 @@ function CompartilharPlanoSection() {
     <div className="card">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <Share2 size={15} style={{ opacity: 0.6, flexShrink: 0 }} />
-        <p className="hint" style={{ lineHeight: 1.5 }}>
-          Compartilhe suas rotinas e plano semanal — sem histórico de treinos ou dados de peso.
-        </p>
+        <p className="hint" style={{ lineHeight: 1.5 }}>{t("perf.shareHint")}</p>
       </div>
 
       <label className="starter-replace">
-        <input type="checkbox" checked={replacePlanDays} onChange={(event) => setReplacePlanDays(event.target.checked)} />
-        Substituir dias ocupados ao importar um plano
-      </label>
+        <input type="checkbox" checked={replacePlanDays} onChange={(event) => setReplacePlanDays(event.target.checked)} />{t("ui.replacePlanDays")}</label>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <button
           className="btn"
@@ -997,9 +987,7 @@ function CompartilharPlanoSection() {
           disabled={status === 'busy'}
           onClick={() => { void handleExport(); }}
         >
-          <Download size={15} />
-          Exportar plano
-        </button>
+          <Download size={15} />{t("perf.exportPlan")}</button>
 
         <input
           ref={fileInputRef}
@@ -1014,9 +1002,7 @@ function CompartilharPlanoSection() {
           disabled={status === 'busy'}
           onClick={() => fileInputRef.current?.click()}
         >
-          <Upload size={15} />
-          Importar plano
-        </button>
+          <Upload size={15} />{t("perf.importPlan")}</button>
 
         <button
           className="btn ghost"
@@ -1024,15 +1010,11 @@ function CompartilharPlanoSection() {
           disabled={status === 'busy'}
           onClick={() => { void handlePrint(); }}
         >
-          <Printer size={15} />
-          Imprimir / PDF
-        </button>
+          <Printer size={15} />{t("perf.printPlan")}</button>
       </div>
 
       <p className="hint" style={{ marginTop: 10 }}>
-        Na impressão, o browser abre uma janela com o plano formatado — salve como PDF pelo
-        diálogo nativo (<em>Ctrl+P</em> ou <em>Cmd+P</em>).
-      </p>
+        {t('ui.printHint')}</p>
 
       {feedback !== null && (
         <p
@@ -1058,6 +1040,7 @@ function CompartilharPlanoSection() {
 // ---------------------------------------------------------------------------
 
 export function Perfil() {
+  const t = useT();
   const { hash } = useLocation();
   useEffect(() => {
     if (hash !== '#importar-historico') return;
@@ -1091,19 +1074,23 @@ export function Perfil() {
             <User size={20} strokeWidth={2.4} />
           </span>
           <h1>
-            Perfil
+            {t('nav.profile')}
           </h1>
         </div>
       </div>
 
       <div className="profile-layout">
         <section aria-labelledby="profile-settings">
-          <h2 className="section-title" id="profile-settings">Configurações</h2>
-          {rawSettings === undefined ? <p role="status" className="hint">Carregando preferências…</p> : <SettingsSection settings={settings} />}
+          <h2 className="section-title" id="profile-settings">{t('perf.settingsTitle')}</h2>
+          <div className="btn-row">
+            <Link className="btn ghost" to="/perfil/dispositivos">{t('sync.devices')}</Link>
+            <Link className="btn ghost" to="/perfil/assistente">{t('coach.title')}</Link>
+          </div>
+          {rawSettings === undefined ? <p role="status" className="hint">{t("ui.loadingPreferences")}</p> : <SettingsSection settings={settings} />}
         </section>
         <div className="profile-data">
           <section aria-labelledby="profile-weight">
-            <h2 className="section-title" id="profile-weight">Peso corporal</h2>
+            <h2 className="section-title" id="profile-weight">{t("perf.weightTitle")}</h2>
             <div className="card">
               <WeightChart points={entries} goalKg={settings.bodyWeightGoalKg} />
               <BodyWeightForm />
@@ -1111,15 +1098,15 @@ export function Perfil() {
             </div>
           </section>
           <section aria-labelledby="profile-backup">
-            <h2 className="section-title" id="profile-backup">Seus dados</h2>
+            <h2 className="section-title" id="profile-backup">{t("perf.dataTitle")}</h2>
             <SeusDadosSection />
           </section>
           <section aria-labelledby="importar-historico">
-            <h2 className="section-title" id="importar-historico" tabIndex={-1}>Importar de outro app</h2>
+            <h2 className="section-title" id="importar-historico" tabIndex={-1}>{t("perf.importTitle")}</h2>
             <ImportarAppSection />
           </section>
           <section aria-labelledby="profile-plan">
-            <h2 className="section-title" id="profile-plan">Compartilhar plano</h2>
+            <h2 className="section-title" id="profile-plan">{t("perf.shareTitle")}</h2>
             <CompartilharPlanoSection />
           </section>
         </div>

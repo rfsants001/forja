@@ -4,6 +4,6 @@ export function applyAppearance(theme: Settings['theme'], accent: Settings['acce
   const root = document.documentElement;
   root.dataset.theme = theme === 'system' ? (systemLight ? 'light' : 'dark') : theme;
   root.dataset.accent = accent ?? 'flame';
-  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-    ?.setAttribute('content', root.dataset.theme === 'light' ? '#f6f5fa' : '#151525');
+  const background = getComputedStyle(root).getPropertyValue('--bg').trim();
+  if (background) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', background);
 }

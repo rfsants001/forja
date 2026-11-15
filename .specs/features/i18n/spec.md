@@ -1,6 +1,6 @@
 # P5-003 · i18n PT/EN
 
-**Estado em 13/11/2026: iniciado e incompleto.** A interrupção do trabalho anterior deixou dicionários, `useT()`, `Settings.lang` e componentes parcialmente traduzidos. A compilação voltou a funcionar. O componente Media ganhou controles de posições e créditos. A biblioteca ganhou o diálogo do atlas, o inventário e filtros, e a sessão ganhou aquecimento. Inclua essas mensagens e os nomes acessíveis na cobertura.
+**Estado em 15/11/2026.** Seletor do Perfil, persistência, idioma do HTML, navegação e controles principais em PT/EN já funcionam. O core gera chaves estáveis para as justificativas de progressão. Os testes passaram pela troca, recarga e volta ao português. Ainda resta revisar a cópia de fluxos secundários e seus formatos.
 
 ## Retomada
 

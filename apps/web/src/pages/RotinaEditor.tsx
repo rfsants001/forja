@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n';
 import '../styles/setup.css';
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -19,9 +20,6 @@ import { estimate1RM } from '@forja/core';
 import { db } from '../db/db';
 import { upsertRoutine, deleteRoutine } from '../db/repo';
 import {
-  MUSCLE_LABEL,
-  MODE_LABEL,
-  PROGRESSION_LABEL,
   PROGRESSION_OPTIONS,
   MUSCLE_OPTIONS,
 } from '../lib/labels';
@@ -92,6 +90,7 @@ interface ExPickerProps {
 }
 
 function ExPicker({ onSelect, onClose }: ExPickerProps) {
+  const t = useT();
   const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray(), []);
   const [query, setQuery] = useState('');
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | null>(null);
@@ -128,8 +127,8 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
       aria-labelledby="exercise-picker-title" onClose={onClose}>
       <div className="ex-picker-content">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 id="exercise-picker-title">Adicionar exercício</h3>
-          <button className="icon-btn" type="button" onClick={() => dialogRef.current?.close()} aria-label="Fechar">
+          <h3 id="exercise-picker-title">{t("re.addExercise")}</h3>
+          <button className="icon-btn" type="button" onClick={() => dialogRef.current?.close()} aria-label={t("re.close")}>
             <X size={16} />
           </button>
         </div>
@@ -138,12 +137,12 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
         <div className="search-bar">
           <Search size={15} color="var(--text-muted)" />
           <input
-            type="search" aria-label="Buscar exercício para a rotina"
+            type="search" aria-label={t("ui.findRoutineExercise")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           {query.length > 0 && (
-            <button type="button" aria-label="Limpar busca" onClick={() => setQuery('')} style={{ color: 'var(--text-muted)', display: 'grid', placeItems: 'center' }}>
+            <button type="button" aria-label={t("ui.clearSearch")} onClick={() => setQuery('')} style={{ color: 'var(--text-muted)', display: 'grid', placeItems: 'center' }}>
               <X size={13} />
             </button>
           )}
@@ -154,16 +153,14 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
           <button
             className={`chip${muscleFilter === null ? ' active' : ''}`}
             onClick={() => setMuscleFilter(null)}
-          >
-            Todos
-          </button>
+          >{t("re.all")}</button>
           {MUSCLE_OPTIONS.map((m) => (
             <button
               key={m}
               className={`chip${muscleFilter === m ? ' active' : ''}`}
               onClick={() => setMuscleFilter(muscleFilter === m ? null : m)}
             >
-              {MUSCLE_LABEL[m]}
+              {t(`muscle.${m}`)}
             </button>
           ))}
         </div>
@@ -192,7 +189,7 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
               <div className="ex-info">
                 <div className="ex-name">{ex.name}</div>
                 <div className="ex-meta">
-                  {MUSCLE_LABEL[ex.primaryMuscle]} · {MODE_LABEL[ex.mode]}
+                  {t(`muscle.${ex.primaryMuscle}`)} · {t(`mode.${ex.mode}`)}
                 </div>
               </div>
               <Plus size={16} color="var(--flame)" />
@@ -206,14 +203,12 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
               style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}
               onClick={() => setVisibleCount((n) => n + PICKER_PAGE_SIZE)}
             >
-              Carregar mais ({filtered.length - visibleCount} restantes)
+              {t('ui.moreExercises', [filtered.length - visibleCount])}
             </button>
           )}
 
           {filtered.length === 0 && (
-            <p className="hint" style={{ textAlign: 'center', padding: '24px 0' }}>
-              Nenhum exercício encontrado.
-            </p>
+            <p className="hint" style={{ textAlign: 'center', padding: '24px 0' }}>{t("re.noExercises")}</p>
           )}
         </div>
       </div>
@@ -248,6 +243,7 @@ function RexRow({
   selected, onToggleSelect,
   onChange, onMoveUp, onMoveDown, onRemove, onUngroup, onDeriveTM,
 }: RexRowProps) {
+  const t = useT();
   const hasGroup = rex.supersetGroup !== undefined;
   const color = hasGroup ? supersetColor(rex.supersetGroup!) : undefined;
   const label = hasGroup ? supersetLabel(rex.supersetGroup!) : undefined;
@@ -277,7 +273,7 @@ function RexRow({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="rex-name">{exName}</div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
-            <span className="rex-mode">{MODE_LABEL[mode]}</span>
+            <span className="rex-mode">{t(`mode.${mode}`)}</span>
             {hasGroup && (
               <span
                 className="rex-superset-badge"
@@ -293,7 +289,7 @@ function RexRow({
       <div className="rex-controls">
         {/* Sets — sempre */}
         <div className="field">
-          <label htmlFor={`rex-sets-${rex._key}`}>Séries</label>
+          <label htmlFor={`rex-sets-${rex._key}`}>{t("re.sets")}</label>
           <input id={`rex-sets-${rex._key}`}
             type="number" inputMode="numeric"
             min={1}
@@ -307,10 +303,10 @@ function RexRow({
         {/* G3: campos condicionais por modo */}
         {mode === 'reps' && (
           <div className="field">
-            <label htmlFor={`rex-reps-${rex._key}`}>Repetições-alvo</label>
+            <label htmlFor={`rex-reps-${rex._key}`}>{t("ui.targetReps")}</label>
             <input id={`rex-reps-${rex._key}`}
               type="text"
-              placeholder="Ex.: 8–12"
+              placeholder={t("re.phReps")}
               value={rex.targetReps ?? ''}
               onChange={(e) => onChange(rex._key, { targetReps: e.target.value || undefined })}
             />
@@ -319,11 +315,11 @@ function RexRow({
 
         {mode === 'time' && (
           <div className="field">
-            <label htmlFor={`rex-seconds-${rex._key}`}>Tempo (s)</label>
+            <label htmlFor={`rex-seconds-${rex._key}`}>{t("ui.seconds")}</label>
             <input id={`rex-seconds-${rex._key}`}
               type="number" inputMode="decimal"
               min={1}
-              placeholder="Ex.: 60"
+              placeholder={t("re.phTime")}
               value={rex.targetSec ?? ''}
               onChange={(e) =>
                 onChange(rex._key, {
@@ -337,11 +333,11 @@ function RexRow({
         {mode === 'cardio' && (
           <>
             <div className="field">
-              <label htmlFor={`rex-seconds-${rex._key}`}>Tempo (s)</label>
+              <label htmlFor={`rex-seconds-${rex._key}`}>{t("ui.seconds")}</label>
               <input id={`rex-seconds-${rex._key}`}
                 type="number" inputMode="decimal"
                 min={1}
-                placeholder="Opcional"
+                placeholder={t("re.phOptional")}
                 value={rex.targetSec ?? ''}
                 onChange={(e) =>
                   onChange(rex._key, {
@@ -351,12 +347,12 @@ function RexRow({
               />
             </div>
             <div className="field">
-              <label htmlFor={`rex-distance-${rex._key}`}>Distância (m)</label>
+              <label htmlFor={`rex-distance-${rex._key}`}>{t("re.distance")}</label>
               <input id={`rex-distance-${rex._key}`}
                 type="number" inputMode="decimal"
                 min={0}
                 step="any"
-                placeholder="Ex.: 1000"
+                placeholder={t("re.phDistance")}
                 value={rex.targetDistanceM ?? ''}
                 onChange={(e) =>
                   onChange(rex._key, {
@@ -366,12 +362,12 @@ function RexRow({
               />
             </div>
             <div className="field">
-              <label htmlFor={`rex-speed-${rex._key}`}>Velocidade (km/h)</label>
+              <label htmlFor={`rex-speed-${rex._key}`}>{t("re.speed")}</label>
               <input id={`rex-speed-${rex._key}`}
                 type="number" inputMode="decimal"
                 min={0}
                 step="any"
-                placeholder="Ex.: 10"
+                placeholder={t("re.phSpeed")}
                 value={rex.targetSpeedKmh ?? ''}
                 onChange={(e) =>
                   onChange(rex._key, {
@@ -385,11 +381,11 @@ function RexRow({
 
         {/* Descanso — sempre */}
         <div className="field">
-          <label htmlFor={`rex-rest-${rex._key}`}>Descanso (s)</label>
+          <label htmlFor={`rex-rest-${rex._key}`}>{t("ui.restSeconds")}</label>
           <input id={`rex-rest-${rex._key}`}
             type="number" inputMode="decimal"
             min={0}
-            placeholder="Ex.: 90"
+            placeholder={t("re.phRest")}
             value={rex.restSec ?? ''}
             onChange={(e) =>
               onChange(rex._key, {
@@ -402,12 +398,12 @@ function RexRow({
         {/* Incremento — só para reps */}
         {mode === 'reps' && (
           <div className="field">
-            <label htmlFor={`rex-increment-${rex._key}`}>Incremento (kg)</label>
+            <label htmlFor={`rex-increment-${rex._key}`}>{t("re.increment")}</label>
             <input id={`rex-increment-${rex._key}`}
               type="number" inputMode="decimal"
               min={0}
               step="any"
-              placeholder="Ex.: 2.5"
+              placeholder={t("re.phIncrement")}
               value={rex.incrementKg ?? ''}
               onChange={(e) =>
                 onChange(rex._key, {
@@ -420,7 +416,7 @@ function RexRow({
 
         {/* Progressão */}
         <div className="field full">
-          <label htmlFor={`rex-progression-${rex._key}`}>Progressão</label>
+          <label htmlFor={`rex-progression-${rex._key}`}>{t("re.progression")}</label>
           <select id={`rex-progression-${rex._key}`}
             value={rex.progression ?? 'off'}
             onChange={(e) =>
@@ -428,7 +424,7 @@ function RexRow({
             }
           >
             {PROGRESSION_OPTIONS.map((p) => (
-              <option key={p} value={p}>{PROGRESSION_LABEL[p]}</option>
+              <option key={p} value={p}>{t(`prog.policy.${p}`)}</option>
             ))}
           </select>
         </div>
@@ -437,12 +433,12 @@ function RexRow({
         {rex.progression === '531' && (
           <>
             <div className="field">
-              <label htmlFor={`rex-tm-${rex._key}`}>Máximo de treino (kg)</label>
+              <label htmlFor={`rex-tm-${rex._key}`}>{t("ui.trainingMax")}</label>
               <input id={`rex-tm-${rex._key}`}
                 type="number" inputMode="decimal"
                 min={1}
                 step="any"
-                placeholder="Ex.: 100"
+                placeholder={t("re.phTrainingMax")}
                 value={rex.trainingMaxKg ?? ''}
                 onChange={(e) =>
                   onChange(rex._key, {
@@ -452,9 +448,7 @@ function RexRow({
               />
             </div>
             <div className="field">
-              <label>
-                Aumento por ciclo (kg)
-                <input type="number" inputMode="decimal" min={0} step="any" placeholder="2,5" value={rex.trainingMaxIncrementKg ?? ''}
+              <label>{t("ui.increaseCycle")}<input type="number" inputMode="decimal" min={0} step="any" placeholder="2,5" value={rex.trainingMaxIncrementKg ?? ''}
                   onChange={(event) => onChange(rex._key, {
                     trainingMaxIncrementKg: event.target.value === '' ? undefined : Math.max(0, Number(event.target.value)),
                   })} />
@@ -466,10 +460,8 @@ function RexRow({
                 className="btn ghost"
                 style={{ fontSize: '0.78rem', padding: '4px 10px' }}
                 onClick={() => onDeriveTM(rex._key)}
-                title="Calcula o TM como 90% do seu melhor 1RM estimado no histórico"
-              >
-                Calcular pelo histórico
-              </button>
+                title={t("re.deriveTMTitle")}
+              >{t("ui.calculateFromLogs")}</button>
             </div>
           </>
         )}
@@ -481,8 +473,8 @@ function RexRow({
           <button type="button"
             className="icon-btn"
             onClick={() => onUngroup(rex._key)}
-            aria-label="Remover do superset"
-            title="Remover do superset"
+            aria-label={t("re.removeFromSuperset")}
+            title={t("re.removeFromSuperset")}
           >
             <Unlink2 size={15} />
           </button>
@@ -491,7 +483,7 @@ function RexRow({
           className="icon-btn"
           disabled={index === 0}
           onClick={() => onMoveUp(rex._key)}
-          aria-label="Mover para cima"
+          aria-label={t("re.moveUp")}
         >
           <ChevronUp size={15} />
         </button>
@@ -499,14 +491,14 @@ function RexRow({
           className="icon-btn"
           disabled={index === total - 1}
           onClick={() => onMoveDown(rex._key)}
-          aria-label="Mover para baixo"
+          aria-label={t("re.moveDown")}
         >
           <ChevronDown size={15} />
         </button>
         <button type="button"
           className="icon-btn danger"
           onClick={() => onRemove(rex._key)}
-          aria-label="Remover exercício"
+          aria-label={t("re.removeExercise")}
         >
           <Trash2 size={15} />
         </button>
@@ -520,6 +512,7 @@ function RexRow({
 // ---------------------------------------------------------------------------
 
 export function RotinaEditor() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const isNew = id === 'nova' || id === undefined;
   const navigate = useNavigate();
@@ -731,7 +724,7 @@ export function RotinaEditor() {
     const trimmed = name.trim();
     if (saving) return;
     if (!canSave) {
-      setSaveError(!trimmed ? 'Digite o nome da rotina.' : !categoryId ? 'Escolha uma categoria.'
+      setSaveError(!trimmed ? t('ui.enterRoutineName') : !categoryId ? t('ui.chooseCategory')
         : rexList.length === 0 ? 'Adicione um exercício para salvar a rotina.'
         : 'Confira as séries e preencha o máximo de treino dos exercícios em 5/3/1.');
       return;
@@ -753,7 +746,7 @@ export function RotinaEditor() {
       navigate('/treinos');
     } catch (error) {
       setSaveError(error instanceof Error && error.message === 'Esta rotina já foi excluída.'
-        ? error.message : 'Não foi possível salvar a rotina. Tente novamente.');
+        ? error.message : t('ui.saveRoutineFailed'));
     } finally {
       setSaving(false);
     }
@@ -768,7 +761,7 @@ export function RotinaEditor() {
       await deleteRoutine(id);
       navigate('/treinos', { replace: true });
     } catch {
-      setSaveError('Não foi possível excluir a rotina. Tente novamente.');
+      setSaveError(t('ui.deleteRoutineFailed'));
     } finally {
       setSaving(false);
     }
@@ -790,13 +783,13 @@ export function RotinaEditor() {
         <button type="button"
           className="icon-btn"
           onClick={() => navigate('/treinos')}
-          aria-label="Voltar"
+          aria-label={t("re.back")}
           style={{ width: 40, height: 40 }}
         >
           <ArrowLeft size={18} />
         </button>
         <div className="brand" style={{ flex: 1 }}>
-          <h1>{isNew ? 'Nova rotina' : 'Editar rotina'}</h1>
+          <h1>{isNew ? t("re.newRoutine") : t("re.editRoutine")}</h1>
         </div>
         <button
           className="btn"
@@ -805,7 +798,7 @@ export function RotinaEditor() {
           disabled={saving}
         >
           <Save size={15} />
-          {saving ? 'Salvando…' : 'Salvar rotina'}
+          {saving ? t("re.saving") : t("ui.saveRoutine")}
         </button>
       </div>
 
@@ -817,9 +810,9 @@ export function RotinaEditor() {
         <div className="routine-editor-side">
       {/* Dados básicos */}
       <div className="card">
-        <h2 className="panel-title">Dados da rotina</h2>
+        <h2 className="panel-title">{t("ui.routineDetails")}</h2>
         <div className="field" style={{ marginBottom: 14 }}>
-          <label htmlFor="routine-name">Nome da rotina</label>
+          <label htmlFor="routine-name">{t("ui.routineName")}</label>
           <input id="routine-name"
             type="text"
             required
@@ -830,25 +823,25 @@ export function RotinaEditor() {
         </div>
 
         <div className="field" style={{ marginBottom: 14 }}>
-          <label htmlFor="routine-category">Categoria</label>
+          <label htmlFor="routine-category">{t("ui.category")}</label>
           <select id="routine-category" required
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
           >
-            {categoryId === '' && <option value="">Selecionar…</option>}
+            {categoryId === '' && <option value="">{t("re.selectCategory")}</option>}
             {(categories ?? []).map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
           {(categories ?? []).length === 0 && (
-            <span className="hint">Crie uma categoria em Treinos primeiro.</span>
+            <span className="hint">{t("re.createCategory")}</span>
           )}
         </div>
 
         <div className="field" style={{ marginBottom: 0 }}>
-          <label htmlFor="routine-note">Nota (opcional)</label>
+          <label htmlFor="routine-note">{t("re.note")}</label>
           <textarea id="routine-note"
-            placeholder="Observações sobre este treino…"
+            placeholder={t("re.phNote")}
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
@@ -858,16 +851,16 @@ export function RotinaEditor() {
       {/* G7: preview muscular da rotina */}
       {hasAnyVolume && (
         <div className="card muscle-preview-card">
-          <h2 className="panel-title">O que esta rotina treina</h2>
+          <h2 className="panel-title">{t("re.musclePreviewTitle")}</h2>
           <MuscleMap volumeByMuscle={volumeByMuscle} preview />
         </div>
       )}
 
         </div>
-        <section className="routine-editor-exercises" aria-label="Exercícios da rotina">
+        <section className="routine-editor-exercises" aria-label={t("ui.routineExercises")}>
       {/* Exercícios */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div className="section-title" style={{ marginBottom: 0 }}>Exercícios</div>
+        <div className="section-title" style={{ marginBottom: 0 }}>{t("re.exercises")}</div>
 
         {/* G2: botão agrupar em superset */}
         {selectedKeys.size > 0 && (
@@ -885,9 +878,7 @@ export function RotinaEditor() {
       </div>
 
       {selectedKeys.size === 1 && (
-        <p className="hint" style={{ fontSize: 11, marginBottom: 8, marginTop: -4 }}>
-          Selecione mais 1 exercício para criar um superset.
-        </p>
+        <p className="hint" style={{ fontSize: 11, marginBottom: 8, marginTop: -4 }}>{t("re.selectMore")}</p>
       )}
 
       <div className="rex-list">
@@ -916,10 +907,10 @@ export function RotinaEditor() {
         })}
       </div>
 
-      {!validExercises && rexList.length > 0 && <p className="feedback error">Revise os exercícios, o número de séries e o training max dos exercícios 5/3/1.</p>}
+      {!validExercises && rexList.length > 0 && <p className="feedback error">{t("ui.checkRoutine")}</p>}
       {rexList.length === 0 && (
         <div className="empty" style={{ padding: '24px 0' }}>
-          <p>Nenhum exercício adicionado ainda.</p>
+          <p>{t("re.noExercisesAdded")}</p>
         </div>
       )}
 
@@ -928,9 +919,7 @@ export function RotinaEditor() {
         onClick={() => setPickerOpen(true)}
         style={{ width: '100%', justifyContent: 'center', marginBottom: 24 }}
       >
-        <Plus size={16} />
-        Adicionar exercício
-      </button>
+        <Plus size={16} />{t("re.addExercise")}</button>
 
         </section>
       </form>
@@ -938,25 +927,19 @@ export function RotinaEditor() {
       {/* Danger zone — só em edição */}
       {!isNew && (
         <div className="danger-zone">
-          <p>Esta ação é irreversível. A rotina será removida do plano semanal se estiver associada.</p>
+          <p>{t("re.deleteWarning")}</p>
           {!confirmDelete ? (
             <button
               className="btn ghost"
               onClick={() => setConfirmDelete(true)}
               style={{ width: '100%', justifyContent: 'center' }}
             >
-              <Trash2 size={15} />
-              Excluir rotina
-            </button>
+              <Trash2 size={15} />{t("re.deleteRoutine")}</button>
           ) : (
             <div className="btn-row">
-              <button className="btn ghost" onClick={() => setConfirmDelete(false)}>
-                Cancelar
-              </button>
+              <button className="btn ghost" onClick={() => setConfirmDelete(false)}>{t("re.cancel")}</button>
               <button className="btn danger" disabled={saving} onClick={() => { void handleDelete(); }}>
-                <Trash2 size={15} />
-                Confirmar exclusão
-              </button>
+                <Trash2 size={15} />{t("re.confirmDelete")}</button>
             </div>
           )}
         </div>

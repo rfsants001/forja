@@ -7,9 +7,12 @@
   "scripts": {
     "dev": "pnpm --filter @forja/web dev",
     "build": "pnpm -r build",
-    "test": "pnpm --filter @forja/core test",
+    "test": "pnpm --filter @forja/core test && pnpm --filter @forja/server test",
     "typecheck": "pnpm -r typecheck",
-    "seed": "pnpm dlx tsx scripts/extract-seed.mts"
+    "seed": "pnpm dlx tsx scripts/extract-seed.mts",
+    "self-host": "node apps/server/src/index.mjs",
+    "self-host:admin": "node apps/server/src/admin-key.mjs",
+    "self-host:codex-probe": "node apps/server/src/codex-probe.mjs"
   },
   "engines": {
     "node": ">=20"

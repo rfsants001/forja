@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n';
 import '../styles/setup.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -7,13 +8,11 @@ import type { Exercise, ExerciseMode, MuscleGroup } from '@forja/core';
 import { db } from '../db/db';
 import { upsertExercise, deleteExercise, updateSettings } from '../db/repo';
 import {
-  MUSCLE_LABEL,
-  MODE_LABEL,
   MUSCLE_OPTIONS,
   MODE_OPTIONS,
 } from '../lib/labels';
 import { hasExerciseMedia, Media } from '../components/Media';
-import { MuscleMap } from '../components/MuscleMap';
+import { MuscleCoverage } from '../components/MuscleCoverage';
 import { normalizeExName } from '../lib/normalize';
 
 // ---------------------------------------------------------------------------
@@ -63,6 +62,7 @@ const PAGE_SIZE = 50;
 // ---------------------------------------------------------------------------
 
 export function Exercicios() {
+  const t = useT();
   const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray(), []);
 
   const [query, setQuery] = useState('');
@@ -228,7 +228,7 @@ export function Exercicios() {
     const name = form.name.trim();
     if (saving) return;
     if (name.length === 0) {
-      setFormError('Digite o nome do exercício.');
+      setFormError(t('ui.enterExerciseName'));
       document.getElementById('exercise-name')?.focus();
       return;
     }
@@ -254,7 +254,7 @@ export function Exercicios() {
       });
       closeSheet();
     } catch {
-      setFormError('Não foi possível salvar o exercício. Tente novamente.');
+      setFormError(t('ui.saveExerciseFailed'));
     } finally {
       setSaving(false);
     }
@@ -287,61 +287,59 @@ export function Exercicios() {
       {/* Topbar */}
       <div className="topbar">
         <div className="brand">
-          <h1>Exercícios</h1>
+          <h1>{t("ex.title")}</h1>
         </div>
         <button className="btn" onClick={openNew}>
-          <Plus size={16} strokeWidth={2.8} />
-          Novo exercício
-        </button>
+          <Plus size={16} strokeWidth={2.8} />{t("ex.newBtn")}</button>
       </div>
 
       <div className="catalog-layout">
         <section className="card catalog-filters" aria-labelledby="catalog-filter-title">
-        <h2 className="panel-title" id="catalog-filter-title">Filtrar exercícios</h2>
+        <h2 className="panel-title" id="catalog-filter-title">{t("ui.filterExercises")}</h2>
         <div className="search-bar" style={{ marginBottom: 12 }}>
           <Search size={16} color="var(--text-muted)" />
           <input
             type="text"
-            placeholder="Buscar exercício…"
-            aria-label="Buscar exercício"
+            placeholder={t("ex.searchPh")}
+            aria-label={t("ui.findExercise")}
             value={query}
             onChange={(e) => { setQuery(e.target.value); resetPaging(); }}
           />
           {query.length > 0 && (
-            <button aria-label="Limpar busca" onClick={() => { setQuery(''); resetPaging(); }} style={{ color: 'var(--text-muted)', display: 'grid', placeItems: 'center' }}>
+            <button aria-label={t("ui.clearSearch")} onClick={() => { setQuery(''); resetPaging(); }} style={{ color: 'var(--text-muted)', display: 'grid', placeItems: 'center' }}>
               <X size={14} />
             </button>
           )}
         </div>
 
         <div className="catalog-filter">
-          <label htmlFor="catalog-muscle">Grupo muscular</label>
+          <label htmlFor="catalog-muscle">{t("ui.muscleGroup")}</label>
           <select id="catalog-muscle" value={muscleFilter ?? ''} onChange={(event) => {
             setMuscleFilter(MUSCLE_OPTIONS.find((muscle) => muscle === event.target.value) ?? null);
             resetPaging();
           }}>
-            <option value="">Todos</option>
-            {MUSCLE_OPTIONS.map((muscle) => <option key={muscle} value={muscle}>{MUSCLE_LABEL[muscle]}</option>)}
+            <option value="">{t("ex.all")}</option>
+            {MUSCLE_OPTIONS.map((muscle) => <option key={muscle} value={muscle}>{t(`muscle.${muscle}`)}</option>)}
           </select>
           {muscleFilter && (
             <label className="catalog-check"><input type="checkbox" checked={includeSecondary} onChange={(event) => {
               setIncludeSecondary(event.target.checked);
               resetPaging();
-            }} /> Incluir músculos auxiliares</label>
+            }} />{t("ui.includeOtherMuscles")}</label>
           )}
         </div>
         <div className="catalog-filter">
-          <label htmlFor="catalog-equipment">Equipamento</label>
+          <label htmlFor="catalog-equipment">{t("ex.fieldEquipment")}</label>
           <select id="catalog-equipment" value={equipFilter ?? ''} onChange={(event) => {
             setEquipFilter(event.target.value || null);
             resetPaging();
           }}>
-            <option value="">Todos</option>
+            <option value="">{t("ex.all")}</option>
             {EQUIP_FILTERS.map((equipment) => <option key={equipment.label} value={equipment.label}>{equipment.label}</option>)}
           </select>
         </div>
         <details className="catalog-inventory">
-          <summary>Meus equipamentos</summary>
+          <summary>{t("ui.myEquipment")}</summary>
           <div className="catalog-inventory-options">
             {EQUIP_FILTERS.filter((group) => group.terms[0] !== 'peso corporal').map((group) => (
               <label key={group.label} className="catalog-check">
@@ -354,16 +352,16 @@ export function Exercicios() {
           <label className="catalog-check"><input type="checkbox" checked={onlyMyEquipment} onChange={(event) => {
             setOnlyMyEquipment(event.target.checked);
             resetPaging();
-          }} /> Usar meu equipamento</label>
-          <p className="hint">Exercícios de peso corporal também aparecem.</p>
-          {equipmentError && <p className="feedback error" role="alert">Não foi possível salvar seus equipamentos. Tente novamente.</p>}
+          }} />{t("ui.applyMyEquipment")}</label>
+          <p className="hint">{t("ui.bodyWeightIncluded")}</p>
+          {equipmentError && <p className="feedback error" role="alert">{t("ui.equipmentSaveError")}</p>}
         </details>
         <label className="catalog-check catalog-illustrated"><input type="checkbox" checked={onlyIllustrated} onChange={(event) => {
           setOnlyIllustrated(event.target.checked);
           resetPaging();
-        }} /> <ImageIcon size={15} aria-hidden="true" /> Com demonstração</label>
+        }} /> <ImageIcon size={15} aria-hidden="true" />{t("ui.withDemo")}</label>
       </section>
-        <section className="catalog-results" aria-label="Resultados da biblioteca">
+        <section className="catalog-results" aria-label={t("ui.catalogResults")}>
         {/* Contador */}
         {filtered.length > 0 && (
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
@@ -378,14 +376,12 @@ export function Exercicios() {
             <Media demo={{ kind: 'none' }} name="" size="lg" />
             <p style={{ marginTop: 12 }}>
               {(exercises ?? []).length === 0
-                ? 'Nenhum exercício encontrado. Adicione o primeiro!'
-                : 'Nenhum resultado para esse filtro.'}
+                ? t("ex.empty")
+                : t("ex.noResults")}
             </p>
             {(exercises ?? []).length === 0 && (
               <button className="btn" style={{ marginTop: 16 }} onClick={openNew}>
-                <Plus size={16} />
-                Novo exercício
-              </button>
+                <Plus size={16} />{t("ex.newBtn")}</button>
             )}
           </div>
         ) : (
@@ -405,17 +401,17 @@ export function Exercicios() {
                   <div className="ex-info">
                     <div className="ex-name">{ex.name}</div>
                     <div className="ex-meta">
-                      {MUSCLE_LABEL[ex.primaryMuscle]}
+                      {t(`muscle.${ex.primaryMuscle}`)}
                       {ex.equipment.length > 0 && ` · ${ex.equipment.join(', ')}`}
                       {' · '}
-                      {MODE_LABEL[ex.mode]}
+                      {t(`mode.${ex.mode}`)}
                     </div>
                   </div>
                   {ex.custom === true && (
-                    <span className="ex-badge">Personalizado</span>
+                    <span className="ex-badge">{t("ui.custom")}</span>
                   )}
                   {ex.note !== undefined && ex.note.length > 0 && (
-                    <span className="ex-badge" title={ex.note}>Nota</span>
+                    <span className="ex-badge" title={ex.note}>{t("ex.noteBadge")}</span>
                   )}
                   <ChevronRight size={16} color="var(--text-muted)" />
                 </div>
@@ -429,7 +425,7 @@ export function Exercicios() {
                 style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
                 onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
               >
-                Carregar mais ({filtered.length - visibleCount} restantes)
+                {t('ui.moreExercises', [filtered.length - visibleCount])}
               </button>
             )}
           </>
@@ -447,41 +443,27 @@ export function Exercicios() {
           <div className="exercise-detail-inner">
             <header className="exercise-detail-heading">
               <div>
-                <p className="hint">{MODE_LABEL[detailEx.mode]}</p>
+                <p className="hint">{t(`mode.${detailEx.mode}`)}</p>
                 <h2 id="exercise-detail-title">{detailEx.name}</h2>
               </div>
-              <button type="button" className="btn ghost" aria-label="Fechar detalhes"
+              <button type="button" className="btn ghost" aria-label={t("ui.closeDetails")}
                 onClick={() => detailDialog.current?.close()}><X size={18} aria-hidden="true" /></button>
             </header>
             <div className="exercise-detail-visuals">
               {hasExerciseMedia(detailEx.id, detailEx.demo) && (
-                <section aria-label="Demonstração" className="exercise-demo-panel">
+                <section aria-label={t("ui.demonstration")} className="exercise-demo-panel">
                   <Media exerciseId={detailEx.id} demo={detailEx.demo} name={detailEx.name} size="xl" />
                 </section>
               )}
-              <section className="exercise-muscles" aria-label="Músculos envolvidos">
-                <MuscleMap
-                  figure={settings?.muscleFigure}
-                  volumeByMuscle={{
-                    ...Object.fromEntries(detailEx.secondaryMuscles.map((muscle) => [muscle, 0.5])),
-                    [detailEx.primaryMuscle]: 1,
-                  }}
-                  preview
-                />
-                <ul className="exercise-muscle-legend">
-                  <li><span className="muscle-legend-swatch primary" aria-hidden="true" />
-                    <span><strong>Principal</strong> {MUSCLE_LABEL[detailEx.primaryMuscle]}</span></li>
-                  {detailEx.secondaryMuscles.length > 0 && (
-                    <li><span className="muscle-legend-swatch secondary" aria-hidden="true" />
-                      <span><strong>Auxiliares</strong> {detailEx.secondaryMuscles.map((muscle) => MUSCLE_LABEL[muscle]).join(', ')}</span></li>
-                  )}
-                </ul>
+              <section className="exercise-muscles" aria-label={t("tg.musclesInvolved")}>
+                <MuscleCoverage figure={settings?.muscleFigure}
+                  primary={[detailEx.primaryMuscle]} secondary={detailEx.secondaryMuscles} />
               </section>
             </div>
 
             {detailEx.equipment.length > 0 && (
               <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 12 }}>
-                <strong>Equipamento:</strong> {detailEx.equipment.join(', ')}
+                <strong>{t("ex.equipmentLabel")}</strong> {detailEx.equipment.join(', ')}
               </p>
             )}
 
@@ -493,10 +475,10 @@ export function Exercicios() {
 
             {/* Nota pessoal (G15) */}
             <div className="field" style={{ marginBottom: 16 }}>
-              <label htmlFor="exercise-personal-note">Nota pessoal</label>
+              <label htmlFor="exercise-personal-note">{t("ex.personalNote")}</label>
               <textarea
                 id="exercise-personal-note"
-                placeholder="Dicas, ajustes de execução, observações…"
+                placeholder={t("ex.notePh")}
                 value={noteText}
                 rows={3}
                 onChange={(e) => setNoteText(e.target.value)}
@@ -508,31 +490,25 @@ export function Exercicios() {
                   onClick={() => { void handleSaveNote(detailEx); }}
                   disabled={savingNote}
                 >
-                  {savingNote ? 'Salvando…' : 'Salvar nota'}
+                  {savingNote ? t("ex.savingNote") : t("ex.saveNote")}
                 </button>
               )}
             </div>
 
             <div className="btn-row">
-              <button className="btn ghost" onClick={() => detailDialog.current?.close()}>
-                Fechar
-              </button>
+              <button className="btn ghost" onClick={() => detailDialog.current?.close()}>{t("ex.close")}</button>
               {detailEx.custom === true && (
                 <>
                   <button
                     className="btn ghost"
                     onClick={() => { openEdit(detailEx); setDetailEx(null); }}
                   >
-                    <Pencil size={15} />
-                    Editar
-                  </button>
+                    <Pencil size={15} />{t("ex.edit")}</button>
                   <button
                     className="btn danger"
                     onClick={() => { setDeleteTarget(detailEx); setDetailEx(null); }}
                   >
-                    <Trash2 size={15} />
-                    Excluir
-                  </button>
+                    <Trash2 size={15} />{t("ex.delete")}</button>
                 </>
               )}
             </div>
@@ -545,60 +521,60 @@ export function Exercicios() {
           onClose={closeSheet} onCancel={(event) => { if (saving) event.preventDefault(); }}>
           <form onSubmit={(event) => { event.preventDefault(); void handleSave(); }}>
             <header className="form-dialog-heading">
-              <h2 id="exercise-form-title">{editing ? 'Editar exercício' : 'Novo exercício'}</h2>
-              <button type="button" className="icon-btn" disabled={saving} aria-label="Fechar formulário"
+              <h2 id="exercise-form-title">{editing ? t("ex.editTitle") : t("ex.newBtn")}</h2>
+              <button type="button" className="icon-btn" disabled={saving} aria-label={t("ui.closeForm")}
                 onClick={() => editDialog.current?.close()}><X size={17} aria-hidden="true" /></button>
             </header>
             <fieldset className="field-grid form-fields" disabled={saving}>
               <div className="field full">
-                <label htmlFor="exercise-name">Nome do exercício</label>
+                <label htmlFor="exercise-name">{t("ui.exerciseName")}</label>
                 <input id="exercise-name" type="text" value={form.name} required
                   onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
               </div>
               <div className="field">
-                <label htmlFor="exercise-mode">Como registrar</label>
+                <label htmlFor="exercise-mode">{t("ui.recordType")}</label>
                 <select id="exercise-mode" value={form.mode}
                   onChange={(event) => setForm((current) => ({ ...current, mode: event.target.value as ExerciseMode }))}>
-                  {MODE_OPTIONS.map((mode) => <option key={mode} value={mode}>{MODE_LABEL[mode]}</option>)}
+                  {MODE_OPTIONS.map((mode) => <option key={mode} value={mode}>{t(`mode.${mode}`)}</option>)}
                 </select>
               </div>
               <div className="field">
-                <label htmlFor="exercise-primary">Músculo principal</label>
+                <label htmlFor="exercise-primary">{t("ui.primaryMuscle")}</label>
                 <select id="exercise-primary" value={form.primaryMuscle} onChange={(event) => {
                   const primaryMuscle = event.target.value as MuscleGroup;
                   setForm((current) => ({
                     ...current, primaryMuscle, secondaryMuscles: current.secondaryMuscles.filter((muscle) => muscle !== primaryMuscle),
                   }));
                 }}>
-                  {MUSCLE_OPTIONS.map((muscle) => <option key={muscle} value={muscle}>{MUSCLE_LABEL[muscle]}</option>)}
+                  {MUSCLE_OPTIONS.map((muscle) => <option key={muscle} value={muscle}>{t(`muscle.${muscle}`)}</option>)}
                 </select>
               </div>
               <fieldset className="field full">
-                <legend>Músculos auxiliares <small className="hint">(opcional)</small></legend>
+                <legend>{t("ui.secondaryMuscles")} <small className="hint">{t("ui.optional")}</small></legend>
                 <div className="form-chips">
                   {MUSCLE_OPTIONS.filter((muscle) => muscle !== form.primaryMuscle).map((muscle) => (
                     <button key={muscle} type="button" className="chip"
                       aria-pressed={form.secondaryMuscles.includes(muscle)}
-                      onClick={() => toggleSecondary(muscle)}>{MUSCLE_LABEL[muscle]}</button>
+                      onClick={() => toggleSecondary(muscle)}>{t(`muscle.${muscle}`)}</button>
                   ))}
                 </div>
               </fieldset>
               <div className="field full">
-                <label htmlFor="exercise-equipment">Equipamento <small className="hint">(opcional)</small></label>
+                <label htmlFor="exercise-equipment">{t("ex.fieldEquipment")} <small className="hint">{t("ui.optional")}</small></label>
                 <input id="exercise-equipment" type="text" value={form.equipment} aria-describedby="exercise-equipment-help"
                   onChange={(event) => setForm((current) => ({ ...current, equipment: event.target.value }))} />
-                <span id="exercise-equipment-help" className="hint">Separe os itens por vírgula. Exemplo: barra, banco.</span>
+                <span id="exercise-equipment-help" className="hint">{t("ui.equipmentHelp")}</span>
               </div>
               <div className="field full">
-                <label htmlFor="exercise-instructions">Como executar <small className="hint">(opcional)</small></label>
+                <label htmlFor="exercise-instructions">{t("tg.exerciseGuide")} <small className="hint">{t("ui.optional")}</small></label>
                 <textarea id="exercise-instructions" value={form.instructions} rows={3}
                   onChange={(event) => setForm((current) => ({ ...current, instructions: event.target.value }))} />
               </div>
             </fieldset>
             {formError && <p className="field-error" role="alert">{formError}</p>}
             <div className="form-actions">
-              <button type="button" className="btn ghost" onClick={() => editDialog.current?.close()} disabled={saving}>Cancelar</button>
-              <button type="submit" className="btn" disabled={saving}>{saving ? 'Salvando…' : 'Salvar exercício'}</button>
+              <button type="button" className="btn ghost" onClick={() => editDialog.current?.close()} disabled={saving}>{t("ex.cancel")}</button>
+              <button type="submit" className="btn" disabled={saving}>{saving ? t("ex.savingNote") : t("ui.saveExercise")}</button>
             </div>
           </form>
         </dialog>
@@ -612,19 +588,13 @@ export function Exercicios() {
         >
           <div className="sheet">
             <div className="sheet-handle" />
-            <h2>Excluir exercício?</h2>
+            <h2>{t("ex.deleteTitle")}</h2>
             <p style={{ color: 'var(--text-2)', marginBottom: 20, fontSize: 14 }}>
-              <strong>{deleteTarget.name}</strong> será removido da biblioteca. Rotinas que já usam
-              este exercício não serão afetadas.
-            </p>
+              <strong>{deleteTarget.name}</strong>{t("ui.exerciseRemoved")}</p>
             <div className="btn-row">
-              <button className="btn ghost" onClick={() => setDeleteTarget(null)}>
-                Cancelar
-              </button>
+              <button className="btn ghost" onClick={() => setDeleteTarget(null)}>{t("ex.cancel")}</button>
               <button className="btn danger" onClick={() => { void handleDelete(); }}>
-                <Trash2 size={15} />
-                Excluir
-              </button>
+                <Trash2 size={15} />{t("ex.delete")}</button>
             </div>
           </div>
         </div>

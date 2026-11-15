@@ -12,5 +12,5 @@ Atualizado em 13/11/2026. openGym é referência de UX e modelo. O roadmap segue
 | G9–G10 planos/temas | Quatro modelos, acentos acessíveis por tema | Validar plano inicial e contraste contextual no aparelho. |
 | G11–G12 alcance | Alerta na PWA ativa. P5-003 parcial | PT/EN end-to-end. Push com app fechado exige decisão. |
 | G13–G16 peso/medidas/força | Peso, medidas, notas, anilhas e 5/3/1 | Peso opcional pré-treino e inventário de anilhas seguem oportunidades. |
-| G17–G18 Coach/Android | Hipóteses futuras | Definir necessidade após piloto. |
-| G19–G21 conta/sync/admin | PWA single-user local | Sync, passkeys e admin fora do escopo atual. |
+| G17–G18 Coach/Android | Assistente especificado. Android em avaliação. | A revisão semanal faz parte do [piloto self-hosted](../features/self-hosted-assistant/README.md). APK depende do piloto. |
+| G19–G21 conta/sync/admin | PWA single-user local | A expansão propõe sync de um perfil e gestão de dispositivos. Passkeys e contas multiusuário ficam para avaliação posterior. |

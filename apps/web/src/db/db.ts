@@ -1,5 +1,5 @@
 // Camada de persistência local-first (IndexedDB via Dexie). Toda a leitura/escrita do
-// cliente passa por aqui. Sync com a api é da Fase 6 — por ora é 100% local e offline.
+// cliente passa por aqui. A instalação opcional replica apenas as tabelas de treino.
 import Dexie, { type Table } from 'dexie';
 import type {
   BodyMeasurement,
@@ -13,6 +13,8 @@ import type {
 } from '@forja/core';
 
 /** Linha única do plano semanal (weekday → routineId|null). */
+import type { QueueBatch, SyncState, VersionedEntity } from '../lib/sync-protocol';
+
 export interface WeekPlanRow {
   weekday: Weekday;
   routineId: string | null;
@@ -29,6 +31,12 @@ export interface SettingsRow extends Settings {
   id: 'app';
 }
 
+export interface CoachEdit {
+  id: string;
+  before: Routine;
+  after: Routine;
+}
+
 export class ForjaDB extends Dexie {
   categories!: Table<Category, string>;
   exercises!: Table<Exercise, string>;
@@ -40,6 +48,11 @@ export class ForjaDB extends Dexie {
   settings!: Table<SettingsRow, string>;
   /** Medidas corporais (G14) — chave primária: dateISO. */
   measurements!: Table<BodyMeasurement, string>;
+
+  coachEdits!: Table<CoachEdit, string>;
+  syncState!: Table<SyncState, string>;
+  syncShadow!: Table<VersionedEntity & { id: string }, string>;
+  syncOutbox!: Table<QueueBatch, number>;
 
   constructor() {
     super('forja');
@@ -65,6 +78,12 @@ export class ForjaDB extends Dexie {
       bodyweight: 'dateISO',
       settings: 'id',
       measurements: 'dateISO',
+    });
+    this.version(3).stores({
+      syncState: 'id',
+      syncShadow: 'id',
+      syncOutbox: '++seq, id',
+      coachEdits: 'id, [after.id+after.updatedAt]',
     });
   }
 }

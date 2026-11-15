@@ -106,8 +106,10 @@ export function computeSummary(workouts: WorkoutLog[], days: number | null): Per
   for (const workout of filtered) {
     for (const entry of workout.entries) {
       for (const set of entry.sets) {
-        if (set.done && set.reps !== undefined && set.weightKg !== undefined) {
-          totalVolume += set.reps * set.weightKg;
+        const { reps, weightKg } = set;
+        if (set.done && reps !== undefined && Number.isFinite(reps) && reps > 0
+          && weightKg !== undefined && Number.isFinite(weightKg) && weightKg >= 0) {
+          totalVolume += reps * weightKg;
         }
       }
     }

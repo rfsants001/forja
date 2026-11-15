@@ -12,6 +12,12 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
+  apps/server:
+    dependencies:
+      qrcode-generator:
+        specifier: 2.0.4
+        version: 2.0.4
+
   apps/web:
     dependencies:
       '@fontsource/barlow-condensed':
@@ -2344,6 +2350,9 @@ packages:
         optional: true
       use-sync-external-store:
         optional: true
+
+  qrcode-generator@2.0.4:
+    resolution: {integrity: sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==}
 
 snapshots:
 
@@ -4770,3 +4779,5 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
       react: 19.3.1
+
+  qrcode-generator@2.0.4: {}

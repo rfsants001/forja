@@ -25,7 +25,7 @@ function muscleColor(ratio: number): string {
 function previewColor(ratio: number): string {
   if (ratio >= 1) return 'var(--accent)';
   if (ratio > 0) return 'color-mix(in srgb, var(--accent) 48%, var(--surface-2))';
-  return 'var(--surface-2)';
+  return 'var(--muscle-unhighlighted, var(--surface-2))';
 }
 
 // ---------------------------------------------------------------------------
@@ -189,8 +189,8 @@ export function MuscleMap({
             const group = MUSCLE_PATH_GROUPS[part];
             const volume = group ? volumeByMuscle[group] ?? 0 : 0;
             return (
-              <g key={part} fill={group ? fillColor(group) : 'var(--surface-2)'}>
-                {group && <title>{MUSCLE_LABEL[group]}{volume > 0 && !preview
+              <g key={part} fill={group ? fillColor(group) : 'var(--muscle-unhighlighted, var(--surface-2))'}>
+                {group && <title>{tMuscle(`muscle.${group}`)}{volume > 0 && !preview
                   ? ` · ${Math.round(volume).toLocaleString('pt-BR')} ${metric === 'sets' ? 'séries' : 'kg'}`
                   : ''}</title>}
                 {paths.map((path, index) => <path key={index} d={path} />)}

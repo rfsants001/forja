@@ -10,11 +10,11 @@
 
 import '../styles/treino.css';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight, X, Timer, Zap, Play, Square, Trophy, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, X, Timer, Zap, Play, Square, Trophy, Plus, Trash2, ExternalLink } from 'lucide-react';
 
 import {
   effectiveRoutine,
@@ -45,6 +45,8 @@ import { useSessionStore } from '../store/session';
 import type { ActiveExercise } from '../store/session';
 import { useWakeLock } from '../lib/useWakeLock';
 import { hasExerciseMedia, Media } from '../components/Media';
+import { MuscleCoverage } from '../components/MuscleCoverage';
+import { useT } from '../lib/i18n';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -200,8 +202,8 @@ function PRToast({ pr, exerciseName }: { pr: PR; exerciseName: string }) {
   );
 }
 
-/** Timer de descanso em overlay. */
-function RestOverlay({
+/** Timer de descanso exibido junto às séries. */
+function RestTimer({
   endsAt,
   onSkip,
   onComplete,
@@ -210,12 +212,11 @@ function RestOverlay({
   onSkip: () => void;
   onComplete: () => void;
 }) {
+  const t = useT();
   const [remaining, setRemaining] = useState(() =>
     Math.max(0, (endsAt - Date.now()) / 1000),
   );
   const completedRef = useRef(false);
-  const skipRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => { skipRef.current?.focus({ preventScroll: true }); }, []);
 
   useEffect(() => {
     completedRef.current = false;
@@ -252,21 +253,15 @@ function RestOverlay({
   const urgent = remaining <= 5;
 
   return (
-    <motion.div
-      className="tg-rest-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-    >
-      <span className="tg-rest-title">Descanso</span>
-      <span className={`tg-rest-countdown${urgent ? ' urgent' : ''}`}>
-        {fmtSecs(remaining)}
-      </span>
-      <button className="tg-rest-skip" ref={skipRef} onClick={onSkip}>
-        Pular descanso
-      </button>
-    </motion.div>
+    <div className="tg-rest-panel">
+      <div className="tg-rest-time">
+        <span>{t('tg.rest')}</span>
+        <span className={`tg-rest-countdown${urgent ? ' urgent' : ''}`} role="timer" aria-label={t('tg.rest')}>
+          {fmtSecs(remaining)}
+        </span>
+      </div>
+      <button type="button" className="btn ghost" onClick={onSkip}>{t('tg.skipRest')}</button>
+    </div>
   );
 }
 
@@ -280,6 +275,7 @@ function WorkTimerDisplay({
   targetSec?: number;
   onStop: (elapsedSec: number) => void;
 }) {
+  const t = useT();
   const [elapsed, setElapsed] = useState(() => (Date.now() - startedAt) / 1000);
   const alertedRef = useRef(false);
 
@@ -324,11 +320,9 @@ function WorkTimerDisplay({
       <button
         className="tg-work-stop-btn"
         onClick={() => onStop(Math.round(elapsed))}
-        aria-label="Parar série e registrar tempo"
+        aria-label={t("tg.stopAriaLabel")}
       >
-        <Square size={16} fill="currentColor" />
-        Parar
-      </button>
+        <Square size={16} fill="currentColor" />{t("tg.stop")}</button>
     </div>
   );
 }
@@ -376,9 +370,10 @@ function SetRow({
   targetSec,
   warmup = false,
 }: SetRowProps) {
+  const t = useT();
   const repsRef = useRef<HTMLInputElement>(null);
   const isWorkActive = workTimerSetIndex === setIndex && workStartedAt !== null;
-  const rowLabel = warmup ? `Aquecimento ${setIndex + 1}` : `Série ${setIndex + 1}`;
+  const rowLabel = t(warmup ? 'tg.warmupRow' : 'tg.setRow', [setIndex + 1]);
 
   return (
     <fieldset className={`tg-set-wrap${set.done ? ' done' : ''}`} disabled={disabled} aria-label={rowLabel}>
@@ -396,7 +391,7 @@ function SetRow({
               min={0}
               value={set.sec ?? ''}
               onChange={(e) => onChange({ sec: e.target.value === '' ? undefined : Number(e.target.value) })}
-              aria-label={`${rowLabel} — segundos`}
+              aria-label={t('tg.timeRow', [rowLabel])}
               placeholder="seg"
             />
             {/* coluna kg reutilizada para distância */}
@@ -422,7 +417,7 @@ function SetRow({
               min={0}
               value={set.sec ?? ''}
               onChange={(e) => onChange({ sec: e.target.value === '' ? undefined : Number(e.target.value) })}
-              aria-label={`${rowLabel} — segundos`}
+              aria-label={t('tg.timeRow', [rowLabel])}
             />
             {/* ocupa coluna de peso no modo time para manter o grid alinhado */}
             <span />
@@ -437,7 +432,7 @@ function SetRow({
               min={0}
               value={set.reps ?? ''}
               onChange={(e) => onChange({ reps: e.target.value === '' ? undefined : Number(e.target.value) })}
-              aria-label={`${rowLabel} — reps`}
+              aria-label={t('tg.repsRow', [rowLabel])}
             />
             <input
               className="tg-input"
@@ -450,7 +445,7 @@ function SetRow({
                 const value = event.target.value === '' ? undefined : event.target.valueAsNumber;
                 onChange({ weightKg: value === undefined || !Number.isFinite(value) ? undefined : unit === 'lb' ? value / KG_TO_LB : value });
               }}
-              aria-label={`${rowLabel} — carga em ${unit}`}
+              aria-label={t('tg.weightRow', [rowLabel, unit])}
             />
           </>
         )}
@@ -460,7 +455,7 @@ function SetRow({
           <button
             className={`tg-work-btn${isWorkActive ? ' active' : ''}`}
             onClick={() => isWorkActive ? undefined : onStartWork?.(setIndex)}
-            aria-label={isWorkActive ? 'Série em andamento' : 'Iniciar série'}
+            aria-label={isWorkActive ? t('tg.setActive') : t('tg.startSet')}
             disabled={timerBusy}
           >
             <Play size={18} strokeWidth={2.4} />
@@ -470,8 +465,8 @@ function SetRow({
             className={`tg-done-btn${set.done ? ' done' : ''}`}
             onClick={() => onDone()}
             aria-label={warmup
-              ? set.done ? 'Desmarcar aquecimento' : 'Marcar aquecimento como feito'
-              : set.done ? 'Desmarcar série' : 'Marcar série como feita'}
+              ? set.done ? t('tg.uncheckWarmup') : t('tg.checkWarmup')
+              : set.done ? t('tg.uncheckSet') : t('tg.checkSet')}
             aria-pressed={set.done}
           >
             <Check size={20} strokeWidth={2.6} />
@@ -481,7 +476,7 @@ function SetRow({
 
       {/* Work timer ativo para esta série */}
       {(isTime || isCardio) && !set.done && !timerBusy && (
-        <button className="tg-manual-done" type="button" onClick={() => onDone()} disabled={set.sec === undefined}>Registrar tempo manualmente</button>
+        <button className="tg-manual-done" type="button" onClick={() => onDone()} disabled={set.sec === undefined}>{t("ui.recordTime")}</button>
       )}
       {isWorkActive && workStartedAt !== null && (
         <WorkTimerDisplay
@@ -507,7 +502,7 @@ function SetRow({
             step={0.1}
             value={set.speedKmh ?? ''}
             onChange={(e) => onChange({ speedKmh: e.target.value === '' ? undefined : Number(e.target.value) })}
-            aria-label={`${rowLabel} — velocidade km/h`}
+            aria-label={t('tg.speedRow', [rowLabel])}
             placeholder="—"
           />
         </div>
@@ -531,7 +526,7 @@ function SetRow({
             }}
             aria-label={`${rowLabel} — RIR (repetições na reserva)`}
           />
-          <span className="tg-rir-hint">reps na reserva</span>
+          <span className="tg-rir-hint">{t("tg.rirHint")}</span>
         </div>
       )}
     </fieldset>
@@ -557,6 +552,7 @@ interface PlateCalcProps {
  * Aparece apenas no modo reps quando há peso definido.
  */
 function PlateCalc({ weightKg, unit }: PlateCalcProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [barKg, setBarKg] = useState(DEFAULT_BAR_KG);
 
@@ -583,7 +579,7 @@ function PlateCalc({ weightKg, unit }: PlateCalcProps) {
         className="tg-plate-toggle"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label="Calculadora de anilhas"
+        aria-label={t("tg.platesAriaLabel")}
       >
         🏋 Anilhas — {fmt(displayWeight)} {unitLabel}
         <span className="tg-plate-toggle-arrow">{open ? '▲' : '▼'}</span>
@@ -593,12 +589,12 @@ function PlateCalc({ weightKg, unit }: PlateCalcProps) {
         <div className="tg-plate-body">
           {/* Seletor de barra */}
           <div className="tg-plate-bar-row">
-            <span className="tg-plate-label">Barra</span>
+            <span className="tg-plate-label">{t("tg.barLabel")}</span>
             <select
               className="tg-plate-select"
               value={barKg}
               onChange={(e) => setBarKg(Number(e.target.value))}
-              aria-label="Peso da barra"
+              aria-label={t("tg.barAriaLabel")}
             >
               <option value={20}>20 kg{unit === 'lb' ? ' (44 lb)' : ''}</option>
               <option value={15}>15 kg{unit === 'lb' ? ' (33 lb)' : ''}</option>
@@ -612,11 +608,11 @@ function PlateCalc({ weightKg, unit }: PlateCalcProps) {
               Alvo ≤ barra ({fmt(displayBar)} {unitLabel}) — sem anilhas necessárias.
             </p>
           ) : result.perSide.length === 0 ? (
-            <p className="tg-plate-info">Sem anilhas disponíveis para este peso.</p>
+            <p className="tg-plate-info">{t("tg.platesNone")}</p>
           ) : (
             <>
               <div className="tg-plate-result">
-                <span className="tg-plate-label">Por lado:</span>
+                <span className="tg-plate-label">{t("tg.perSide")}</span>
                 <div className="tg-plate-chips">
                   {result.perSide.map((p, i) => (
                     <span key={i} className="tg-plate-chip">
@@ -625,8 +621,7 @@ function PlateCalc({ weightKg, unit }: PlateCalcProps) {
                   ))}
                 </div>
               </div>
-              <div className="tg-plate-achievable">
-                Montável: <strong>{fmt(result.achievableKg)} {unitLabel}</strong>
+              <div className="tg-plate-achievable">{t("tg.achievable")} <strong>{fmt(result.achievableKg)} {unitLabel}</strong>
                 {result.leftover > 0 && (
                   <span className="tg-plate-leftover">
                     {' '}(faltam {fmt(result.leftover)} {unitLabel})
@@ -647,6 +642,10 @@ function PlateCalc({ weightKg, unit }: PlateCalcProps) {
 
 export function TreinoGuiado() {
   useWakeLock();
+  const t = useT();
+  const guideId = useId();
+  const guideRef = useRef<HTMLDetailsElement>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -743,15 +742,15 @@ export function TreinoGuiado() {
 
         const routine = routinesMap.get(resolvedId);
         if (routine === undefined) {
-          setInitError(`Rotina "${resolvedId}" não encontrada.`);
+          setInitError(t('tg.missingRoutine', [resolvedId]));
           setInitDone(true);
           return;
         }
 
-        if (routine.exercises.length === 0) throw new Error('Adicione um exercício à rotina antes de começar.');
+        if (routine.exercises.length === 0) throw new Error(t('tg.emptyRoutine'));
         const exercises = routine.exercises.map((cfg) => {
           const exercise = exercisesMap.get(cfg.exerciseId);
-          if (exercise === undefined) throw new Error('A rotina tem um exercício indisponível. Edite a rotina para continuar.');
+          if (exercise === undefined) throw new Error(t('tg.missingExercise'));
           return buildActiveExercise(cfg, exercise, workouts, routine.id);
         });
 
@@ -768,7 +767,7 @@ export function TreinoGuiado() {
         defaultRestSecRef.current = fetchedSettings.defaultRestSec;
         setInitDone(true);
       } catch (err) {
-        setInitError(err instanceof Error ? err.message : 'Erro ao iniciar sessão.');
+        setInitError(err instanceof Error ? err.message : t('tg.initFailed'));
         setInitDone(true);
       }
     })();
@@ -816,7 +815,7 @@ export function TreinoGuiado() {
     if (wasNotDone && (mode === 'time' || mode === 'cardio'
       ? (elapsed ?? set.sec ?? 0) <= 0 || (set.distanceM ?? 0) < 0 || (set.speedKmh ?? 0) < 0
       : !Number.isInteger(set.reps) || (set.reps ?? 0) <= 0 || (set.weightKg ?? 0) < 0)) {
-      setFinishError('Confira os valores realizados. Use repetições inteiras, tempo maior que zero e medidas positivas.');
+      setFinishError(t('tg.badValues'));
       return;
     }
     setFinishError(null);
@@ -877,11 +876,11 @@ export function TreinoGuiado() {
   async function handleFinish() {
     if (useSessionStore.getState().saving) return;
     if (!active?.exercises.some((exercise) => exercise.sets.some((set) => set.done))) {
-      setFinishError('Registre pelo menos uma série de trabalho antes de finalizar.');
+      setFinishError(t('tg.needSet'));
       return;
     }
     if (active.work !== undefined) {
-      setFinishError('Pare o cronômetro da série antes de finalizar.');
+      setFinishError(t('tg.stopBeforeFinish'));
       return;
     }
     setFinishError(null);
@@ -890,12 +889,12 @@ export function TreinoGuiado() {
       await finish(records);
       navigate('/historico');
     } catch {
-      setFinishError('Não foi possível salvar. Seu treino continua aberto. Tente finalizar novamente.');
+      setFinishError(t('tg.finishFailed'));
     }
   }
 
   function handleCancel() {
-    if (!window.confirm('Cancelar o treino? O progresso será perdido.')) return;
+    if (!window.confirm(t('tg.cancelConfirm'))) return;
     cancel();
     navigate('/');
   }
@@ -914,7 +913,7 @@ export function TreinoGuiado() {
     return (
       <div className="tg-empty">
         <Zap size={36} color="var(--flame)" strokeWidth={2} />
-        <h2>Carregando...</h2>
+        <h2>{t("tg.loading")}</h2>
       </div>
     );
   }
@@ -924,11 +923,9 @@ export function TreinoGuiado() {
     return (
       <div className="tg-empty">
         <Timer size={36} color="var(--text-muted)" strokeWidth={1.5} />
-        <h2>Hoje é descanso</h2>
-        <p>Nenhum treino programado para hoje. Escolha uma rotina na aba Treinos para iniciar mesmo assim.</p>
-        <button className="btn ghost" onClick={() => navigate('/treinos')}>
-          Ver rotinas
-        </button>
+        <h2>{t("tg.restDay")}</h2>
+        <p>{t("tg.noWorkout")}</p>
+        <button className="btn ghost" onClick={() => navigate('/treinos')}>{t("tg.seeRoutines")}</button>
       </div>
     );
   }
@@ -938,11 +935,9 @@ export function TreinoGuiado() {
     return (
       <div className="tg-empty">
         <X size={36} color="var(--danger)" strokeWidth={2} />
-        <h2>Ops</h2>
+        <h2>{t("tg.error")}</h2>
         <p>{initError}</p>
-        <button className="btn ghost" onClick={() => navigate('/')}>
-          Voltar
-        </button>
+        <button className="btn ghost" onClick={() => navigate('/')}>{t("tg.back")}</button>
       </div>
     );
   }
@@ -983,7 +978,14 @@ export function TreinoGuiado() {
   const activeWorkSetIndex = work?.exerciseIndex === active.currentIndex ? work.setIndex : null;
 
   const completedSets = active.exercises.reduce((count, exercise) => count + exercise.sets.filter((set) => set.done).length, 0);
-  const exerciseDemo = exercisesMap?.get(currentEx.exerciseId);
+  const hasDemo = exData !== undefined && hasExerciseMedia(exData.id, exData.demo);
+  const videoSearch = new URL('https://www.youtube.com/results');
+  videoSearch.searchParams.set('search_query', `${exName} ${t('tg.videoQueryTerm')}`);
+
+  function toggleGuide() {
+    setGuideOpen(!guideOpen);
+    if (!guideOpen) guideRef.current?.querySelector('summary')?.focus();
+  }
   const plannedSets = active.exercises.reduce((count, exercise) => count + exercise.sets.length, 0);
   const canChangeExercise = !saving && !restActive && work === undefined;
 
@@ -1000,28 +1002,16 @@ export function TreinoGuiado() {
         )}
       </AnimatePresence>
 
-      {/* Rest timer overlay */}
-      <AnimatePresence>
-        {restActive && active.rest.endsAt !== null && (
-          <RestOverlay
-            key="rest"
-            endsAt={active.rest.endsAt}
-            onSkip={stopRest}
-            onComplete={() => { stopRest(); setRestAnnouncement('Descanso concluído. Próxima série disponível.'); }}
-          />
-        )}
-      </AnimatePresence>
-
       <p className="sr-only" role="status">{restAnnouncement}</p>
       {/* Topbar */}
       <header className="tg-topbar">
         <div>
-          <p className="session-label">Treino em andamento</p>
+          <p className="session-label">{t("home.ongoing")}</p>
           <h1 className="tg-title">{active.routineName ?? routine?.name ?? 'Treino livre'}</h1>
         </div>
         <div className="session-tally">
           <span>{completedSets} de {plannedSets} séries</span>
-          <progress aria-label="Séries concluídas na sessão" value={completedSets} max={Math.max(1, plannedSets)} />
+          <progress aria-label={t("ui.completedInSession")} value={completedSets} max={Math.max(1, plannedSets)} />
         </div>
       </header>
 
@@ -1038,8 +1028,14 @@ export function TreinoGuiado() {
             </div>
           )}
 
-          <p className="session-label">Exercício {active.currentIndex + 1} de {totalExercises}</p>
-          <h2 className="tg-ex-name" id="current-exercise-title">{exName}</h2>
+          <p className="session-label">{t("ui.exercise")} {active.currentIndex + 1} de {totalExercises}</p>
+          <div className="session-exercise-heading">
+            <h2 className="tg-ex-name" id="current-exercise-title">{exName}</h2>
+            <button type="button" className="btn ghost session-guide-trigger" onClick={toggleGuide}
+              aria-controls={guideId} aria-expanded={guideOpen}>
+              {t('tg.exerciseGuide')}
+            </button>
+          </div>
           <div className="tg-ex-meta">
             {currentEx.target.sets} série{currentEx.target.sets !== 1 ? 's' : ''}
             {isTimedMode
@@ -1061,7 +1057,10 @@ export function TreinoGuiado() {
           </div>
 
           {/* Dica discreta de prescrição */}
-          {prescription !== undefined && <p className="tg-why">{prescription.why}</p>}
+          {prescription !== undefined && <p className="tg-why">{prescription.reason
+              ? t(`reason.${prescription.reason.key}`, prescription.reason.args?.map((value) =>
+                  new Intl.NumberFormat(settings?.lang === 'en' ? 'en-US' : 'pt-BR', { maximumFractionDigits: 2 }).format(value)))
+              : prescription.why}</p>}
 
           {/* Sets principais do 5/3/1 — guia visual de %, carga e reps */}
           {prescription?.kind === '531' && prescription.mainSets !== undefined && (
@@ -1084,7 +1083,7 @@ export function TreinoGuiado() {
           )}
 
           {!isTimedMode && (
-            <section className="tg-warmups" aria-label="Aquecimento">
+            <section className="tg-warmups" aria-label={t("hist.warmups")}>
               {(currentEx.warmupSets ?? []).map((set, index) => (
                 <div className="tg-warmup-row" key={index}>
                   <SetRow
@@ -1103,7 +1102,7 @@ export function TreinoGuiado() {
                     onChange={(patch) => logWarmup(active.currentIndex, index, patch)}
                     onDone={() => {
                       if (!set.done && (!Number.isInteger(set.reps) || (set.reps ?? 0) <= 0 || (set.weightKg ?? 0) < 0)) {
-                        setFinishError('Informe repetições inteiras e uma carga válida para o aquecimento.');
+                        setFinishError(t('tg.badWarmup'));
                         return;
                       }
                       setFinishError(null);
@@ -1117,16 +1116,16 @@ export function TreinoGuiado() {
                 </div>
               ))}
               <button type="button" className="tg-warmup-add" disabled={saving || restActive}
-                onClick={() => addWarmup(active.currentIndex)}><Plus size={17} /> Adicionar aquecimento</button>
+                onClick={() => addWarmup(active.currentIndex)}><Plus size={17} />{t("ui.addWarmup")}</button>
             </section>
           )}
 
           {/* Labels de coluna */}
           <div className="tg-col-labels">
             <span />
-            <span className="tg-col-label">{isTimedMode ? 'Tempo (s)' : 'Repetições'}</span>
-            <span className="tg-col-label">{isCardio ? 'Distância (m)' : isTime ? '' : `Carga (${unit})`}</span>
-            <span className="tg-col-label"><span className="sr-only">Concluir série</span></span>
+            <span className="tg-col-label">{isTimedMode ? t("ui.seconds") : t("mode.reps")}</span>
+            <span className="tg-col-label">{isCardio ? t("re.distance") : isTime ? '' : `Carga (${unit})`}</span>
+            <span className="tg-col-label"><span className="sr-only">{t("ui.finishSet")}</span></span>
           </div>
 
           {/* Séries */}
@@ -1156,6 +1155,11 @@ export function TreinoGuiado() {
             ))}
           </div>
 
+          {active.rest.endsAt !== null && (
+            <RestTimer key={active.rest.endsAt} endsAt={active.rest.endsAt} onSkip={stopRest}
+              onComplete={() => { stopRest(); setRestAnnouncement(t('tg.restComplete')); }} />
+          )}
+
           {/* Calculadora de anilhas (G15) — só no modo reps com peso */}
           {!isTimedMode && (
             <PlateCalc
@@ -1173,29 +1177,25 @@ export function TreinoGuiado() {
             className="btn ghost"
             disabled={saving || restActive || work !== undefined || active.currentIndex === 0}
             onClick={() => goToExercise(active.currentIndex - 1)}
-            aria-label="Exercício anterior"
+            aria-label={t("tg.prevEx")}
           >
-            <ChevronLeft size={18} />
-            Anterior
-          </button>
+            <ChevronLeft size={18} />{t("tg.prev")}</button>
           {active.currentIndex < totalExercises - 1 ? (
             <button
               className="btn"
               disabled={saving || restActive || work !== undefined}
               onClick={() => goToExercise(active.currentIndex + 1)}
-              aria-label="Próximo exercício"
-            >
-              Próximo
-              <ChevronRight size={18} />
+              aria-label={t("tg.nextEx")}
+            >{t("tg.next")}<ChevronRight size={18} />
             </button>
           ) : (
             <button
               className="btn"
               disabled={saving || restActive}
               onClick={() => void handleFinish()}
-              aria-label="Finalizar treino"
+              aria-label={t("tg.finishWorkout")}
             >
-              {saving ? 'Salvando…' : 'Finalizar'}
+              {saving ? t("prog.measureSaving") : t("tg.finish")}
               <Check size={18} />
             </button>
           )}
@@ -1207,28 +1207,49 @@ export function TreinoGuiado() {
             className="btn ghost"
             disabled={saving || restActive}
             onClick={handleCancel}
-            aria-label="Cancelar treino"
+            aria-label={t("tg.cancelAriaLabel")}
           >
-            <X size={16} />
-            Cancelar
-          </button>
+            <X size={16} />{t("tg.cancel")}</button>
           {active.currentIndex < totalExercises - 1 && (
             <button
               className="btn"
               disabled={saving || restActive}
               onClick={() => void handleFinish()}
-              aria-label="Finalizar treino agora"
+              aria-label={t("tg.finishNowAriaLabel")}
             >
               <Check size={16} />
-              {saving ? 'Salvando…' : 'Finalizar treino'}
+              {saving ? t("prog.measureSaving") : t("tg.finishWorkout")}
             </button>
           )}
         </div>
         </section>
 
-        <aside className="session-sidebar" aria-label="Roteiro e demonstração">
+        <aside className="session-sidebar" aria-label={t("ui.sessionGuide")}>
+          <details id={guideId} ref={guideRef} className="session-guide card" open={guideOpen}
+            onToggle={(event) => setGuideOpen(event.currentTarget.open)}>
+            <summary>{t('tg.exerciseGuide')}</summary>
+            {guideOpen && (
+              <div className="session-guide-body">
+                <h3>{exName}</h3>
+                {hasDemo && exData
+                  ? <Media exerciseId={exData.id} demo={exData.demo} name={exName} size="lg" />
+                  : <p className="hint">{t('tg.noExerciseMedia')}</p>}
+                <a className="btn ghost session-video-link" href={videoSearch.href}
+                  target="_blank" rel="noopener noreferrer" aria-label={t('tg.videoSearchHint')}>
+                  {t('tg.videoSearch')} <ExternalLink size={15} aria-hidden="true" />
+                </a>
+                <section className="session-guide-muscles" aria-label={t('tg.musclesInvolved')}>
+                  <h3>{t('tg.musclesInvolved')}</h3>
+                  {exData
+                    ? <MuscleCoverage figure={settings?.muscleFigure}
+                        primary={[exData.primaryMuscle]} secondary={exData.secondaryMuscles} />
+                    : <p className="hint">{t('tg.noExerciseMuscles')}</p>}
+                </section>
+              </div>
+            )}
+          </details>
         <details className="session-exercises card" open>
-          <summary>Exercícios da sessão</summary>
+          <summary>{t("ui.sessionExercises")}</summary>
           <ol>
             {active.exercises.map((item, index) => {
               const done = item.sets.filter((set) => set.done).length;
@@ -1241,7 +1262,7 @@ export function TreinoGuiado() {
                     aria-current={index === active.currentIndex ? 'step' : undefined}
                     disabled={!canChangeExercise}
                   >
-                    <span className="session-step">{done === item.sets.length ? <Check size={16} aria-label="Concluído" /> : index + 1}</span>
+                    <span className="session-step">{done === item.sets.length ? <Check size={16} aria-label={t("ui.completed")} /> : index + 1}</span>
                     <span>{name}</span>
                     <small>{done}/{item.sets.length}</small>
                   </button>
@@ -1250,12 +1271,7 @@ export function TreinoGuiado() {
             })}
           </ol>
         </details>
-          {exerciseDemo && hasExerciseMedia(exerciseDemo.id, exerciseDemo.demo) && (
-            <details className="session-demo card">
-              <summary>Demonstração do exercício</summary>
-              <Media exerciseId={exerciseDemo.id} demo={exerciseDemo.demo} name={exerciseDemo.name} size="lg" />
-            </details>
-          )}
+
         </aside>
       </div>
     </div>

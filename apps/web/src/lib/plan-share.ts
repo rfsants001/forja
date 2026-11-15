@@ -1,3 +1,6 @@
+import { t } from './i18n';
+import { UiError } from './ui-error';
+import { syncWrite } from '../db/sync-write';
 /**
  * plan-share.ts — G6: Exportar, importar e imprimir o plano semanal.
  *
@@ -62,7 +65,7 @@ export async function exportPlan(): Promise<string> {
     custom: exercise.custom,
   }]);
   if (exercises.length !== exerciseIds.length) {
-    throw new Error('Alguma rotina tem exercícios indisponíveis. Revise as rotinas antes de exportar.');
+    throw new UiError('file.planMissingExercises');
   }
 
   const plan: PlanFile = {
@@ -122,7 +125,7 @@ export async function importPlan(json: string, replaceDays = false): Promise<Pla
   try {
     parsed = JSON.parse(json) as unknown;
   } catch {
-    throw new Error('Arquivo inválido: não é um JSON válido.');
+    throw new UiError('file.planJson');
   }
 
   if (
@@ -130,21 +133,21 @@ export async function importPlan(json: string, replaceDays = false): Promise<Pla
     parsed === null ||
     !('_meta' in parsed)
   ) {
-    throw new Error('Arquivo inválido: estrutura inesperada.');
+    throw new UiError('file.planShape');
   }
 
   const file = parsed as { _meta: { app?: unknown; kind?: unknown; version?: unknown }; categories?: unknown;
     routines?: unknown; weekPlan?: unknown; exercises?: unknown };
   const meta = file._meta;
   if (meta?.app !== PLAN_APP || meta.kind !== PLAN_KIND || (meta.version !== 1 && meta.version !== PLAN_VERSION)) {
-    throw new Error('Escolha um arquivo de plano compatível com a Forja.');
+    throw new UiError('file.planApp');
   }
   const rawExercises = meta.version === 1 ? [] : file.exercises;
   if (!Array.isArray(file.categories) || !file.categories.every(isBackupCategory)
     || !Array.isArray(file.routines) || !file.routines.every(isBackupRoutine)
     || !Array.isArray(file.weekPlan) || !file.weekPlan.every(isBackupWeekday)
     || !Array.isArray(rawExercises) || !rawExercises.every(isBackupExercise)) {
-    throw new Error('O plano tem registros incompletos ou inválidos.');
+    throw new UiError('file.planRows');
   }
 
   const categories = file.categories as Category[];
@@ -152,14 +155,14 @@ export async function importPlan(json: string, replaceDays = false): Promise<Pla
   const weekPlanRows = file.weekPlan as WeekPlanRow[];
   const exercises = rawExercises as Exercise[];
 
-  return db.transaction('rw', [db.categories, db.exercises, db.routines, db.weekPlan], async () => {
+  return syncWrite(['categories', 'exercises', 'routines', 'weekPlan'], async () => {
     const allExerciseIds = new Set<string>([...await db.exercises.toCollection().primaryKeys(), ...exercises.map((ex) => ex.id)]);
     const categoryIds = new Set<string>([...await db.categories.toCollection().primaryKeys(), ...categories.map((cat) => cat.id)]);
     const routineIds = new Set<string>([...await db.routines.toCollection().primaryKeys(), ...routines.map((routine) => routine.id)]);
     if (routines.some((routine) => !categoryIds.has(routine.categoryId)
       || routine.exercises.some((entry) => !allExerciseIds.has(entry.exerciseId)))
       || weekPlanRows.some((row) => row.routineId !== null && !routineIds.has(row.routineId))) {
-      throw new Error('O plano referencia dados que não estão no arquivo nem no catálogo local. Exporte novamente pela Forja atual.');
+      throw new UiError('file.planReference');
     }
 
     for (const ex of exercises) {
@@ -208,10 +211,11 @@ const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
  * O CSS dedicado de print (print.css) é importado em Perfil.tsx.
  */
 export async function printPlan(): Promise<void> {
-  const [categories, routines, weekPlanRows] = await Promise.all([
+  const [categories, routines, weekPlanRows, settings] = await Promise.all([
     db.categories.orderBy('order').toArray(),
     db.routines.orderBy('order').toArray(),
     db.weekPlan.toArray(),
+    db.settings.get('app'),
   ]);
 
   // Busca exercícios referenciados nas rotinas
@@ -237,10 +241,14 @@ export async function printPlan(): Promise<void> {
   const routineMap = new Map(routines.map((r) => [r.id, r]));
 
   // Monta o HTML do plano
-  const semana = DAY_LABELS.map((dayLabel, i) => {
+  const lang = settings?.lang ?? 'pt';
+  const label = (key: string, values?: (string | number)[]) => escHtml(t(key, lang, values));
+  const locale = lang === 'en' ? 'en' : 'pt-BR';
+  const semana = DAY_LABELS.map((_, i) => {
+    const dayLabel = label('wd.full.' + i);
     const routineId = weekMap.get(i) ?? null;
     if (routineId === null) {
-      return `<tr><td class="day">${dayLabel}</td><td class="routine-name muted">Descanso</td></tr>`;
+      return `<tr><td class="day">${dayLabel}</td><td class="routine-name muted">${label('tg.rest')}</td></tr>`;
     }
     const rot = routineMap.get(routineId);
     if (rot === undefined) {
@@ -273,7 +281,7 @@ export async function printPlan(): Promise<void> {
         <h3 class="routine-title">${escHtml(rot.name)}</h3>
         ${rot.note ? `<p class="routine-note">${escHtml(rot.note)}</p>` : ''}
         <table class="ex-table">
-          <thead><tr><th>Exercício</th><th>Séries</th><th>Reps / Tempo</th></tr></thead>
+          <thead><tr><th>${label('ui.exercise')}</th><th>${label('hist.workSets')}</th><th>${label('file.printReps')}</th></tr></thead>
           <tbody>${exRows}</tbody>
         </table>
       </div>`;
@@ -287,13 +295,13 @@ export async function printPlan(): Promise<void> {
     </section>`;
   }).join('\n');
 
-  const dateStr = new Date().toLocaleDateString('pt-BR');
+  const dateStr = new Date().toLocaleDateString(locale);
 
   const html = `<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="${locale}">
 <head>
 <meta charset="UTF-8">
-<title>Forja — Plano de Treino</title>
+<title>Forja · ${label('file.printTitle')}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -331,12 +339,12 @@ export async function printPlan(): Promise<void> {
 </head>
 <body>
 <div class="header">
-  <h1>Forja — Plano de Treino</h1>
-  <div class="subtitle">Exportado em ${dateStr}</div>
+  <h1>Forja · ${label('file.printTitle')}</h1>
+  <div class="subtitle">${label('file.printDate', [dateStr])}</div>
 </div>
 
 <div class="week-section">
-  <h2>Semana</h2>
+  <h2>${label('home.yourWeek')}</h2>
   <table class="week-table"><tbody>${semana}</tbody></table>
 </div>
 
@@ -346,9 +354,7 @@ ${catSections}
 
   const printWindow = window.open('', '_blank', 'width=800,height=900');
   if (printWindow === null) {
-    throw new Error(
-      'Não foi possível abrir a janela de impressão. Verifique se o navegador bloqueou pop-ups.',
-    );
+    throw new UiError('file.printWindow');
   }
 
   printWindow.document.write(html);

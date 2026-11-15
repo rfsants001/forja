@@ -156,55 +156,35 @@
   justify-content: center;
 }
 
-/* Timer de descanso */
-.tg-rest-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
+/* Timer em linha, com o guia do exercício acessível durante o descanso. */
+.tg-rest-panel {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 32px;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
 }
 
-.tg-rest-title {
-  font-family: var(--font-display);
-  font-size: 18px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+.tg-rest-time {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  color: var(--text-2);
+  font-size: 13px;
 }
 
 .tg-rest-countdown {
-  font-family: var(--font-display);
-  font-size: 80px;
+  color: var(--accent);
+  font-size: 23px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
-  /* glows flame conforme o tempo passa */
-  color: var(--flame-2);
-  text-shadow: 0 0 40px var(--flame-glow);
 }
 
-.tg-rest-countdown.urgent {
-  color: var(--danger);
-  text-shadow: 0 0 40px rgba(224, 92, 74, 0.45);
-}
-
-.tg-rest-skip {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
-  padding: 10px 24px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--control-border);
-  background: var(--surface-2);
-  cursor: pointer;
-  min-height: var(--control-h);
-}
+.tg-rest-countdown.urgent { color: var(--danger); }
 
 /* Tela de descanso/null (sem treino hoje) */
 .tg-empty {
@@ -567,3 +547,24 @@
 .tg-set-wrap { min-width: 0; border: 0; }
 .tg-manual-done { min-height: 32px; margin-top: 5px; color: var(--accent); text-decoration: underline; }
 .tg-manual-done:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.session-exercise-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 10px; }
+.session-guide-trigger { margin-inline-start: auto; }
+.session-guide { padding-block: 0; }
+.session-guide summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+}
+.session-guide-body { display: grid; gap: 10px; padding-block: 12px 16px; border-top: 1px solid var(--border); }
+.session-guide-body h3 { font-size: 14px; }
+.session-guide-body .media-demo { margin: 0; }
+.session-video-link { justify-self: start; text-decoration: none; }
+.session-guide-muscles { border-top: 1px solid var(--border); padding-top: 10px; }
+.session-guide-muscles .muscle-atlas svg { height: clamp(122px, 23vw, 160px); }
+
+@media (min-width: 1030px) {
+  .session-exercise-heading .session-guide-trigger { display: none; }
+}

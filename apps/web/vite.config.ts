@@ -42,7 +42,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon-maskable.svg', 'apple-touch-icon.png'],
-      workbox: { globPatterns: ['**/*.{js,css,html,webp,woff2}'] },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,webp,woff2}'],
+        navigateFallbackDenylist: [/^\/api\//],
+      },
       manifest: {
         name: 'Forja — Treino',
         short_name: 'Forja',

@@ -1,3 +1,5 @@
+import { UiError } from './ui-error';
+import { syncWrite } from '../db/sync-write';
 import type { Table } from 'dexie';
 import { db } from '../db/db';
 
@@ -122,23 +124,23 @@ export function parseBackup(json: string): ParsedBackup {
   try {
     parsed = JSON.parse(json);
   } catch {
-    throw new Error('O arquivo não contém JSON válido. Escolha um backup exportado pela Forja.');
+    throw new UiError('file.backupJson');
   }
   if (!isRow(parsed) || !isRow(parsed._meta) || parsed._meta.app !== BACKUP_APP || !isRow(parsed.data)) {
-    throw new Error('Escolha um arquivo de backup da Forja. Arquivos de plano são importados em Compartilhar plano.');
+    throw new UiError('file.backupWrong');
   }
   const { version } = parsed._meta;
   if (version !== 1 && version !== BACKUP_VERSION) {
-    throw new Error('Esta versão do backup não é compatível com a Forja instalada.');
+    throw new UiError('file.backupVersion');
   }
   const data: BackupData = {};
   for (const name of tableNames) {
     const rows = parsed.data[name];
     // O formato v1 não exportava medidas. Preservá-las no destino permite restaurar arquivos antigos.
     if (version === 1 && name === 'measurements' && rows === undefined) continue;
-    if (!Array.isArray(rows)) throw new Error(`O backup está incompleto. Falta a tabela ${name}.`);
+    if (!Array.isArray(rows)) throw new UiError('file.backupMissing', [name]);
     const invalidIndex = rows.findIndex((row: unknown) => !validRow[name](row));
-    if (invalidIndex !== -1) throw new Error(`O backup contém um registro inválido em ${name} (linha ${invalidIndex + 1}).`);
+    if (invalidIndex !== -1) throw new UiError('file.backupRow', [name, invalidIndex + 1]);
     data[name] = rows as Row[];
   }
   return { version, data };
@@ -163,7 +165,10 @@ export async function downloadBackup(): Promise<void> {
 }
 
 export async function restoreBackup({ data }: ParsedBackup, mode: BackupMode): Promise<Record<string, number>> {
-  return db.transaction('rw', db.tables, async () => {
+  return syncWrite(tableNames, async () => {
+    if (mode === 'replace' && await db.syncState.get('installation')) {
+      throw new UiError('file.backupSync');
+    }
     const counts: Record<string, number> = {};
     for (const name of tableNames) {
       const rows = data[name];

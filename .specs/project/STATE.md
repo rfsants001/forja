@@ -1,6 +1,6 @@
 # Forja · Estado e retomada
 
-Atualizado em 14/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [ROADMAP](ROADMAP.md).
+Atualizado em 15/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [ROADMAP](ROADMAP.md).
 
 ## Publicado na main
 
@@ -33,9 +33,13 @@ Atualizado em 14/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [
 - A transação limpa a semana e as exceções ligadas às rotinas removidas. O histórico mantém a sessão, o nome e a nota, inclusive para filtragem após a exclusão. A sessão ativa continua usando o snapshot em andamento.
 - O README em PT-BR apresenta capturas de desktop e celular e instruções de instalação e backup. O perfil do GitHub aponta para as telas e o guia de execução.
 
-## Próxima tarefa para o Claude
+## PT/EN e revisão pendente
 
-**P5-003 · i18n PT/EN, iniciado e incompleto.** O trabalho anterior à interrupção está no repositório. Existe `apps/web/src/lib/i18n.ts`, `Settings.lang` e adoção parcial em componentes. Os controles de posições das demos já usam `useT()`. Confira as alterações da Home, navegação, agenda, Perfil, Histórico, atlas, inventário e aquecimento antes de mapear as mensagens. Faltam o seletor no Perfil, uso reativo nas páginas, idioma do HTML, formatação, mensagens novas e justificativas de progressão. A spec de i18n lista o teste de aceitação.
+**P5-003 · PT/EN.** O Perfil tem seletor persistente e o HTML acompanha o idioma. Navegação, controles principais e justificativas de progressão usam traduções. O teste no navegador passou por PT → EN → reload → PT. Ainda é preciso revisar a cobertura integral da cópia e dos formatos em fluxos secundários.
+
+## Expansão self-hosted · piloto local
+
+Servidor com SQLite, pareamento, sincronização e revisão Ollama estão disponíveis no piloto self-hosted. O teste fez um treino offline em um navegador e recebeu uma única sessão no outro após reconectar. A aplicação e a reversão da troca passaram com Ollama simulado. A geração com dados fictícios retornou uma sugestão válida no Ollama local com `qwen2.5:7b`. O Codex CLI tem uma prova de terminal com dados sintéticos. O [handoff](../features/self-hosted-assistant/IMPLEMENTACAO.md#implementação-do-piloto) registra os limites de validação e o [README](../../README.md#sincronizar-pc-e-celular) descreve a instalação.
 
 ## Verificação e limites
 

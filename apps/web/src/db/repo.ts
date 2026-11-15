@@ -12,6 +12,7 @@
 // - updatedAt/createdAt: sempre em ms (Date.now()).
 
 import { db, uid } from './db';
+import { syncWrite } from './sync-write';
 import {
   DEFAULT_SETTINGS,
 } from '@forja/core';
@@ -40,34 +41,36 @@ import type {
 export async function upsertCategory(
   data: Omit<Category, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; createdAt?: number },
 ): Promise<Category> {
-  const now = Date.now();
+  return syncWrite(['categories'], async () => {
+    const now = Date.now();
 
-  if (data.id !== undefined) {
-    const existing = await db.categories.get(data.id);
-    if (existing !== undefined) {
-      const updated: Category = { ...existing, ...data, id: existing.id, updatedAt: now };
-      await db.categories.put(updated);
-      return updated;
+    if (data.id !== undefined) {
+      const existing = await db.categories.get(data.id);
+      if (existing !== undefined) {
+        const updated: Category = { ...existing, ...data, id: existing.id, updatedAt: now };
+        await db.categories.put(updated);
+        return updated;
+      }
     }
-  }
 
-  const category: Category = {
-    id: data.id ?? uid('cat_'),
-    name: data.name,
-    slug: data.slug,
-    color: data.color,
-    icon: data.icon,
-    order: data.order,
-    createdAt: data.createdAt ?? now,
-    updatedAt: now,
-  };
-  await db.categories.put(category);
-  return category;
+    const category: Category = {
+      id: data.id ?? uid('cat_'),
+      name: data.name,
+      slug: data.slug,
+      color: data.color,
+      icon: data.icon,
+      order: data.order,
+      createdAt: data.createdAt ?? now,
+      updatedAt: now,
+    };
+    await db.categories.put(category);
+    return category;
+  });
 }
 
 /** Remove uma categoria pelo id. */
 export async function deleteCategory(id: string): Promise<void> {
-  await db.categories.delete(id);
+  await syncWrite(['categories'], () => db.categories.delete(id));
 }
 
 /**
@@ -76,7 +79,7 @@ export async function deleteCategory(id: string): Promise<void> {
  */
 export async function reorderCategories(ids: string[]): Promise<void> {
   const now = Date.now();
-  await db.transaction('rw', db.categories, async () => {
+  await syncWrite(['categories'], async () => {
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       if (id !== undefined) {
@@ -97,30 +100,32 @@ export async function reorderCategories(ids: string[]): Promise<void> {
 export async function upsertExercise(
   data: Omit<Exercise, 'id'> & { id?: string },
 ): Promise<Exercise> {
-  const now = Date.now();
+  return syncWrite(['exercises'], async () => {
+    const now = Date.now();
 
-  if (data.id !== undefined) {
-    const existing = await db.exercises.get(data.id);
-    if (existing !== undefined) {
-      const updated: Exercise = { ...existing, ...data, id: existing.id, updatedAt: now };
-      await db.exercises.put(updated);
-      return updated;
+    if (data.id !== undefined) {
+      const existing = await db.exercises.get(data.id);
+      if (existing !== undefined) {
+        const updated: Exercise = { ...existing, ...data, id: existing.id, updatedAt: now };
+        await db.exercises.put(updated);
+        return updated;
+      }
     }
-  }
 
-  const exercise: Exercise = {
-    ...data,
-    id: data.id ?? uid('ex_'),
-    createdAt: data.createdAt ?? now,
-    updatedAt: now,
-  };
-  await db.exercises.put(exercise);
-  return exercise;
+    const exercise: Exercise = {
+      ...data,
+      id: data.id ?? uid('ex_'),
+      createdAt: data.createdAt ?? now,
+      updatedAt: now,
+    };
+    await db.exercises.put(exercise);
+    return exercise;
+  });
 }
 
 /** Remove um exercício pelo id. */
 export async function deleteExercise(id: string): Promise<void> {
-  await db.exercises.delete(id);
+  await syncWrite(['exercises'], () => db.exercises.delete(id));
 }
 
 /**
@@ -169,7 +174,7 @@ export async function upsertRoutine(
   data: Omit<Routine, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; createdAt?: number },
   { mustExist = false }: { mustExist?: boolean } = {},
 ): Promise<Routine> {
-  return db.transaction('rw', db.routines, async () => {
+  return syncWrite(['routines'], async () => {
     const now = Date.now();
 
     if (data.id !== undefined) {
@@ -214,7 +219,7 @@ async function removeRoutines(routines: Routine[]): Promise<void> {
 
 /** Remove a rotina e suas referências na agenda, preservando o histórico. */
 export async function deleteRoutine(id: string): Promise<void> {
-  await db.transaction('rw', [db.routines, db.weekPlan, db.dayOverrides, db.workouts], async () => {
+  await syncWrite(['routines', 'weekPlan', 'dayOverrides', 'workouts'], async () => {
     const routine = await db.routines.get(id);
     if (routine) await removeRoutines([routine]);
   });
@@ -222,7 +227,7 @@ export async function deleteRoutine(id: string): Promise<void> {
 
 /** Remove as rotinas confirmadas de uma categoria criada por um plano pronto. */
 export async function deleteStarterPlan(categoryId: string, confirmedIds: string[]): Promise<void> {
-  await db.transaction('rw', [db.categories, db.routines, db.weekPlan, db.dayOverrides, db.workouts], async () => {
+  await syncWrite(['categories', 'routines', 'weekPlan', 'dayOverrides', 'workouts'], async () => {
     const category = await db.categories.get(categoryId);
     if (!category?.slug.startsWith('starter-')) throw new Error('Plano pronto indisponível.');
     const routines = await db.routines.where('categoryId').equals(categoryId).toArray();
@@ -241,7 +246,7 @@ export async function deleteStarterPlan(categoryId: string, confirmedIds: string
  */
 export async function reorderRoutines(categoryId: string, ids: string[]): Promise<void> {
   const now = Date.now();
-  await db.transaction('rw', db.routines, async () => {
+  await syncWrite(['routines'], async () => {
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       if (id !== undefined) {
@@ -285,7 +290,7 @@ export async function getWeekPlan(): Promise<WeekPlan> {
  * @param routineId  ID da rotina, ou null para "sem treino"
  */
 export async function setWeekday(weekday: Weekday, routineId: string | null): Promise<void> {
-  await db.transaction('rw', [db.routines, db.weekPlan], async () => {
+  await syncWrite(['routines', 'weekPlan'], async () => {
     if (routineId !== null && !(await db.routines.get(routineId))) throw new Error('Esta rotina já foi excluída.');
     await db.weekPlan.put({ weekday, routineId });
   });
@@ -302,7 +307,7 @@ export async function setWeekday(weekday: Weekday, routineId: string | null): Pr
  * @param routine   routineId, 'rest', ou null ("volta ao plano semanal")
  */
 export async function setDayOverride(dateISO: string, routine: string | 'rest' | null): Promise<void> {
-  await db.transaction('rw', [db.routines, db.dayOverrides], async () => {
+  await syncWrite(['routines', 'dayOverrides'], async () => {
     if (routine !== null && routine !== 'rest' && !(await db.routines.get(routine))) {
       throw new Error('Esta rotina já foi excluída.');
     }
@@ -312,7 +317,7 @@ export async function setDayOverride(dateISO: string, routine: string | 'rest' |
 
 /** Remove o override de uma data ISO, se existir. */
 export async function clearDayOverride(dateISO: string): Promise<void> {
-  await db.dayOverrides.delete(dateISO);
+  await syncWrite(['dayOverrides'], () => db.dayOverrides.delete(dateISO));
 }
 
 /** Retorna todos os overrides cadastrados. */
@@ -329,25 +334,25 @@ export async function listOverrides(): Promise<DayOverride[]> {
  * Espera o objeto já montado pelo caller (incluindo id via uid() e createdAt).
  */
 export async function addWorkout(log: WorkoutLog): Promise<WorkoutLog> {
-  await db.workouts.add(log);
+  await syncWrite(['workouts'], () => db.workouts.add(log));
   return log;
 }
 
 /** Atualiza o realizado e preserva o alvo registrado no início da sessão. */
 export async function updateWorkoutEntries(id: string, entries: WorkoutLog['entries']): Promise<void> {
-  const updated = await db.workouts.update(id, { entries, prs: undefined });
+  const updated = await syncWrite(['workouts'], () => db.workouts.update(id, { entries, prs: undefined }));
   if (updated === 0) throw new Error('Este treino não está mais no histórico.');
 }
 
 /** Remove um workout pelo id. */
 export async function saveFinishedWorkout(log: WorkoutLog): Promise<void> {
-  await db.transaction('rw', db.workouts, async () => {
+  await syncWrite(['workouts'], async () => {
     if (await db.workouts.get(log.id) === undefined) await db.workouts.add(log);
   });
 }
 
 export async function deleteWorkout(id: string): Promise<void> {
-  await db.workouts.delete(id);
+  await syncWrite(['workouts'], () => db.workouts.delete(id));
 }
 
 // ---------------------------------------------------------------------------

@@ -162,6 +162,7 @@ export function nextPrescription({
     const reps = config.targetReps === undefined ? undefined : parseRepsRange(config.targetReps).min;
     return {
       ...(reference === undefined ? {} : { weightKg, sec, reps }),
+      reason: { key: reference === undefined ? 'fresh' : 'history' },
       why: reference === undefined
         ? 'Primeira sessão. Defina os valores iniciais.'
         : 'Use o último registro como referência e confirme o alvo desta sessão.',
@@ -208,6 +209,7 @@ export function nextPrescription({
       reps: lastEntry.target.reps !== undefined
         ? parseRepsRange(lastEntry.target.reps).min
         : undefined,
+      reason: { key: 'deload', args: [misses, stallLimit, base, newWeight] },
       why: `Falhou ${misses}x seguidas (limite: ${stallLimit}), deload de ~10%: ${base.toFixed(1)}kg → ${newWeight.toFixed(1)}kg.`,
       kind: policy,
     };
@@ -244,6 +246,7 @@ function prescribePrefill(
     weightKg,
     reps: reps !== undefined ? parseRepsRange(reps).min : undefined,
     sec,
+    reason: { key: 'repeat' },
     why: 'Política "off": repete o último alvo sem alteração.',
     kind: 'prefill',
   };
@@ -272,6 +275,7 @@ function applyLinearPolicy({ lastEntry, session, incrementKg }: LinearArgs): Pre
     return {
       weightKg: newWeight,
       reps: targetReps !== undefined ? parseRepsRange(targetReps).min : undefined,
+      reason: { key: 'linearHit', args: [session.setsHit, session.setsTotal, incrementKg, base, newWeight] },
       why: `Bateu ${session.setsHit}/${session.setsTotal} no alvo, +${incrementKg}kg: ${base.toFixed(1)}kg → ${newWeight.toFixed(1)}kg.`,
       kind: 'linear',
     };
@@ -280,6 +284,7 @@ function applyLinearPolicy({ lastEntry, session, incrementKg }: LinearArgs): Pre
   return {
     weightKg: base,
     reps: targetReps !== undefined ? parseRepsRange(targetReps).min : undefined,
+    reason: { key: 'linearMiss', args: [session.setsHit, session.setsTotal, base] },
     why: `Não bateu o alvo (${session.setsHit}/${session.setsTotal} séries), mantém ${base.toFixed(1)}kg.`,
     kind: 'linear',
   };
@@ -320,6 +325,7 @@ function applyGreyskullPolicy({
     return {
       weightKg: newWeight,
       reps: minReps,
+      reason: { key: 'greyskullDeload', args: [base, newWeight] },
       why: `Greyskull: falhou a sessão anterior, deload de ~10%: ${base.toFixed(1)}kg → ${newWeight.toFixed(1)}kg.`,
       kind: 'greyskull',
     };
@@ -330,6 +336,7 @@ function applyGreyskullPolicy({
     return {
       weightKg: base,
       reps: minReps,
+      reason: { key: 'greyskullMiss', args: [session.setsHit, session.setsTotal, base] },
       why: `Greyskull: não bateu o alvo (${session.setsHit}/${session.setsTotal}), mantém ${base.toFixed(1)}kg.`,
       kind: 'greyskull',
     };
@@ -344,6 +351,7 @@ function applyGreyskullPolicy({
     return {
       weightKg: newWeight,
       reps: minReps,
+      reason: { key: 'greyskullDouble', args: [amrapReps, minReps * 2, base, newWeight] },
       why: `Greyskull: AMRAP folgado (${amrapReps} reps ≥ ${minReps * 2}), sobe dobro do incremento: ${base.toFixed(1)}kg → ${newWeight.toFixed(1)}kg.`,
       kind: 'greyskull',
     };
@@ -353,6 +361,7 @@ function applyGreyskullPolicy({
   return {
     weightKg: newWeight,
     reps: minReps,
+    reason: { key: 'greyskullHit', args: [amrapReps, incrementKg, base, newWeight] },
     why: `Greyskull: bateu o alvo (AMRAP ${amrapReps} reps), +${incrementKg}kg: ${base.toFixed(1)}kg → ${newWeight.toFixed(1)}kg.`,
     kind: 'greyskull',
   };
@@ -408,6 +417,7 @@ function applyDoublePolicy({
     return {
       weightKg: newWeight,
       reps: range.min,
+      reason: { key: 'doubleWeight', args: [range.max, incrementKg, range.min, base, newWeight] },
       why: `Dupla progressão: bateu o topo da faixa (${range.max} reps) em todas as séries, +${incrementKg}kg e volta ao mínimo (${range.min} reps): ${base.toFixed(1)}kg → ${newWeight.toFixed(1)}kg.`,
       kind: 'double',
     };
@@ -419,6 +429,7 @@ function applyDoublePolicy({
     return {
       weightKg: base,
       reps: nextReps,
+      reason: { key: 'doubleReps', args: [session.setsHit, session.setsTotal, lastTargetReps, nextReps, range.max] },
       why: `Dupla progressão: bateu ${session.setsHit}/${session.setsTotal} séries, sobe alvo de reps: ${lastTargetReps} → ${nextReps} (topo: ${range.max}).`,
       kind: 'double',
     };
@@ -427,6 +438,7 @@ function applyDoublePolicy({
   return {
     weightKg: base,
     reps: lastTargetReps,
+    reason: { key: 'doubleMiss', args: [session.setsHit, session.setsTotal, base, lastTargetReps] },
     why: `Dupla progressão: não bateu o alvo (${session.setsHit}/${session.setsTotal}), mantém ${base.toFixed(1)}kg com ${lastTargetReps} reps.`,
     kind: 'double',
   };
@@ -455,6 +467,7 @@ function applyTimePolicy({ lastSec, incrementSec, hit, misses, stallLimit }: Tim
     const newSec = Math.round(base * DELOAD_FACTOR);
     return {
       sec: newSec,
+      reason: { key: 'timeDeload', args: [misses, stallLimit, base, newSec] },
       why: `Tempo: falhou ${misses}x seguidas (limite: ${stallLimit}), deload de ~10%: ${base}s → ${newSec}s.`,
       kind: 'time',
     };
@@ -464,6 +477,7 @@ function applyTimePolicy({ lastSec, incrementSec, hit, misses, stallLimit }: Tim
     const newSec = base + incrementSec;
     return {
       sec: newSec,
+      reason: { key: 'timeHit', args: [base, incrementSec, newSec] },
       why: `Tempo: bateu o alvo (${base}s), +${incrementSec}s: ${base}s → ${newSec}s.`,
       kind: 'time',
     };
@@ -471,6 +485,7 @@ function applyTimePolicy({ lastSec, incrementSec, hit, misses, stallLimit }: Tim
 
   return {
     sec: base,
+    reason: { key: 'timeMiss', args: [base] },
     why: `Tempo: não bateu o alvo (${base}s), mantém.`,
     kind: 'time',
   };
@@ -502,6 +517,7 @@ function apply531Policy({ workouts, config }: Args531): Prescription {
 
   if (baseTmKg === undefined || baseTmKg <= 0) {
     return {
+      reason: { key: 'missingTrainingMax' },
       why: '5/3/1: Training max não definido. Configure o TM no editor de rotina (ou derive do seu 1RM × 90%).',
       kind: 'fresh',
     };
@@ -550,6 +566,7 @@ function apply531Policy({ workouts, config }: Args531): Prescription {
   return {
     weightKg: topWeight,
     reps: topSet?.reps,
+    reason: { key: 'cycle', args: [tmKg, week, sessionCount] },
     why: `5/3/1 · TM ${tmKg}kg · ${nomesSemana[week]} · ${sessionCount} sessão(ões) logada(s).`,
     kind: '531',
     mainSets,

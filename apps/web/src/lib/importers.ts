@@ -1,3 +1,5 @@
+import { UiError } from './ui-error';
+import { syncWrite } from '../db/sync-write';
 /**
  * importers.ts — G5: Parsers de importação de apps de treino externos.
  *
@@ -92,10 +94,10 @@ function parseCSV(csv: string): string[][] {
 /** Remove linhas vazias e retorna header + dados. */
 function csvToObjects(csv: string, required: string[]): Array<Record<string, string>> {
   const rows = parseCSV(csv).filter((r) => r.some((c) => c.trim() !== ''));
-  if (rows.length === 0) throw new Error('O CSV está vazio. Escolha um arquivo exportado pelo app.');
+  if (rows.length === 0) throw new UiError('file.csvEmpty');
   const header = rows[0]?.map((h) => h.replace(/^\uFEFF/, '').trim()) ?? [];
   if (!required.every((field) => header.includes(field))) {
-    throw new Error('As colunas do CSV não correspondem ao app selecionado. Confira a origem do arquivo.');
+    throw new UiError('file.csvColumns');
   }
   return rows.slice(1).map((row) => {
     const obj: Record<string, string> = {};
@@ -521,7 +523,7 @@ export async function previewImport(result: ImportResult): Promise<string[]> {
 }
 
 export async function applyImport(result: ImportResult): Promise<ImportCounts> {
-  return db.transaction('rw', [db.exercises, db.workouts, db.bodyweight], async () => {
+  return syncWrite(['exercises', 'workouts', 'bodyweight'], async () => {
     const catalog = await db.exercises.toArray();
     const byName = new Map(catalog.map((exercise) => [normalizeExName(exercise.name), exercise]));
     const newExercises = new Map<string, Exercise>();

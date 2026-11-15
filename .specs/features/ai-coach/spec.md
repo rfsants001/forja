@@ -1,6 +1,6 @@
 # AI Coach · hipótese futura
 
-Estado: planejado, sem implementação. Depende do piloto PT-BR e de confirmar que a revisão determinística é insuficiente.
+Hipótese original, mantida como referência. O [pacote self-hosted](../self-hosted-assistant/README.md) detalha o piloto, com revisão determinística antes da etapa Ollama. Para implementação, comece pelo novo pacote.
 
 1. Começar com revisão local baseada em regras: aderência, estagnações, histórico de esforço e sugestões editáveis.
 2. Se houver valor em IA, considerar intake curto sobre objetivo, equipamento e agenda. Mostrar os dados mínimos que sairão do dispositivo antes de qualquer uso de um provider externo.

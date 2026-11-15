@@ -36,4 +36,4 @@ Piloto PT-BR de duas semanas com Rafael e um grupo pequeno. Observar conclusão 
 
 ## Expansão
 
-P5-003 é o próximo trabalho retomável. Fechar o seletor PT/EN, tradução das telas e persistência. Avaliar Capacitor se lembretes com o app fechado forem necessários. Antes de IA, testar uma revisão semanal baseada nas regras existentes.
+P5-003 é o próximo trabalho retomável. Fechar o seletor PT/EN, tradução das telas e persistência. Avaliar Capacitor se lembretes com o app fechado forem necessários. O [PRD da expansão self-hosted](../features/self-hosted-assistant/PRD.md) detalha o pareamento, a sincronização de um único perfil e a revisão semanal no Assistente de treino. Validar a revisão determinística antes de conectar Ollama. O [guia UX/UI](../features/self-hosted-assistant/UX-UI.md) registra a direção visual proposta para desktop e celular. A próxima revisão local detalha Como executar no treino, filtros de semana no Histórico e leitura da sessão com séries e mapa muscular.

@@ -2,27 +2,21 @@
 
 /* ---- cabeçalho de data (agrupador) ---- */
 .hist-date-header {
-  font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 20px 4px 8px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-2);
+  margin: 18px 0 7px;
 }
 
-.hist-date-header:first-child {
-  margin-top: 4px;
-}
+.history-results > :first-child .hist-date-header { margin-top: 0; }
 
 /* ---- card do workout ---- */
 .hist-card {
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: var(--r);
-  padding: var(--pad);
-  box-shadow: var(--shadow);
-  margin-bottom: var(--gap);
-  overflow: hidden;
+  padding: 0 clamp(12px, 2vw, 18px);
+  margin-bottom: 7px;
 }
 
 .hist-card-header {
@@ -31,6 +25,7 @@
   gap: 10px;
   cursor: pointer;
   user-select: none;
+  padding-block: 8px;
 }
 
 .hist-cat-dot {
@@ -46,13 +41,10 @@
 }
 
 .hist-card-title {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: block;
+  font-size: 15px;
+  font-weight: 680;
+  overflow-wrap: anywhere;
 }
 
 .hist-card-meta {
@@ -103,9 +95,8 @@
 }
 
 .hist-detail-inner {
-  padding-top: 14px;
-  border-top: 1px solid var(--border-soft);
-  margin-top: 14px;
+  padding-block: 12px;
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -130,9 +121,7 @@
   font-size: 14px;
   flex: 1;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .hist-ex-badge {
@@ -166,20 +155,22 @@
 .hist-sets-list {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding-left: 2px;
+  list-style: none;
+  padding: 0;
 }
 
 .hist-set-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  border-top: 1px solid var(--border-soft);
+  padding: 5px 0;
   font-size: 13px;
 }
 
 .hist-set-idx {
-  width: 20px;
-  text-align: right;
+  min-width: 16px;
   color: var(--text-muted);
   font-size: 11px;
   flex-shrink: 0;
@@ -223,7 +214,6 @@
 
 /* ---- rodapé do card (botão excluir) ---- */
 .hist-card-footer {
-  margin-top: 14px;
   display: flex;
   justify-content: flex-end;
 }
@@ -232,7 +222,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: 6px 12px;
+  min-height: var(--control-h);
   border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--danger) 10%, transparent);
   color: var(--danger);
@@ -250,7 +241,7 @@
 
 .hist-card-header { width: 100%; min-height: 44px; text-align: start; }
 .hist-card-header:focus-visible { outline-offset: -3px; }
-.hist-set-note { color: var(--text-2); }
+.hist-set-note { flex-basis: 100%; padding-inline-start: 48px; color: var(--text-2); overflow-wrap: anywhere; }
 
 
 .hist-edit { display: grid; gap: 12px; }
@@ -262,18 +253,57 @@
 
 .history-filters {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(154px, 0.54fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
   align-items: end;
-  gap: 9px 12px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
+  gap: 8px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r);
+  background: var(--surface);
+  padding: 12px;
 }
-.app .history-filters .field { margin: 0; }
-.history-count { grid-column: -2; align-self: end; padding-block-end: 8px; text-align: right; white-space: nowrap; }
-@media (max-width: 899px) {
-  .history-filters { grid-template-columns: minmax(0, 1fr) auto; }
+.app .history-filters .field { margin: 0; min-width: 0; }
+.history-filters :is(input, select) { width: 100%; min-width: 0; }
+.history-date-range {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 180px));
+  gap: 8px 12px;
+}
+.history-filters .feedback { grid-column: 1 / -1; margin: 0; }
+.history-filter-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px 10px;
+}
+.history-filter-footer:empty { display: none; }
+
+.hist-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: var(--gap);
+}
+.hist-exercises { display: grid; align-content: start; gap: 10px; min-width: 0; }
+.hist-volume { display: grid; gap: 2px; }
+.hist-volume span, .hist-volume small, .hist-set-group > p { font-size: 12px; color: var(--text-muted); }
+.hist-volume strong { font-size: 23px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.hist-workout-note { overflow-wrap: anywhere; color: var(--text-2); }
+.hist-muscle-map {
+  align-self: start;
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r);
+  padding: 12px;
+}
+.hist-muscle-map h4 { font-size: 14px; margin-bottom: 6px; }
+.hist-muscle-map .muscle-atlas svg { height: clamp(122px, 22vw, 170px); }
+.hist-muscle-map .hint { margin-top: 6px; }
+
+@media (max-width: 660px) {
+  .history-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .history-filter-search { grid-column: 1 / -1; }
-  .history-filter-routine { grid-column: 1; }
-  .history-count { grid-column: 2; justify-self: end; }
-  .history-clear + .history-count { grid-column: 1 / -1; }
+  .hist-detail-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .hist-set-target { margin: 0; }
 }

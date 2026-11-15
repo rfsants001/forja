@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Forja · Protótipo de UX</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="prototype.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#hoje"><span class="brand-icon"><svg aria-hidden="true" viewBox="0 0 64 64"><path fill="currentColor" d="M19 17h30l-5 8H30l-3 5h12l-5 8h-8l-6 10h-9zM43 32h8l-9 16h-8z"/></svg></span>Forja</a>
+      <nav aria-label="Navegação do protótipo" class="nav">
+        <a href="#hoje" data-nav="hoje"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Hoje</a>
+        <a href="#rotina" data-nav="rotina"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dumbbell" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"></path><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"></path><path d="m21.5 21.5-1.4-1.4"></path><path d="M3.9 3.9 2.5 2.5"></path><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"></path></svg>Treinos</a>
+        <a href="#historico" data-nav="historico"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-days" aria-hidden="true"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg>Histórico</a>
+        <a href="#progresso" data-nav="progresso"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-activity" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg>Progresso</a>
+        <a href="#perfil" data-nav="perfil"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings2" aria-hidden="true"><path d="M20 7h-9"></path><path d="M14 17H5"></path><circle cx="17" cy="17" r="3"></circle><circle cx="7" cy="7" r="3"></circle></svg>Perfil</a>
+      </nav>
+      <div class="sidebar-bottom"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hard-drive" aria-hidden="true"><line x1="22" x2="2" y1="12" y2="12"></line><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path><line x1="6" x2="6.01" y1="16" y2="16"></line><line x1="10" x2="10.01" y1="16" y2="16"></line></svg> <span>Dados de exemplo<br><small>Protótipo local</small></span></div>
+    </aside>
+
+    <main id="conteudo" tabindex="-1">
+      <header class="topbar">
+        <p><span>Forja</span><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><strong id="breadcrumb">Hoje</strong></p>
+        <label class="theme-control"><span>Tema</span><select id="theme"><option value="dark">Escuro</option><option value="light">Claro</option></select></label>
+      </header>
+      <div class="content">
+        <section id="hoje" data-screen="Hoje">
+          <header class="page-header"><div><h1>Hoje</h1><p>Sábado, 14 de novembro</p></div><a class="button primary" href="#treino"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>Iniciar treino</a></header>
+          <div class="dashboard">
+            <section class="panel chart-panel">
+              <div class="panel-head"><div><h2>Evolução de carga</h2><p>Maior carga registrada por sessão</p></div><a class="button quiet" href="#progresso">Ver progresso<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a></div>
+              <div class="chart" data-chart data-initial="remada">
+                <div class="chart-controls">
+                  <label>Exercício<select data-exercise><option value="remada">Remada curvada</option><option value="supino">Supino inclinado</option></select></label>
+                  <label>Período<select data-period><option value="4">4 semanas</option><option value="8">8 semanas</option></select></label>
+                </div>
+                <p class="chart-stat"><strong data-latest></strong><span data-difference></span></p>
+                <figure><canvas data-plot aria-hidden="true"></canvas><figcaption data-point aria-live="polite"></figcaption></figure>
+                <div class="chart-footer"><div class="point-actions"><button type="button" class="icon-button" data-prev aria-label="Registro anterior"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="icon-button" data-next aria-label="Próximo registro"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button></div><details><summary>Ver dados da evolução</summary><table><thead><tr><th scope="col">Sessão</th><th scope="col">Carga</th></tr></thead><tbody data-series></tbody></table></details></div>
+              </div>
+            </section>
+            <aside class="panel today-panel">
+              <div class="panel-head"><div><h2>Treino de hoje</h2><p>Plano atual</p></div><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dumbbell" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"></path><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"></path><path d="m21.5 21.5-1.4-1.4"></path><path d="M3.9 3.9 2.5 2.5"></path><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"></path></svg></div>
+              <h3 data-routine-name>Superior B</h3>
+              <ul class="rows workout-list"><li><span>Supino inclinado</span><b>3 × 6–8</b></li><li><span>Remada curvada</span><b>3 × 8–10</b></li><li><span>Elevação lateral</span><b>3 × 12–15</b></li></ul>
+              <a class="button quiet" href="#rotina">Ver rotina<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+              <div class="panel-divider"></div>
+              <h2>Último treino</h2>
+              <p class="entry">Inferiores <span>· 12 nov.</span></p>
+              <p class="muted">16 séries de trabalho</p>
+            </aside>
+            <section class="panel week-panel"><div class="panel-head"><div><h2>Esta semana</h2><p>2 de 3 treinos da agenda concluídos</p></div><a class="button quiet" href="#historico">Ver histórico<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a></div>
+              <ol class="week" aria-label="Semana de 9 a 15 de novembro">
+                <li aria-label="Segunda-feira 9, sem treino"><span>Seg</span><b>9</b><span class="day-mark"></span></li>
+                <li aria-label="Terça-feira 10, treino concluído"><span>Ter</span><b>10</b><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></li>
+                <li aria-label="Quarta-feira 11, sem treino"><span>Qua</span><b>11</b><span class="day-mark"></span></li>
+                <li aria-label="Quinta-feira 12, treino concluído"><span>Qui</span><b>12</b><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></li>
+                <li aria-label="Sexta-feira 13, sem treino"><span>Sex</span><b>13</b><span class="day-mark"></span></li>
+                <li class="current-day" aria-current="date" aria-label="Sábado 14, hoje, treino agendado"><span>Sáb</span><b>14</b><span>Hoje</span></li>
+                <li aria-label="Domingo 15, sem treino"><span>Dom</span><b>15</b><span class="day-mark"></span></li>
+              </ol>
+            </section>
+          </div>
+        </section>
+
+        <section id="progresso" data-screen="Progresso" hidden>
+          <header class="page-header"><div><h1>Progresso</h1><p>Compare suas sessões no mesmo exercício.</p></div></header>
+          <div class="dashboard">
+            <section class="panel chart-panel"><div class="panel-head"><div><h2>Evolução de carga</h2><p>Maior carga registrada por sessão</p></div><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-activity" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg></div><div id="progress-chart"></div></section>
+            <aside class="panel"><div class="panel-head"><div><h2>Últimos registros</h2><p>Séries de trabalho</p></div></div><ul class="rows"><li><div>Supino inclinado<small>12 nov.</small></div><b>62,5 kg</b></li><li><div>Remada curvada<small>10 nov.</small></div><b>52,5 kg</b></li><li><div>Agachamento<small>12 nov.</small></div><b>100 kg</b></li></ul></aside>
+          </div>
+        </section>
+
+        <section id="rotina" data-screen="Editar rotina" data-parent="rotina" hidden>
+          <header class="page-header"><div><h1>Editar rotina</h1><p><span data-routine-name>Superior B</span> · Plano de força</p></div></header>
+          <section class="panel form-panel"><div class="panel-head"><div><h2>Dados da rotina</h2><p>Identifique o treino na semana.</p></div></div>
+            <form id="routine-form">
+              <div class="form-grid"><label>Nome da rotina<input name="routine" value="Superior B" required maxlength="80"></label><label>Categoria<select name="category"><option>Força</option><option>Hipertrofia</option><option>Calistenia</option></select></label></div>
+              <fieldset><legend>Agenda semanal</legend><div class="day-options"><label><input type="checkbox" name="day" value="ter"> Ter</label><label><input type="checkbox" name="day" value="qui"> Qui</label><label><input type="checkbox" name="day" value="sab" checked> Sáb</label></div></fieldset>
+              <details class="extra-fields"><summary>Notas da rotina</summary><label>Notas<textarea name="notes" rows="2" maxlength="400"></textarea></label></details>
+              <div class="form-actions"><a class="button quiet" href="#hoje">Voltar</a><button class="button primary" type="submit">Salvar rotina</button></div>
+              <p class="form-status" data-status role="status"></p>
+            </form>
+          </section>
+        </section>
+
+        <section id="historico" data-screen="Histórico" hidden>
+          <header class="page-header"><div><h1>Histórico</h1><p>Consulte os treinos por dia.</p></div></header>
+          <section class="panel history-filter-panel" aria-label="Filtros do histórico">
+            <div class="history-filters">
+              <label>Período<select id="history-period"><option value="current">Esta semana</option><option value="previous">Semana passada</option><option value="range">Escolher período</option><option value="all">Todo o histórico</option></select></label>
+              <label>Rotina<select id="history-routine"><option value="">Todas</option><option>Superior A</option><option>Inferiores</option><option>Superior B</option><option>Cardio</option></select></label>
+              <label>Buscar treino<input id="history-search" type="search" placeholder="Rotina ou exercício"></label>
+            </div>
+            <div class="history-range" id="history-range" hidden>
+              <label>Início<input id="history-start" type="date" value="2026-11-02" aria-describedby="history-error"></label>
+              <label>Fim<input id="history-end" type="date" value="2026-11-08" aria-describedby="history-error"></label>
+            </div>
+            <p class="error" id="history-error" role="alert" hidden></p>
+            <p id="history-count" class="muted" role="status"></p>
+          </section>
+          <div id="history-list" aria-label="Treinos por data">
+            <section class="history-day" data-date="2026-11-12"><h2><time datetime="2026-11-12">Quinta-feira, 12 de novembro</time></h2><details class="panel history-session" data-routine="Inferiores" data-search="Agachamento livre">
+      <summary><strong>Inferiores</strong><span>43 min · 3 séries concluídas</span></summary>
+      <div class="history-detail">
+        <div><div class="history-volume"><span>Volume de carga</span><strong>1.770 kg</strong><small>Soma de carga × repetições das séries de trabalho concluídas.</small></div><div class="history-exercise">
+      <h4>Agachamento livre</h4>
+      <table class="sets history-sets"><caption class="sr-only">Séries de Agachamento livre</caption>
+        <thead><tr><th scope="col">Série</th><th scope="col">Carga</th><th scope="col">Reps</th></tr></thead><tbody><tr class="set-warmup"><th scope="row">Aquecimento</th><td>60 kg</td><td>8</td></tr><tr><th scope="row">1</th><td>100 kg</td><td>6</td></tr><tr><th scope="row">2</th><td>100 kg</td><td>6</td></tr><tr><th scope="row">3</th><td>95 kg</td><td>6</td></tr></tbody>
+      </table>
+    </div></div>
+        <aside class="history-anatomy"><h3>Mapa muscular da sessão</h3><div class="anatomy-views"><figure><img src="assets/atlas-inferiores-front.svg" alt=""><figcaption>Frente</figcaption></figure><figure><img src="assets/atlas-inferiores-back.svg" alt=""><figcaption>Costas</figcaption></figure></div><ul class="anatomy-legend"><li><span class="legend-mark main"></span><strong>Principais</strong> Quadríceps</li><li><span class="legend-mark auxiliary"></span><strong>Auxiliares</strong> Glúteos e posteriores</li></ul></aside>
+      </div>
+    </details></section>
+            <section class="history-day" data-date="2026-11-10"><h2><time datetime="2026-11-10">Terça-feira, 10 de novembro</time></h2><details class="panel history-session" data-routine="Superior A" data-search="Supino inclinado com barra, remada curvada">
+      <summary><strong>Superior A</strong><span>47 min · 6 séries concluídas</span></summary>
+      <div class="history-detail">
+        <div><div class="history-volume"><span>Volume de carga</span><strong>2.837,5 kg</strong><small>Soma de carga × repetições das séries de trabalho concluídas.</small></div><div class="history-exercise">
+      <h4>Supino inclinado com barra</h4>
+      <table class="sets history-sets"><caption class="sr-only">Séries de Supino inclinado com barra</caption>
+        <thead><tr><th scope="col">Série</th><th scope="col">Carga</th><th scope="col">Reps</th></tr></thead><tbody><tr class="set-warmup"><th scope="row">Aquecimento</th><td>40 kg</td><td>10</td></tr><tr><th scope="row">1</th><td>60 kg</td><td>8</td></tr><tr><th scope="row">2</th><td>60 kg</td><td>8</td></tr><tr><th scope="row">3</th><td>57,5 kg</td><td>7</td></tr></tbody>
+      </table>
+    </div><div class="history-exercise">
+      <h4>Remada curvada</h4>
+      <table class="sets history-sets"><caption class="sr-only">Séries de Remada curvada</caption>
+        <thead><tr><th scope="col">Série</th><th scope="col">Carga</th><th scope="col">Reps</th></tr></thead><tbody><tr><th scope="row">1</th><td>52,5 kg</td><td>10</td></tr><tr><th scope="row">2</th><td>50 kg</td><td>10</td></tr><tr><th scope="row">3</th><td>50 kg</td><td>9</td></tr></tbody>
+      </table>
+    </div></div>
+        <aside class="history-anatomy"><h3>Mapa muscular da sessão</h3><div class="anatomy-views"><figure><img src="assets/atlas-superior-front.svg" alt=""><figcaption>Frente</figcaption></figure><figure><img src="assets/atlas-superior-back.svg" alt=""><figcaption>Costas</figcaption></figure></div><ul class="anatomy-legend"><li><span class="legend-mark main"></span><strong>Principais</strong> Peito e costas</li><li><span class="legend-mark auxiliary"></span><strong>Auxiliares</strong> Ombros, tríceps, bíceps e latíssimo</li></ul></aside>
+      </div>
+    </details></section>
+            <section class="history-day" data-date="2026-11-05"><h2><time datetime="2026-11-05">Quinta-feira, 5 de novembro</time></h2><details class="panel history-session" data-routine="Superior B" data-search="Supino inclinado com barra, remada curvada">
+      <summary><strong>Superior B</strong><span>44 min · 6 séries concluídas</span></summary>
+      <div class="history-detail">
+        <div><div class="history-volume"><span>Volume de carga</span><strong>2.732,5 kg</strong><small>Soma de carga × repetições das séries de trabalho concluídas.</small></div><div class="history-exercise">
+      <h4>Supino inclinado com barra</h4>
+      <table class="sets history-sets"><caption class="sr-only">Séries de Supino inclinado com barra</caption>
+        <thead><tr><th scope="col">Série</th><th scope="col">Carga</th><th scope="col">Reps</th></tr></thead><tbody><tr class="set-warmup"><th scope="row">Aquecimento</th><td>40 kg</td><td>10</td></tr><tr><th scope="row">1</th><td>57,5 kg</td><td>8</td></tr><tr><th scope="row">2</th><td>57,5 kg</td><td>8</td></tr><tr><th scope="row">3</th><td>55 kg</td><td>7</td></tr></tbody>
+      </table>
+    </div><div class="history-exercise">
+      <h4>Remada curvada</h4>
+      <table class="sets history-sets"><caption class="sr-only">Séries de Remada curvada</caption>
+        <thead><tr><th scope="col">Série</th><th scope="col">Carga</th><th scope="col">Reps</th></tr></thead><tbody><tr><th scope="row">1</th><td>50 kg</td><td>10</td></tr><tr><th scope="row">2</th><td>50 kg</td><td>10</td></tr><tr><th scope="row">3</th><td>47,5 kg</td><td>9</td></tr></tbody>
+      </table>
+    </div></div>
+        <aside class="history-anatomy"><h3>Mapa muscular da sessão</h3><div class="anatomy-views"><figure><img src="assets/atlas-superior-front.svg" alt=""><figcaption>Frente</figcaption></figure><figure><img src="assets/atlas-superior-back.svg" alt=""><figcaption>Costas</figcaption></figure></div><ul class="anatomy-legend"><li><span class="legend-mark main"></span><strong>Principais</strong> Peito e costas</li><li><span class="legend-mark auxiliary"></span><strong>Auxiliares</strong> Ombros, tríceps, bíceps e latíssimo</li></ul></aside>
+      </div>
+    </details><details class="panel history-session" data-routine="Cardio" data-search="Caminhada na esteira">
+      <summary><strong>Cardio</strong><span>24 min</span></summary>
+      <div class="history-detail">
+        <div><div class="history-exercise"><h4>Caminhada na esteira</h4><p class="muted">24 min · 1,8 km</p></div></div>
+        <aside class="history-anatomy"><h3>Mapa muscular da sessão</h3><p class="muted">Nenhum grupo muscular foi registrado para esta atividade.</p></aside>
+      </div>
+    </details></section>
+            <section class="history-day" data-date="2026-11-03"><h2><time datetime="2026-11-03">Terça-feira, 3 de novembro</time></h2><details class="panel history-session" data-routine="Inferiores" data-search="Agachamento livre">
+      <summary><strong>Inferiores</strong><span>42 min · 3 séries concluídas</span></summary>
+      <div class="history-detail">
+        <div><div class="history-volume"><span>Volume de carga</span><strong>1.680 kg</strong><small>Soma de carga × repetições das séries de trabalho concluídas.</small></div><div class="history-exercise">
+      <h4>Agachamento livre</h4>
+      <table class="sets history-sets"><caption class="sr-only">Séries de Agachamento livre</caption>
+        <thead><tr><th scope="col">Série</th><th scope="col">Carga</th><th scope="col">Reps</th></tr></thead><tbody><tr class="set-warmup"><th scope="row">Aquecimento</th><td>60 kg</td><td>8</td></tr><tr><th scope="row">1</th><td>95 kg</td><td>6</td></tr><tr><th scope="row">2</th><td>95 kg</td><td>6</td></tr><tr><th scope="row">3</th><td>90 kg</td><td>6</td></tr></tbody>
+      </table>
+    </div></div>
+        <aside class="history-anatomy"><h3>Mapa muscular da sessão</h3><div class="anatomy-views"><figure><img src="assets/atlas-inferiores-front.svg" alt=""><figcaption>Frente</figcaption></figure><figure><img src="assets/atlas-inferiores-back.svg" alt=""><figcaption>Costas</figcaption></figure></div><ul class="anatomy-legend"><li><span class="legend-mark main"></span><strong>Principais</strong> Quadríceps</li><li><span class="legend-mark auxiliary"></span><strong>Auxiliares</strong> Glúteos e posteriores</li></ul></aside>
+      </div>
+    </details></section>
+          </div>
+        </section>
+
+        <section id="treino" data-screen="Treino ativo" data-parent="rotina" hidden>
+          <header class="page-header"><div><h1 data-routine-name>Superior B</h1><p>Treino ativo</p></div><button class="button" id="finish-workout">Finalizar</button></header>
+          <div class="dashboard workout-layout">
+          <section class="panel workout-sets"><div class="panel-head"><div><h2 id="active-exercise-name">Supino inclinado com barra</h2><p>Meta da rotina · 3 × 6–8 reps</p></div><button type="button" id="technique-trigger" class="button quiet study-trigger" aria-controls="technique" aria-expanded="false">Como executar</button></div>
+            <table class="sets"><thead><tr><th scope="col">Série</th><th scope="col">Anterior</th><th scope="col">kg</th><th scope="col">Reps</th><th scope="col"><span class="sr-only">Concluída</span><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></th></tr></thead>
+            <tbody><tr><th scope="row">1</th><td>60 × 8</td><td><input aria-label="Carga da série 1 em kg" inputmode="decimal" value="62,5"></td><td><input aria-label="Repetições da série 1" inputmode="numeric" value="8"></td><td><label class="set-check"><input type="checkbox" aria-label="Concluir série 1" checked></label></td></tr>
+            <tr><th scope="row">2</th><td>60 × 8</td><td><input aria-label="Carga da série 2 em kg" inputmode="decimal" value="62,5"></td><td><input aria-label="Repetições da série 2" inputmode="numeric" value="7"></td><td><label class="set-check"><input type="checkbox" aria-label="Concluir série 2"></label></td></tr>
+            <tr><th scope="row">3</th><td>60 × 7</td><td><input aria-label="Carga da série 3 em kg" inputmode="decimal" value="62,5"></td><td><input aria-label="Repetições da série 3" inputmode="numeric" value="8"></td><td><label class="set-check"><input type="checkbox" aria-label="Concluir série 3"></label></td></tr></tbody></table>
+            <div class="rest"><div><span>Descanso</span><strong id="rest-clock">01:24</strong></div><button class="button" type="button" id="skip-rest">Pular descanso</button></div>
+            <p id="workout-status" class="form-status" role="status"></p>
+          </section>
+            <details class="panel technique" id="technique">
+              <summary>Como executar</summary>
+              <div class="technique-content">
+                <p class="technique-exercise">Supino inclinado com barra</p>
+                <figure class="technique-demo">
+                  <img id="demo-frame" src="assets/supino-inclinado-inicio.webp" width="411" height="480" alt="Supino inclinado com barra, posição inicial">
+                  <figcaption><a id="demo-credit" href="https://wger.de/api/v2/exerciseimage/129/" target="_blank" rel="noreferrer">Everkinetic via wger</a> · <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">CC BY-SA 3.0</a> · adaptada pela Forja</figcaption>
+                </figure>
+                <div class="technique-actions">
+                  <button type="button" class="button" id="demo-toggle">Ver posição final</button>
+                  <a class="button quiet" id="exercise-video" href="https://www.youtube.com/results?search_query=Supino+inclinado+com+barra+execu%C3%A7%C3%A3o" target="_blank" rel="noopener noreferrer">Buscar no YouTube <span aria-hidden="true">↗</span></a>
+                </div>
+                <section class="technique-map" aria-labelledby="exercise-muscles-title">
+                  <h3 id="exercise-muscles-title">Músculos envolvidos</h3>
+                  <div class="anatomy-views"><figure><img src="assets/atlas-exercicio-front.svg" alt=""><figcaption>Frente</figcaption></figure><figure><img src="assets/atlas-exercicio-back.svg" alt=""><figcaption>Costas</figcaption></figure></div>
+                  <ul class="anatomy-legend"><li><span class="legend-mark main"></span><strong>Principais</strong> Peito</li><li><span class="legend-mark auxiliary"></span><strong>Auxiliares</strong> Ombros e tríceps</li></ul>
+                </section>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section id="perfil" data-screen="Perfil" hidden>
+          <header class="page-header"><div><h1>Perfil</h1><p>Preferências e sua instalação.</p></div></header>
+          <section class="panel form-panel"><ul class="rows feature-list"><li><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-laptop" aria-hidden="true"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"></path></svg><div>Dispositivos<small>Pareamento e estado de sincronização</small></div><a class="button" href="#dispositivos">Abrir<span class="sr-only"> Dispositivos</span><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a></li><li><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-list" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M12 11h4"></path><path d="M12 16h4"></path><path d="M8 11h.01"></path><path d="M8 16h.01"></path></svg><div>Assistente de treino<small>Revisão semanal e provedor local</small></div><a class="button" href="#assistente">Abrir<span class="sr-only"> Assistente de treino</span><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a></li></ul></section>
+        </section>
+
+        <section id="dispositivos" data-screen="Dispositivos" data-parent="perfil" hidden>
+          <header class="page-header"><div><h1>Dispositivos</h1><p>Controle os aparelhos conectados à sua instalação.</p></div><button type="button" class="button primary" id="pair-button" aria-expanded="false" aria-controls="pairing"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Parear aparelho</button></header>
+          <div class="dashboard">
+            <section class="panel"><div class="panel-head"><div><h2>Instalação</h2><p>forja.casa.test</p></div><span class="status-ok"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Atualizado</span></div>
+              <ul class="rows feature-list"><li><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-laptop" aria-hidden="true"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"></path></svg><div>Este computador<small>Última sincronização às 10:24</small></div></li><li><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-smartphone" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><path d="M12 18h.01"></path></svg><div>Celular principal<small>Última sincronização às 09:47</small></div></li></ul>
+            </section>
+            <section class="panel" id="pairing" hidden><div class="panel-head"><div><h2>Convite de pareamento</h2><p id="pairing-description">Demonstração de entrada manual</p></div><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link2" aria-hidden="true"><path d="M9 17H7A5 5 0 0 1 7 7h2"></path><path d="M15 7h2a5 5 0 1 1 0 10h-2"></path><line x1="8" x2="16" y1="12" y2="12"></line></svg></div><dl class="device-details"><dt>Endereço</dt><dd>forja.casa.test</dd><dt>Código de exemplo</dt><dd>704 291</dd></dl><button class="button quiet" id="preview-connection" type="button">Simular entrada pelo celular<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button><form id="pair-form" hidden novalidate><label>Código de pareamento<input name="code" autocomplete="off" inputmode="numeric" aria-describedby="pair-error" required placeholder="000 000"></label><label>Nome do aparelho<input name="device" autocomplete="off" maxlength="60" required placeholder="Meu celular"></label><p id="pair-error" class="error" role="alert" hidden></p><div class="form-actions"><button type="button" id="cancel-pair" class="button quiet">Voltar</button><button type="submit" class="button primary">Solicitar conexão</button></div><p class="form-status" data-status role="status"></p></form></section>
+          </div>
+        </section>
+
+        <section id="assistente" data-screen="Assistente de treino" data-parent="perfil" hidden>
+          <header class="page-header"><div><h1>Assistente de treino</h1><p>Revisão semanal · 8–14 nov.</p></div></header>
+          <div class="dashboard">
+            <section class="panel"><div class="panel-head"><div><h2>Dados da semana</h2><p>Prévia local · séries de trabalho</p></div></div><div class="metric-pair"><p><strong>2 de 3</strong><span>Treinos concluídos</span></p><p><strong>35</strong><span>Séries de trabalho</span></p></div><ul class="rows"><li><span>10 nov. · Superior A</span><b>19 séries</b></li><li><span>12 nov. · Inferiores</span><b>16 séries</b></li></ul><button class="button primary" id="review-button" type="button" aria-expanded="false" aria-controls="proposal">Ver revisão de exemplo</button>
+              <div id="proposal" hidden><h3>Superior B</h3><p>Substituição sugerida para usar o banco disponível.</p><dl class="device-details"><dt>Atual</dt><dd>Remada curvada</dd><dt>Sugerido</dt><dd>Remada apoiada no banco</dd></dl><button class="button" id="check-proposal" type="button">Revisar alteração</button><p class="form-status" id="proposal-status" role="status"></p></div>
+            </section>
+            <section class="panel"><div class="panel-head"><div><h2>Provedor</h2><p>Processamento nesta instalação</p></div><span class="status-ok"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Ollama</span></div><form id="provider-form"><label>Modelo<select name="model"><option>qwen3</option><option>gemma3</option></select></label><div class="form-actions"><button type="submit" class="button">Testar conexão</button></div><p class="form-status" data-status role="status"></p></form></section>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

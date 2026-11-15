@@ -338,9 +338,12 @@ dialog.exercise-detail {
 .tg-warmup-row .tg-set-idx { font-size: 16px; }
 .tg-warmup-row .tg-set-row { grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr) var(--control-h); }
 .session-sidebar { display: grid; align-content: start; gap: var(--gap); min-width: 0; }
-.session-demo summary { cursor: pointer; font-size: 14px; font-weight: 600; min-height: 44px; align-content: center; }
 @media (max-width: 540px) {
   .training-session .tg-topbar { margin-bottom: 12px; }
   .training-session .tg-ex-card { padding-block: 14px; }
 }
 .muscle-latest-date { text-align: center; margin-bottom: 10px; }
+
+:is(.session-guide-muscles, .hist-muscle-map) .muscle-atlas {
+  --muscle-unhighlighted: color-mix(in srgb, var(--text-muted) 28%, var(--surface-2));
+}

@@ -5,6 +5,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { getSettings } from './db/repo';
 import { applyAppearance } from './lib/appearance';
 import { AppNavigation } from './components/AppNavigation';
+import { watchSync } from './lib/sync-client';
+import { useT } from './lib/i18n';
 
 const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
 const Treinos = lazy(() => import('./pages/Treinos').then(m => ({ default: m.Treinos })));
@@ -15,13 +17,20 @@ const Historico = lazy(() => import('./pages/Historico').then(m => ({ default: m
 const Progresso = lazy(() => import('./pages/Progresso').then(m => ({ default: m.Progresso })));
 const Perfil = lazy(() => import('./pages/Perfil').then(m => ({ default: m.Perfil })));
 
-const LoadingFallback = () => <p className="empty" role="status">Carregando…</p>;
+const Dispositivos = lazy(() => import('./pages/Dispositivos').then(m => ({ default: m.Dispositivos })));
+const Conectar = lazy(() => import('./pages/Dispositivos').then(m => ({ default: m.Conectar })));
+
+const Assistente = lazy(() => import('./pages/Assistente').then(m => ({ default: m.Assistente })));
 
 export function App() {
+  const t = useT();
   const { pathname, hash } = useLocation();
   const settings = useLiveQuery(getSettings, []);
   const theme = settings?.theme;
   const accent = settings?.accent;
+  const lang = settings?.lang ?? 'pt';
+  useEffect(watchSync, []);
+  useEffect(() => { document.documentElement.lang = lang === 'en' ? 'en' : 'pt-BR'; }, [lang]);
   useEffect(() => {
     if (theme === undefined) return;
     const system = window.matchMedia('(prefers-color-scheme: light)');
@@ -40,10 +49,10 @@ export function App() {
         <a className="skip-link" href="#conteudo" onClick={(event) => {
           event.preventDefault();
           document.getElementById('conteudo')?.focus();
-        }}>Ir para o conteúdo</a>
+        }}>{t('locale.skip')}</a>
         <AppNavigation />
         <main className="app-main" id="conteudo" tabIndex={-1}>
-          <Suspense fallback={<LoadingFallback />}>
+          <Suspense fallback={<p className="empty" role="status">{t('hist.loading')}</p>}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/treinos" element={<Treinos />} />
@@ -54,6 +63,9 @@ export function App() {
               <Route path="/historico" element={<Historico />} />
               <Route path="/progresso" element={<Progresso />} />
               <Route path="/perfil" element={<Perfil />} />
+              <Route path="/perfil/dispositivos" element={<Dispositivos />} />
+              <Route path="/perfil/assistente" element={<Assistente />} />
+              <Route path="/conectar" element={<Conectar />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

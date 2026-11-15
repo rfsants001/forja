@@ -161,6 +161,8 @@ export interface Prescription {
   sec?: number;
   /** Explicação legível do porquê desta prescrição (auditável). */
   why: string;
+  /** Chave estável e parâmetros para exibir a explicação na interface. */
+  reason?: { key: string; args?: number[] };
   kind: ProgressionPolicy | 'prefill' | 'fresh';
   /**
    * Sets principais do esquema 5/3/1, presentes apenas quando `kind === '531'`.

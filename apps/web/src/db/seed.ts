@@ -19,7 +19,7 @@ const DATASET_VERSION_KEY = 'datasetVersion';
 export async function ensureSeed(): Promise<void> {
   // ── Categorias ─────────────────────────────────────────────────────────────
   const catCount = await db.categories.count();
-  if (catCount === 0) {
+  if (catCount === 0 && !await db.syncState.get('installation')) {
     const now = Date.now();
     await db.categories.bulkAdd(
       SEED_CATEGORIES.map((c) => ({ ...c, createdAt: now, updatedAt: now })),

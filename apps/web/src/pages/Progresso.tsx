@@ -1,3 +1,5 @@
+import { LoadTrend } from '../components/LoadTrend';
+import { useT } from '../lib/i18n';
 // Tela de Insights / Progresso — Fase 3.
 // Rota: /progresso (wiring em App.tsx pelo orquestrador).
 //
@@ -87,6 +89,7 @@ interface SummaryGridProps {
 }
 
 function SummaryGrid({ workoutCount, daysCount, totalVolume }: SummaryGridProps) {
+  const t = useT();
   const volumeStr = useMemo(() => {
     if (totalVolume >= 1000) {
       return `${(totalVolume / 1000).toFixed(1)}t`;
@@ -100,11 +103,11 @@ function SummaryGrid({ workoutCount, daysCount, totalVolume }: SummaryGridProps)
     <div className="prog-summary-grid">
       <div className="prog-stat">
         <div className="prog-stat-value">{workoutCount}</div>
-        <div className="prog-stat-label">treinos</div>
+        <div className="prog-stat-label">{t("prog.statWorkouts")}</div>
       </div>
       <div className="prog-stat">
         <div className="prog-stat-value">{daysCount}</div>
-        <div className="prog-stat-label">dias</div>
+        <div className="prog-stat-label">{t("prog.statDays")}</div>
       </div>
       <div className="prog-stat">
         <div className="prog-stat-value">
@@ -115,7 +118,7 @@ function SummaryGrid({ workoutCount, daysCount, totalVolume }: SummaryGridProps)
             </span>
           )}
         </div>
-        <div className="prog-stat-label">volume</div>
+        <div className="prog-stat-label">{t("prog.statVolume")}</div>
       </div>
     </div>
   );
@@ -133,6 +136,7 @@ interface EffortLineChartProps {
 }
 
 function EffortLineChart({ weeks }: EffortLineChartProps) {
+  const t = useT();
   if (weeks.length === 0) return null;
 
   const W_PER_POINT = 44;
@@ -168,7 +172,7 @@ function EffortLineChart({ weeks }: EffortLineChartProps) {
       className="prog-effort-svg"
       width={svgW}
       height={CHART_H}
-      aria-label="Média semanal de esforço (RPE)"
+      aria-label={t("prog.effortAriaLabel")}
       role="img"
     >
       {/* Grade */}
@@ -251,37 +255,26 @@ function EffortLineChart({ weeks }: EffortLineChartProps) {
 // Sub-componente: barras de spread (distribuição por nível RPE)
 // ---------------------------------------------------------------------------
 
-interface EffortSpreadBarsProps {
+interface EffortSpreadTableProps {
   spread: Record<number, number>;
 }
 
-function EffortSpreadBars({ spread }: EffortSpreadBarsProps) {
+function EffortSpreadTable({ spread }: EffortSpreadTableProps) {
+  const t = useT();
   const entries = Object.entries(spread)
     .map(([k, v]) => ({ level: Number(k), count: v }))
     .sort((a, b) => a.level - b.level);
 
   if (entries.length === 0) return null;
 
-  const maxCount = Math.max(...entries.map((e) => e.count));
-
   return (
-    <div className="prog-effort-spread">
-      <div className="prog-effort-spread-title">Distribuição (RPE)</div>
-      <div className="prog-effort-bars">
-        {entries.map(({ level, count }) => (
-          <div key={level} className="prog-effort-bar-row">
-            <div className="prog-effort-bar-label">{level}</div>
-            <div className="prog-effort-bar-track">
-              <div
-                className="prog-effort-bar-fill"
-                style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
-              />
-            </div>
-            <div className="prog-effort-bar-count">{count}</div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <table className="self-host-table">
+      <caption>RPE</caption>
+      <thead><tr><th scope="col">RPE</th><th scope="col">{t('hist.workSets')}</th></tr></thead>
+      <tbody>{entries.map(({ level, count }) => (
+        <tr key={level}><th scope="row">{level}</th><td>{count}</td></tr>
+      ))}</tbody>
+    </table>
   );
 }
 
@@ -294,11 +287,10 @@ interface TopSetCurveProps {
 }
 
 function TopSetCurve({ points }: TopSetCurveProps) {
+  const t = useT();
   if (points.length < 2) {
     return (
-      <p className="hint" style={{ textAlign: 'center', padding: '4px 0' }}>
-        São necessárias ao menos 2 sessões para exibir a curva.
-      </p>
+      <p className="hint" style={{ textAlign: 'center', padding: '4px 0' }}>{t("prog.min2sessions")}</p>
     );
   }
 
@@ -342,7 +334,7 @@ function TopSetCurve({ points }: TopSetCurveProps) {
       <svg
         width={svgW}
         height={SVG_H}
-        aria-label="Curva do top-set com esforço"
+        aria-label={t("prog.topSetAriaLabel")}
         role="img"
       >
         {/* Linha do 1RM */}
@@ -435,6 +427,7 @@ interface EffortSectionProps {
 }
 
 function EffortSection({ workouts, exerciseMap, period, trackEffort }: EffortSectionProps) {
+  const t = useT();
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('');
 
   // Calcula semanas e spread para o período selecionado
@@ -478,11 +471,11 @@ function EffortSection({ workouts, exerciseMap, period, trackEffort }: EffortSec
       <div className="card" style={{ marginBottom: 'var(--gap)' }}>
         <div className="prog-effort-header">
           <Zap size={15} strokeWidth={2.2} style={{ color: 'var(--flame)' }} />
-          <div className="section-title">Esforço</div>
+          <div className="section-title">{t("prog.effort")}</div>
         </div>
         <div className="prog-effort-hint">
-          <p className="hint">Registro de esforço (RIR/RPE) desativado.</p>
-          <p className="hint">Ative em <strong>Perfil → Registrar esforço</strong> para ver estatísticas aqui.</p>
+          <p className="hint">{t("prog.effortDisabled")}</p>
+          <p className="hint">{t("ui.enableEffort")} <strong>{t("ui.effortPath")}</strong>{t("ui.showEffortStats")}</p>
         </div>
       </div>
     );
@@ -494,11 +487,9 @@ function EffortSection({ workouts, exerciseMap, period, trackEffort }: EffortSec
       <div className="card" style={{ marginBottom: 'var(--gap)' }}>
         <div className="prog-effort-header">
           <Zap size={15} strokeWidth={2.2} style={{ color: 'var(--flame)' }} />
-          <div className="section-title">Esforço</div>
+          <div className="section-title">{t("prog.effort")}</div>
         </div>
-        <p className="hint" style={{ textAlign: 'center', padding: '8px 0' }}>
-          Nenhum dado de esforço neste período.
-        </p>
+        <p className="hint" style={{ textAlign: 'center', padding: '8px 0' }}>{t("prog.noEffort")}</p>
       </div>
     );
   }
@@ -507,12 +498,12 @@ function EffortSection({ workouts, exerciseMap, period, trackEffort }: EffortSec
     <div className="card" style={{ marginBottom: 'var(--gap)' }}>
       <div className="prog-effort-header">
         <Zap size={15} strokeWidth={2.2} style={{ color: 'var(--flame)' }} />
-        <div className="section-title">Esforço</div>
+        <div className="section-title">{t("prog.effort")}</div>
       </div>
 
       {/* Média semanal — gráfico de linha */}
       <div className="prog-effort-meta">
-        {totalSets} set{totalSets !== 1 ? 's' : ''} avaliado{totalSets !== 1 ? 's' : ''} · escala RPE 0–10
+        {t('ui.effortCount', [totalSets])}
       </div>
       <div className="prog-effort-chart">
         <EffortLineChart weeks={weeks} />
@@ -521,18 +512,18 @@ function EffortSection({ workouts, exerciseMap, period, trackEffort }: EffortSec
       <div className="prog-effort-divider" />
 
       {/* Spread */}
-      <EffortSpreadBars spread={spread} />
+      <EffortSpreadTable spread={spread} />
 
       {/* Curva do top-set */}
       {exercisesWithEffort.length > 0 && (
         <div className="prog-effort-curve">
           <div className="prog-effort-curve-header">
-            <div className="prog-effort-curve-title">Top-set + esforço</div>
+            <div className="prog-effort-curve-title">{t("prog.topSet")}</div>
             <select
               className="prog-effort-curve-select"
               value={resolvedExerciseId}
               onChange={(e) => setSelectedExerciseId(e.target.value)}
-              aria-label="Selecionar exercício para curva do top-set"
+              aria-label={t("prog.selectExercise")}
             >
               {exercisesWithEffort.map((ex) => (
                 <option key={ex.id} value={ex.id}>{ex.name}</option>
@@ -540,9 +531,7 @@ function EffortSection({ workouts, exerciseMap, period, trackEffort }: EffortSec
             </select>
           </div>
           <TopSetCurve points={curvePoints} />
-          <p className="hint" style={{ marginTop: 6, fontSize: 10 }}>
-            Círculo maior = RPE mais alto naquela sessão. Contorno vazio = sem esforço registrado.
-          </p>
+          <p className="hint" style={{ marginTop: 6, fontSize: 10 }}>{t("prog.topSetHint")}</p>
         </div>
       )}
     </div>
@@ -579,6 +568,7 @@ interface MeasureChartProps {
 
 /** Gráfico de linha SVG puro para uma medida ao longo do tempo — mesmo padrão do EffortLineChart. */
 function MeasureChart({ data, field }: MeasureChartProps) {
+  const t = useT();
   // Filtra e ordena pontos com valor para este campo
   const points = data
     .filter((m) => m[field] !== undefined)
@@ -587,9 +577,7 @@ function MeasureChart({ data, field }: MeasureChartProps) {
 
   if (points.length < 2) {
     return (
-      <p className="hint" style={{ textAlign: 'center', padding: '4px 0' }}>
-        São necessários ao menos 2 registros para exibir o gráfico.
-      </p>
+      <p className="hint" style={{ textAlign: 'center', padding: '4px 0' }}>{t("prog.min2records")}</p>
     );
   }
 
@@ -625,7 +613,7 @@ function MeasureChart({ data, field }: MeasureChartProps) {
         className="prog-effort-svg"
         width={svgW}
         height={SVG_H}
-        aria-label="Evolução da medida ao longo do tempo"
+        aria-label={t("prog.measureAriaChart")}
         role="img"
       >
         {/* Rótulos Y mín/máx */}
@@ -696,6 +684,7 @@ function parseCm(v: string): number | undefined {
 }
 
 function MeasurementsSection() {
+  const t = useT();
   const measurements = useLiveQuery(() => db.measurements.orderBy('dateISO').toArray(), []);
   const [form, setForm] = useState<MeasureFormState>(emptyMeasureForm);
   const [formOpen, setFormOpen] = useState(false);
@@ -714,7 +703,7 @@ function MeasurementsSection() {
     const dateISO = form.dateISO.trim();
     if (!dateISO || saving) return;
     if (!MEASURE_FIELDS.some(({ key }) => parseCm(form[key]) !== undefined)) {
-      setMeasureError('Informe pelo menos uma medida maior que zero.');
+      setMeasureError(t('ui.measureRange'));
       return;
     }
     setMeasureError('');
@@ -736,9 +725,9 @@ function MeasurementsSection() {
       await repo.addMeasurement(m);
       setForm(emptyMeasureForm());
       setFormOpen(false);
-      setMeasureStatus('Medidas registradas.');
+      setMeasureStatus(t('ui.measuresSaved'));
     } catch {
-      setMeasureError('Não foi possível registrar as medidas. Tente novamente.');
+      setMeasureError(t('ui.measureFailed'));
     } finally {
       setSaving(false);
     }
@@ -756,7 +745,7 @@ function MeasurementsSection() {
       <div className="prog-effort-header" style={{ justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Ruler size={15} strokeWidth={2.2} style={{ color: 'var(--flame)' }} />
-          <div className="section-title">Medidas corporais</div>
+          <div className="section-title">{t("prog.measurements")}</div>
         </div>
         <button
           className="btn"
@@ -768,7 +757,7 @@ function MeasurementsSection() {
             setFormOpen((open) => !open);
           }}
         >
-          {formOpen ? 'Fechar formulário' : 'Registrar medidas'}
+          {formOpen ? t("ui.closeForm") : t("ui.logMeasurements")}
         </button>
       </div>
 
@@ -779,7 +768,7 @@ function MeasurementsSection() {
           void handleSave();
         }}>
           <div className="field" style={{ marginBottom: 8 }}>
-            <label htmlFor="measure-date">Data</label>
+            <label htmlFor="measure-date">{t("prog.measureDate")}</label>
             <input
               id="measure-date" type="date" max={todayISO()} required
               value={form.dateISO}
@@ -805,7 +794,7 @@ function MeasurementsSection() {
             ))}
           </div>
           <div className="field" style={{ marginBottom: 8 }}>
-            <label htmlFor="measure-note">Nota (opcional)</label>
+            <label htmlFor="measure-note">{t("prog.measureNote")}</label>
             <textarea
               id="measure-note"
               value={form.note}
@@ -820,7 +809,7 @@ function MeasurementsSection() {
               type="submit"
               disabled={saving || form.dateISO.trim().length === 0}
             >
-              {saving ? 'Salvando…' : 'Salvar medidas'}
+              {saving ? t("prog.measureSaving") : t("ui.saveMeasurements")}
             </button>
           </div>
         </form>
@@ -831,12 +820,12 @@ function MeasurementsSection() {
       {fieldsWithData.length > 0 && (
         <div style={{ marginTop: formOpen ? 16 : 0 }}>
           <div className="prog-effort-curve-header">
-            <div className="prog-effort-curve-title">Evolução</div>
+            <div className="prog-effort-curve-title">{t("prog.evolution")}</div>
             <select
               className="prog-effort-curve-select"
               value={String(chartField)}
               onChange={(e) => setChartField(e.target.value as keyof BodyMeasurement)}
-              aria-label="Selecionar medida para o gráfico"
+              aria-label={t("prog.measureAriaLabel")}
             >
               {fieldsWithData.map((f) => (
                 <option key={String(f.key)} value={String(f.key)}>{f.label}</option>
@@ -849,9 +838,7 @@ function MeasurementsSection() {
 
       {/* Lista de registros */}
       {data.length === 0 && !formOpen ? (
-        <p className="hint" style={{ textAlign: 'center', padding: '8px 0' }}>
-          Nenhuma medida registrada ainda.
-        </p>
+        <p className="hint" style={{ textAlign: 'center', padding: '8px 0' }}>{t("prog.noMeasures")}</p>
       ) : data.length > 0 && (
         <div className="prog-measure-list">
           {[...data].reverse().map((m) => {
@@ -888,6 +875,7 @@ function MeasurementsSection() {
 // ---------------------------------------------------------------------------
 
 export function Progresso() {
+  const t = useT();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>(loadPeriod);
   const [muscleMetric, setMuscleMetric] = useState<'sets' | 'volume' | 'latest'>('sets');
@@ -966,15 +954,13 @@ export function Progresso() {
           <span className="mark">
             <TrendingUp size={20} strokeWidth={2.4} />
           </span>
-          <h1>Progresso</h1>
+          <h1>{t("prog.title")}</h1>
         </div>
       </div>
 
       {/* Estado de carregamento */}
       {isLoading && (
-        <p className="hint" style={{ textAlign: 'center', marginTop: 32 }}>
-          Carregando…
-        </p>
+        <p className="hint" style={{ textAlign: 'center', marginTop: 32 }}>{t("prog.loading")}</p>
       )}
 
       {/* Estado vazio */}
@@ -983,16 +969,15 @@ export function Progresso() {
           <div className="prog-empty-icon">
             <Dumbbell size={48} strokeWidth={1.3} />
           </div>
-          <p>Nenhum treino registrado ainda.</p>
-          <p className="hint" style={{ marginTop: 6 }}>
-            Conclua seu primeiro treino para ver os insights aqui.
-          </p>
+          <p>{t("prog.noWorkouts")}</p>
+          <p className="hint" style={{ marginTop: 6 }}>{t("prog.firstWorkout")}</p>
         </div>
       )}
 
       {/* Conteúdo principal */}
       {!isLoading && workouts.length > 0 && (
         <div className="progress-layout">
+          <LoadTrend />
           {/* Seletor de período */}
           <div className="prog-period-bar">
             {PERIOD_OPTIONS.map((opt) => (
@@ -1009,9 +994,7 @@ export function Progresso() {
 
           {/* Heatmap */}
           <div className="card progress-activity">
-            <h2 className="section-title panel-title">
-              Atividade
-            </h2>
+            <h2 className="section-title panel-title">{t("prog.activity")}</h2>
             <div className="prog-heatmap-wrap">
               <Heatmap dates={heatmapDates} />
             </div>
@@ -1019,7 +1002,7 @@ export function Progresso() {
 
           {/* Resumo */}
           <div className="card progress-summary">
-            <h2 className="section-title panel-title">Resumo</h2>
+            <h2 className="section-title panel-title">{t("prog.summary")}</h2>
             <SummaryGrid
               workoutCount={summary.workoutCount}
               daysCount={summary.daysCount}
@@ -1030,13 +1013,13 @@ export function Progresso() {
           {/* Mapa muscular */}
           <div className="card progress-muscles">
             <div className="prog-muscle-header">
-              <h2 className="section-title panel-title">Músculos</h2>
+              <h2 className="section-title panel-title">{t("prog.muscles")}</h2>
               {/* Toggle figura masculina/feminina */}
               <button
                 className={`prog-figure-btn${figure === 'female' ? ' active' : ''}`}
                 onClick={() => void handleFigureToggle()}
-                title={figure === 'male' ? 'Mudar para figura feminina' : 'Mudar para figura masculina'}
-                aria-label="Alternar figura do mapa muscular"
+                title={t(figure === 'male' ? 'ui.muscleFemale' : 'ui.muscleMale')}
+                aria-label={t("prog.figureAriaLabel")}
               >
                 {figure === 'male' ? (
                   <>
@@ -1051,21 +1034,18 @@ export function Progresso() {
                 )}
               </button>
             </div>
-            <div className="muscle-view-options" role="group" aria-label="Métrica do mapa muscular">
-              <button type="button" className="chip" aria-pressed={muscleMetric === 'sets'} onClick={() => setMuscleMetric('sets')}>Séries</button>
-              <button type="button" className="chip" aria-pressed={muscleMetric === 'volume'} onClick={() => setMuscleMetric('volume')}>Volume em kg</button>
-              <button type="button" className="chip" aria-pressed={muscleMetric === 'latest'} onClick={() => setMuscleMetric('latest')}>Último treino</button>
+            <div className="muscle-view-options" role="group" aria-label={t("ui.muscleMapMetric")}>
+              <button type="button" className="chip" aria-pressed={muscleMetric === 'sets'} onClick={() => setMuscleMetric('sets')}>{t("re.sets")}</button>
+              <button type="button" className="chip" aria-pressed={muscleMetric === 'volume'} onClick={() => setMuscleMetric('volume')}>{t("ui.volumeKg")}</button>
+              <button type="button" className="chip" aria-pressed={muscleMetric === 'latest'} onClick={() => setMuscleMetric('latest')}>{t("ui.lastWorkout")}</button>
             </div>
             <div className="prog-muscle-wrap">
               {muscleMetric === 'latest' && latestWorkout && latestMuscles.size > 0 && (
-                <p className="hint muscle-latest-date">
-                  Sessão de <time dateTime={latestWorkout.dateISO}>{latestWorkout.dateISO.split('-').reverse().join('/')}</time>
+                <p className="hint muscle-latest-date">{t("ui.sessionOn")} <time dateTime={latestWorkout.dateISO}>{latestWorkout.dateISO.split('-').reverse().join('/')}</time>
                 </p>
               )}
               {muscleData.size === 0 ? (
-                <p className="hint" style={{ textAlign: 'center', padding: '12px 0' }}>
-                  Sem registros para esta métrica no período.
-                </p>
+                <p className="hint" style={{ textAlign: 'center', padding: '12px 0' }}>{t("ui.noMetricData")}</p>
               ) : (
                 <MuscleMap
                   volumeByMuscle={Object.fromEntries(muscleData)}
@@ -1081,11 +1061,9 @@ export function Progresso() {
 
           {/* PRs */}
           <div className="card progress-records">
-            <h2 className="section-title panel-title">Recordes (1RM est.)</h2>
+            <h2 className="section-title panel-title">{t("prog.prs")}</h2>
             {prs.length === 0 ? (
-              <p className="hint" style={{ textAlign: 'center', padding: '8px 0' }}>
-                Nenhum PR com carga registrado neste período.
-              </p>
+              <p className="hint" style={{ textAlign: 'center', padding: '8px 0' }}>{t("prog.noPrs")}</p>
             ) : (
               <div className="prog-pr-list">
                 {prs.map((pr, idx) => (

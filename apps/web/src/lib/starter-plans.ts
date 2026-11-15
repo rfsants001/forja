@@ -1,3 +1,4 @@
+import { syncWrite } from '../db/sync-write';
 /**
  * starter-plans.ts — P5-001 / G9: Planos de treino prontos para instanciar.
  *
@@ -430,7 +431,7 @@ export async function applyStarterPlan(planId: string, replaceDays = false): Pro
   if (plan === undefined) throw new Error('Plano inicial indisponível.');
 
   const bundled = plan.id === 'fullbody-home' ? [] : await loadExerciseDataset();
-  return db.transaction('rw', [db.categories, db.routines, db.weekPlan, db.exercises], async () => {
+  return syncWrite(['categories', 'routines', 'weekPlan', 'exercises'], async () => {
     const catalog = await db.exercises.toArray();
     const byName = new Map(bundled.map((exercise) => [normalizeExName(exercise.name), exercise]));
     for (const exercise of catalog) byName.set(normalizeExName(exercise.name), exercise);

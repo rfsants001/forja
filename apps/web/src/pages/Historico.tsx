@@ -4,34 +4,32 @@
 
 import '../styles/historico.css';
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useId, useRef, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { CalendarDays, ChevronDown, Clock, Dumbbell, Trash2, Check, X, Search } from 'lucide-react';
-import type { WorkoutLog, WorkoutEntry, SetLog, TargetSnapshot, Exercise, Routine, Category } from '@forja/core';
-import { compareWorkouts, readSession } from '@forja/core';
+import type { WorkoutLog, WorkoutEntry, SetLog, TargetSnapshot, Exercise, Routine, Category, MuscleGroup, Settings } from '@forja/core';
+import { addDays, compareWorkouts, fromISO, readSession, startOfWeek, toISO } from '@forja/core';
 import { normalizeExName } from '../lib/normalize';
 import { db } from '../db/db';
 import { deleteWorkout, updateWorkoutEntries } from '../db/repo';
+import { MuscleCoverage } from '../components/MuscleCoverage';
+import { useT } from '../lib/i18n';
+import { computeSummary } from '../lib/stats';
 
 // ---------------------------------------------------------------------------
 // Helpers de formatação
 // ---------------------------------------------------------------------------
 
-/** Formata dateISO (YYYY-MM-DD) em PT-BR. Ex.: "qua, 12 nov" */
-function formatDatePT(dateISO: string): string {
-  const [yearStr, monthStr, dayStr] = dateISO.split('-');
-  const year = parseInt(yearStr ?? '2000', 10);
-  const month = parseInt(monthStr ?? '1', 10) - 1;
-  const day = parseInt(dayStr ?? '1', 10);
-  // Usar UTC para evitar deslocamento de fuso (dateISO é só a data, sem hora)
-  const d = new Date(Date.UTC(year, month, day));
-  return d.toLocaleDateString('pt-BR', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  });
+type HistoryPeriod = 'all' | 'thisWeek' | 'lastWeek' | 'custom';
+type HistorySettings = Pick<Settings, 'unit' | 'lang' | 'muscleFigure'>;
+
+function formatDate(iso: string, locale: string, options: Intl.DateTimeFormatOptions): string {
+  return fromISO(iso).toLocaleDateString(locale, options);
+}
+
+function displayWeight(weightKg: number, unit: Settings['unit'], format: Intl.NumberFormat): string {
+  return `${format.format(unit === 'lb' ? weightKg / 0.45359237 : weightKg)} ${unit}`;
 }
 
 /** Converte segundos em texto legível: "47 min" ou "1h 03 min" */
@@ -54,80 +52,82 @@ function describeEffort(set: SetLog): string | null {
   return null;
 }
 
-function describeSet(set: SetLog): string {
+function describeSet(set: Pick<SetLog, 'reps' | 'weightKg' | 'sec' | 'distanceM' | 'speedKmh'>,
+  unit: Settings['unit'], format: Intl.NumberFormat): string {
   const parts = [
-    set.reps === undefined ? undefined : `${set.reps} reps`,
-    set.weightKg === undefined ? undefined : `${set.weightKg} kg`,
-    set.sec === undefined ? undefined : `${set.sec} s`,
-    set.distanceM === undefined ? undefined : `${set.distanceM} m`,
-    set.speedKmh === undefined ? undefined : `${set.speedKmh} km/h`,
+    set.weightKg === undefined ? undefined : displayWeight(set.weightKg, unit, format),
+    set.reps === undefined ? undefined : `${format.format(set.reps)} reps`,
+    set.sec === undefined ? undefined : `${format.format(set.sec)} s`,
+    set.distanceM === undefined ? undefined : `${format.format(set.distanceM)} m`,
+    set.speedKmh === undefined ? undefined : `${format.format(set.speedKmh)} km/h`,
   ];
-  return parts.filter((part) => part !== undefined).join(' · ') || '—';
+  return parts.filter((part) => part !== undefined).join(' · ');
 }
 
-function describeTarget(target: TargetSnapshot, index: number): string {
+function describeTarget(target: TargetSnapshot, index: number, unit: Settings['unit'], format: Intl.NumberFormat): string {
   if (target.unknown) return '';
   const mainSet = target.mainSets?.[index];
-  if (mainSet !== undefined) return `Alvo: ${mainSet.reps}${mainSet.amrap ? '+' : ''} × ${mainSet.weightKg} kg`;
-  const values = [
-    target.reps === undefined ? undefined : `${target.reps} reps`,
-    target.weightKg === undefined ? undefined : `${target.weightKg} kg`,
-    target.sec === undefined ? undefined : `${target.sec} s`,
-    target.distanceM === undefined ? undefined : `${target.distanceM} m`,
-    target.speedKmh === undefined ? undefined : `${target.speedKmh} km/h`,
-  ].filter((value) => value !== undefined);
-  return values.length > 0 ? `Alvo: ${values.join(' · ')}` : '';
+  return mainSet
+    ? `${mainSet.reps}${mainSet.amrap ? '+' : ''} × ${displayWeight(mainSet.weightKg, unit, format)}`
+    : [target.reps ? `${target.reps} reps` : '', describeSet({ ...target, reps: undefined }, unit, format)].filter(Boolean).join(' · ');
 }
-
-// ---------------------------------------------------------------------------
-// Sub-componente: detalhe de um exercício
-// ---------------------------------------------------------------------------
 
 interface ExerciseDetailProps {
   entry: WorkoutEntry;
   exerciseName: string;
+  unit: Settings['unit'];
+  format: Intl.NumberFormat;
 }
 
-function ExerciseDetail({ entry, exerciseName }: ExerciseDetailProps) {
+function ExerciseDetail({ entry, exerciseName, unit, format }: ExerciseDetailProps) {
+  const t = useT();
   const session = readSession(entry);
-  const targetDesc = `${session.setsHit}/${session.setsTotal} séries`;
-  const warmupOnly = !!entry.warmupSets?.length && !entry.sets.some((row) => row.done);
+  const warmupOnly = !!entry.warmupSets?.length && !entry.sets.some((set) => set.done);
+  const badge = warmupOnly ? 'hist.onlyWarmup'
+    : entry.target.unknown ? 'hist.targetUnknown'
+      : session.hit ? 'hist.targetReached' : 'hist.belowTarget';
 
   return (
-    <div className="hist-exercise">
+    <section className="hist-exercise">
       <div className="hist-exercise-header">
-        <span className="hist-exercise-name">{exerciseName}</span>
+        <h4 className="hist-exercise-name">{exerciseName}</h4>
         <span className={`hist-ex-badge ${entry.target.unknown || warmupOnly ? '' : session.hit ? 'hit' : 'miss'}`}>
-          {warmupOnly ? 'Só aquecimento' : entry.target.unknown ? 'Alvo não importado' : session.hit ? 'Alvo atingido' : 'Abaixo do alvo'}
+          {t(badge)}
         </span>
-        <span className="hist-ex-sets-info">{entry.target.unknown ? `${entry.sets.length} série(s)` : targetDesc}</span>
+        {!entry.target.unknown && !warmupOnly && (
+          <span className="hist-ex-sets-info">{t('hist.sets', [session.setsHit, session.setsTotal])}</span>
+        )}
       </div>
-
-      <div className="hist-sets-list">
-        {entry.warmupSets?.map((set, index) => (
-          <div key={`warmup-${index}`} className="hist-set-row">
-            <span className="hist-set-idx">A{index + 1}</span>
-            <span className="hist-set-done-icon ok">{set.done ? <Check size={13} aria-label="Concluída" /> : <X size={13} aria-label="Não concluída" />}</span>
-            <span className="hist-set-value">{describeSet(set)}</span>
-            <span className="hist-set-target">Aquecimento</span>
+      {(['warmupSets', 'sets'] as const).map((list) => {
+        const sets = entry[list];
+        if (!sets?.length) return null;
+        const warmup = list === 'warmupSets';
+        return (
+          <div className="hist-set-group" key={list}>
+            <p>{t(warmup ? 'hist.warmups' : 'hist.workSets')}</p>
+            <ol className="hist-sets-list">
+              {sets.map((set, index) => {
+                const target = warmup ? '' : describeTarget(entry.target, index, unit, format);
+                const effort = describeEffort(set);
+                return (
+                  <li key={index} className="hist-set-row">
+                    <span className="hist-set-idx">{index + 1}</span>
+                    <span className={`hist-set-done-icon ${set.done ? 'ok' : 'miss'}`} role="img"
+                      aria-label={t(set.done ? 'hist.setDone' : 'hist.setPending')}>
+                      {set.done ? <Check size={13} aria-hidden="true" /> : <X size={13} aria-hidden="true" />}
+                    </span>
+                    <span className="hist-set-value">{describeSet(set, unit, format) || '—'}</span>
+                    {effort && <span className="hist-set-effort">{effort}</span>}
+                    {target && <span className="hist-set-target">{t('hist.targetValue', [target])}</span>}
+                    {set.note && <span className="hist-set-note">{set.note}</span>}
+                  </li>
+                );
+              })}
+            </ol>
           </div>
-        ))}
-        {entry.sets.map((set, idx) => (
-          <div key={idx} className="hist-set-row">
-            <span className="hist-set-idx">{idx + 1}</span>
-            <span className={`hist-set-done-icon ${set.done ? 'ok' : 'miss'}`} role="img" aria-label={set.done ? 'Série concluída' : 'Série não concluída'}>
-              {set.done ? <Check size={13} /> : <X size={13} />}
-            </span>
-            <span className="hist-set-value">{describeSet(set)}</span>
-            <span className="hist-set-target">{describeTarget(entry.target, idx)}</span>
-            {set.note && <span className="hist-set-note">{set.note}</span>}
-            {describeEffort(set) !== null && (
-              <span className="hist-set-effort">{describeEffort(set)}</span>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
+        );
+      })}
+    </section>
   );
 }
 
@@ -138,6 +138,7 @@ function ExerciseDetail({ entry, exerciseName }: ExerciseDetailProps) {
 function EditWorkout({ workout, exerciseMap, onClose }: {
   workout: WorkoutLog; exerciseMap: Map<string, Exercise>; onClose: (saved?: boolean) => void;
 }) {
+  const t = useT();
   const [entries, setEntries] = useState(workout.entries);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -157,7 +158,7 @@ function EditWorkout({ workout, exerciseMap, onClose }: {
       await updateWorkoutEntries(workout.id, entries);
       onClose(true);
     } catch {
-      setError('Não foi possível salvar a correção. Confira os campos e tente novamente.');
+      setError(t('ui.editSetFailure'));
     } finally {
       setSaving(false);
     }
@@ -165,8 +166,8 @@ function EditWorkout({ workout, exerciseMap, onClose }: {
 
   return (
     <form className="hist-edit" onSubmit={(event) => void save(event)}>
-      <h3>Corrigir séries</h3>
-      <p className="hint">As metas originais permanecem no histórico. Corrija o que você realizou.</p>
+      <h3>{t("hist.editSets")}</h3>
+      <p className="hint">{t("ui.editSetHelp")}</p>
       {entries.map((entry, entryIndex) => {
         const exercise = exerciseMap.get(entry.exerciseId);
         return (
@@ -178,7 +179,7 @@ function EditWorkout({ workout, exerciseMap, onClose }: {
                 : mode === 'time' ? (['sec'] as const) : (['reps', 'weightKg'] as const);
               return (
                 <fieldset key={`${list}-${setIndex}`} className="hist-edit-set" disabled={saving}>
-                  <legend>{list === 'warmupSets' ? 'Aquecimento' : 'Série'} {setIndex + 1}</legend>
+                  <legend>{list === 'warmupSets' ? t("hist.warmups") : t("ui.set")} {setIndex + 1}</legend>
                   {metrics.map((metric) => (
                     <label key={metric}>{labels[metric]}
                       <input type="number" min={0} step={metric === 'reps' || metric === 'sec' ? 1 : 'any'}
@@ -189,7 +190,7 @@ function EditWorkout({ workout, exerciseMap, onClose }: {
                     </label>
                   ))}
                   <label className="hist-edit-done"><input type="checkbox" checked={set.done}
-                    onChange={(event) => patch(entryIndex, setIndex, { done: event.target.checked }, list)} /> Concluída</label>
+                    onChange={(event) => patch(entryIndex, setIndex, { done: event.target.checked }, list)} />{t("ui.done")}</label>
                 </fieldset>
               );
             }))}
@@ -198,8 +199,8 @@ function EditWorkout({ workout, exerciseMap, onClose }: {
       })}
       {error && <p className="feedback error" role="alert">{error}</p>}
       <div className="btn-row">
-        <button type="button" className="btn ghost" disabled={saving} onClick={() => onClose()}>Cancelar edição</button>
-        <button type="submit" className="btn" disabled={saving}>{saving ? 'Salvando…' : 'Salvar séries'}</button>
+        <button type="button" className="btn ghost" disabled={saving} onClick={() => onClose()}>{t("ui.cancelEdit")}</button>
+        <button type="submit" className="btn" disabled={saving}>{saving ? t("prog.measureSaving") : t("ui.saveSets")}</button>
       </div>
     </form>
   );
@@ -212,9 +213,13 @@ interface WorkoutCardProps {
   exerciseMap: Map<string, Exercise>;
   onDelete: (id: string) => void;
   requested: boolean;
+  settings: HistorySettings;
+  format: Intl.NumberFormat;
 }
 
-function WorkoutCard({ workout, routineName, categoryColor, exerciseMap, onDelete, requested }: WorkoutCardProps) {
+function WorkoutCard({ workout, routineName, categoryColor, exerciseMap, onDelete, requested, settings, format }: WorkoutCardProps) {
+  const t = useT();
+  const detailId = useId();
   const [expanded, setExpanded] = useState(requested);
   const headerRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -226,101 +231,119 @@ function WorkoutCard({ workout, routineName, categoryColor, exerciseMap, onDelet
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState('');
 
-  // Calcula o resumo de hits por exercício
-  const hitsCount = useMemo(
-    () => workout.entries.filter((e) => readSession(e).hit).length,
-    [workout.entries],
-  );
-  const totalExercises = workout.entries.length;
-  const durationText = formatDuration(workout.durationSec);
-  const evaluated = workout.entries.filter((entry) => !entry.target.unknown).length;
-  const allHit = hitsCount === evaluated;
+  const summary = useMemo(() => {
+    const primary = new Set<MuscleGroup>();
+    const secondary = new Set<MuscleGroup>();
+    let partial = false;
+    let completed = 0;
+    let hits = 0;
+    let evaluated = 0;
+    for (const entry of workout.entries) {
+      if (!entry.target.unknown) {
+        evaluated++;
+        if (readSession(entry).hit) hits++;
+      }
+      const completedForExercise = entry.sets.filter((set) => set.done).length;
+      completed += completedForExercise;
+      if (completedForExercise === 0) continue;
+      const exercise = exerciseMap.get(entry.exerciseId);
+      if (!exercise) {
+        partial = true;
+        continue;
+      }
+      if (exercise.primaryMuscle === 'other') partial = true;
+      else if (exercise.primaryMuscle !== 'cardio') primary.add(exercise.primaryMuscle);
+      for (const group of exercise.secondaryMuscles) {
+        if (group !== 'other' && group !== 'cardio') secondary.add(group);
+      }
+    }
+    return {
+      completed, evaluated, hits, partial, primary: [...primary], secondary: [...secondary],
+      volume: computeSummary([workout], null).totalVolume,
+    };
+  }, [exerciseMap, workout]);
+  const duration = formatDuration(workout.durationSec);
 
   function handleDelete() {
-    const confirmado = window.confirm(`Excluir o treino "${routineName}"? Esta ação não pode ser desfeita.`);
-    if (confirmado) onDelete(workout.id);
+    if (window.confirm(t('hist.deleteConfirm', [routineName]))) onDelete(workout.id);
   }
 
   return (
-    <div className="hist-card">
-      {/* Cabeçalho clicável */}
-      <button ref={headerRef} type="button" className="hist-card-header" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
-        {categoryColor !== undefined && (
-          <div
-            className="hist-cat-dot"
-            style={{ background: categoryColor }}
-          />
-        )}
-
-        <div className="hist-card-info">
-          <div className="hist-card-title">{routineName}</div>
-          <div className="hist-card-meta">
-            {durationText !== null && (
+    <article className="hist-card">
+      <h3>
+        <button ref={headerRef} type="button" className="hist-card-header" aria-expanded={expanded}
+          aria-controls={detailId} onClick={() => setExpanded((value) => !value)}>
+          {categoryColor !== undefined && (
+            <span className="hist-cat-dot" style={{ background: categoryColor }} aria-hidden="true" />
+          )}
+          <span className="hist-card-info">
+            <span className="hist-card-title">{routineName}</span>
+            <span className="hist-card-meta">
+              {duration && <span className="hist-meta-chip"><Clock size={12} aria-hidden="true" />{duration}</span>}
               <span className="hist-meta-chip">
-                <Clock size={12} />
-                {durationText}
+                <Dumbbell size={12} aria-hidden="true" />
+                {t(summary.completed === 1 ? 'hist.oneCompleted' : 'hist.manyCompleted', [summary.completed])}
               </span>
-            )}
-            {totalExercises > 0 && (
-              <span className="hist-meta-chip">
-                <Dumbbell size={12} />
-                {totalExercises} exerc.
-              </span>
-            )}
-            {evaluated > 0 && (
-              <span className={`hist-hits-badge ${allHit ? '' : 'miss'}`}>
-                {hitsCount}/{evaluated} alvos
-              </span>
-            )}
-          </div>
-        </div>
+              {summary.evaluated > 0 && (
+                <span className={`hist-hits-badge ${summary.hits === summary.evaluated ? '' : 'miss'}`}>
+                  {t('hist.targetSummary', [summary.hits, summary.evaluated])}
+                </span>
+              )}
+            </span>
+          </span>
+          <ChevronDown size={18} className={`hist-chevron ${expanded ? 'open' : ''}`} aria-hidden="true" />
+        </button>
+      </h3>
 
-        <ChevronDown
-          size={18}
-          className={`hist-chevron ${expanded ? 'open' : ''}`}
-        />
-      </button>
-
-      {expanded && (
-        <div className="hist-detail">
+      <div id={detailId} className="hist-detail" hidden={!expanded}>
+        {expanded && (
           <div className="hist-detail-inner">
-            {editing ? <EditWorkout workout={workout} exerciseMap={exerciseMap} onClose={(saved) => {
+            {editing && <EditWorkout workout={workout} exerciseMap={exerciseMap} onClose={(saved) => {
               setEditing(false);
-              if (saved) setStatus('Séries atualizadas. O progresso usa os valores corrigidos.');
-            }} /> : null}
+              if (saved) setStatus(t('hist.savedSets'));
+            }} />}
             {status && <p className="feedback" role="status">{status}</p>}
-            {!editing && (workout.entries.length === 0 ? (
-              <p className="hint">Nenhum exercício registrado neste treino.</p>
-            ) : (
-              workout.entries.map((entry) => {
-                const ex = exerciseMap.get(entry.exerciseId);
-                return (
-                  <ExerciseDetail
-                    key={entry.exerciseId}
-                    entry={entry}
-                    exerciseName={ex?.name ?? `Exercício ${entry.exerciseId}`}
-                  />
-                );
-              })
-            ))}
-
-            {workout.prs?.length ? <p className="feedback">Recordes registrados: {workout.prs.length}</p> : null}
-
-            {/* Rodapé com botão excluir */}
+            {!editing && (
+              <div className="hist-detail-layout">
+                <div className="hist-exercises">
+                  {summary.volume > 0 && (
+                    <div className="hist-volume">
+                      <span>{t('hist.volume')}</span>
+                      <strong>{displayWeight(summary.volume, settings.unit, format)}</strong>
+                      <small>{t('hist.volumeDescription')}</small>
+                    </div>
+                  )}
+                  {workout.note && workout.note !== routineName && <p className="hist-workout-note">{workout.note}</p>}
+                  {workout.entries.length === 0 && <p className="hint">{t('hist.noExercises')}</p>}
+                  {workout.entries.map((entry, index) => (
+                    <ExerciseDetail key={`${entry.exerciseId}-${index}`} entry={entry}
+                      exerciseName={exerciseMap.get(entry.exerciseId)?.name ?? t('hist.exerciseFallback', [entry.exerciseId])}
+                      unit={settings.unit} format={format} />
+                  ))}
+                  {workout.prs?.length ? <p className="feedback">{t('hist.personalRecords', [workout.prs.length])}</p> : null}
+                </div>
+                <section className="hist-muscle-map" aria-label={t('hist.muscleMap')}>
+                  <h4>{t('hist.muscleMap')}</h4>
+                  {(summary.primary.length > 0 || summary.secondary.length > 0)
+                    ? <MuscleCoverage figure={settings.muscleFigure} primary={summary.primary} secondary={summary.secondary} />
+                    : <p className="hint">{t('hist.muscleMapEmpty')}</p>}
+                  {summary.partial && <p className="hint">{t('hist.muscleMapPartial')}</p>}
+                </section>
+              </div>
+            )}
             {!editing && <div className="hist-card-footer">
-              {totalExercises > 0 && <button className="btn ghost" onClick={() => {
+              {workout.entries.length > 0 && <button type="button" className="btn ghost" onClick={() => {
                 setStatus('');
                 setEditing(true);
-              }}>Corrigir séries</button>}
-              <button className="hist-delete-btn" onClick={handleDelete}>
-                <Trash2 size={14} />
-                Excluir
+              }}>{t('hist.editSets')}</button>}
+              <button type="button" className="hist-delete-btn" onClick={handleDelete}>
+                <Trash2 size={14} aria-hidden="true" /> {t('hist.deleteBtn')}
               </button>
             </div>}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -344,10 +367,37 @@ function groupByDate(workouts: WorkoutLog[]): Array<[string, WorkoutLog[]]> {
 }
 
 export function Historico() {
+  const t = useT();
   const [params] = useSearchParams();
   const requestedWorkout = params.get('treino');
   const [search, setSearch] = useState('');
   const [routineFilter, setRoutineFilter] = useState('');
+  const today = toISO(new Date());
+  const monday = startOfWeek(today, 1);
+  const [period, setPeriod] = useState<HistoryPeriod>('all');
+  const [startDate, setStartDate] = useState(monday);
+  const [endDate, setEndDate] = useState(addDays(monday, 6));
+
+  useEffect(() => {
+    if (requestedWorkout) {
+      setPeriod('all');
+      setSearch('');
+      setRoutineFilter('');
+    }
+  }, [requestedWorkout]);
+
+  const from = period === 'thisWeek' ? monday
+    : period === 'lastWeek' ? addDays(monday, -7)
+      : period === 'custom' ? startDate : '';
+  const to = period === 'thisWeek' ? addDays(monday, 6)
+    : period === 'lastWeek' ? addDays(monday, -1)
+      : period === 'custom' ? endDate : '';
+  const invalidRange = period === 'custom' && (!from || !to || from > to);
+  const savedSettings = useLiveQuery(() => db.settings.get('app'), []);
+  const settings: HistorySettings = savedSettings ?? { unit: 'kg' };
+  const locale = settings.lang === 'en' ? 'en-US' : 'pt-BR';
+  const numberFormat = useMemo(() => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }), [locale]);
+
   // Dados reativos via Dexie
   const workouts = useLiveQuery(
     () => db.workouts.orderBy('dateISO').reverse().toArray(),
@@ -384,8 +434,10 @@ export function Historico() {
   }, [categories]);
 
   const filteredWorkouts = useMemo(() => {
+    if (invalidRange) return [];
     const query = normalizeExName(search);
     return (workouts ?? []).filter((workout) => {
+      if ((from && workout.dateISO < from) || (to && workout.dateISO > to)) return false;
       if (routineFilter && workout.routineId !== routineFilter) return false;
       if (!query) return true;
       const labels = [
@@ -394,7 +446,7 @@ export function Historico() {
       ];
       return labels.some((label) => label && normalizeExName(label).includes(query));
     }).sort((a, b) => compareWorkouts(b, a));
-  }, [workouts, search, routineFilter, routineMap, exerciseMap]);
+  }, [workouts, search, routineFilter, routineMap, exerciseMap, from, to, invalidRange]);
 
   const routineOptions = useMemo(() => {
     const names = new Map((routines ?? []).map(({ id, name }) => [id, name]));
@@ -403,8 +455,8 @@ export function Historico() {
         names.set(workout.routineId, workout.routineName);
       }
     }
-    return [...names.entries()].sort(([, first], [, second]) => first.localeCompare(second, 'pt-BR'));
-  }, [routines, workouts]);
+    return [...names.entries()].sort(([, first], [, second]) => first.localeCompare(second, locale));
+  }, [routines, workouts, locale]);
 
   const groups = useMemo(() => groupByDate(filteredWorkouts), [filteredWorkouts]);
 
@@ -421,58 +473,94 @@ export function Historico() {
           <span className="mark">
             <CalendarDays size={20} strokeWidth={2.4} />
           </span>
-          <h1>Histórico</h1>
+          <h1>{t('hist.title')}</h1>
         </div>
       </div>
 
       <div className="history-layout">
-        <section className="history-filters" aria-label="Filtrar histórico">
+        <section className="history-filters" aria-label={t('hist.filter')}>
+          <div className="history-filter-period field">
+            <label htmlFor="history-period">{t('hist.period')}</label>
+            <select id="history-period" value={period} onChange={(event) => setPeriod(event.target.value as HistoryPeriod)}>
+              <option value="all">{t('hist.allPeriods')}</option>
+              <option value="thisWeek">{t('hist.currentWeek')}</option>
+              <option value="lastWeek">{t('hist.previousWeek')}</option>
+              <option value="custom">{t('hist.customPeriod')}</option>
+            </select>
+          </div>
+          <div className="history-filter-routine field">
+            <label htmlFor="history-routine">{t('hist.routine')}</label>
+            <select id="history-routine" value={routineFilter} onChange={(event) => setRoutineFilter(event.target.value)}>
+              <option value="">{t('hist.allRoutines')}</option>
+              {routineOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+            </select>
+          </div>
           <div className="history-filter-search field">
-            <label htmlFor="history-search">Buscar por rotina ou exercício</label>
+            <label htmlFor="history-search">{t('hist.search')}</label>
             <div className="search-bar">
               <Search size={16} aria-hidden="true" />
               <input id="history-search" type="search" value={search}
                 onChange={(event) => setSearch(event.target.value)} />
             </div>
           </div>
-          <div className="history-filter-routine field">
-            <label htmlFor="history-routine">Rotina</label>
-            <select id="history-routine" value={routineFilter} onChange={(event) => setRoutineFilter(event.target.value)}>
-              <option value="">Todas as rotinas</option>
-              {routineOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-            </select>
-          </div>
-          {(search || routineFilter) && (
-            <button type="button" className="btn ghost history-clear" onClick={() => {
-              setSearch('');
-              setRoutineFilter('');
-              document.getElementById('history-search')?.focus();
-            }}><X size={15} aria-hidden="true" /> Limpar filtros</button>
+          {period === 'custom' && (
+            <div className="history-date-range">
+              <div className="field">
+                <label htmlFor="history-start">{t('hist.startDate')}</label>
+                <input type="date" id="history-start" required value={startDate}
+                  aria-invalid={invalidRange} aria-describedby={invalidRange ? 'history-range-error' : undefined}
+                  onChange={(event) => setStartDate(event.target.value)} />
+              </div>
+              <div className="field">
+                <label htmlFor="history-end">{t('hist.endDate')}</label>
+                <input type="date" id="history-end" required value={endDate}
+                  aria-invalid={invalidRange} aria-describedby={invalidRange ? 'history-range-error' : undefined}
+                  onChange={(event) => setEndDate(event.target.value)} />
+              </div>
+            </div>
           )}
-          {!isLoading && <p className="hint history-count" role="status">{filteredWorkouts.length} {filteredWorkouts.length === 1 ? 'treino' : 'treinos'}</p>}
+          {invalidRange && <p className="feedback error" id="history-range-error" role="alert">{t('hist.invalidRange')}</p>}
+          <div className="history-filter-footer">
+            {!isLoading && !invalidRange && (
+              <p className="hint history-count" role="status">
+                {from && to && <>{t('hist.dateRange', [
+                  formatDate(from, locale, { dateStyle: 'short' }),
+                  formatDate(to, locale, { dateStyle: 'short' }),
+                ])} · </>}
+                {t(filteredWorkouts.length === 1 ? 'hist.oneWorkout' : 'hist.manyWorkouts', [filteredWorkouts.length])}
+              </p>
+            )}
+            {(search || routineFilter || period !== 'all') && (
+              <button type="button" className="btn ghost history-clear" onClick={() => {
+                setSearch('');
+                setRoutineFilter('');
+                setPeriod('all');
+                document.getElementById('history-search')?.focus();
+              }}><X size={15} aria-hidden="true" /> {t('hist.clearFilters')}</button>
+            )}
+          </div>
         </section>
-        <section className="history-results" aria-label="Sessões registradas">
+        <section className="history-results" aria-label={t('hist.results')}>
         {isLoading ? (
-          <p className="hint" style={{ textAlign: 'center', marginTop: 32 }}>
-            Carregando…
-          </p>
-        ) : filteredWorkouts.length === 0 ? (
+          <p className="hint">{t('hist.loading')}</p>
+        ) : invalidRange ? null : filteredWorkouts.length === 0 ? (
           <div className="empty">
-            <CalendarDays size={42} strokeWidth={1.4} style={{ opacity: 0.4 }} />
-            <p style={{ marginTop: 12 }}>
-              {workouts.length === 0 ? 'Nenhum treino registrado.' : 'Nenhum treino corresponde aos filtros.'}
-            </p>
+            <CalendarDays size={42} strokeWidth={1.4} aria-hidden="true" />
+            <p>{t(workouts.length === 0 ? 'hist.noWorkouts' : 'hist.noMatches')}</p>
           </div>
         ) : (
           groups.map(([dateISO, dayWorkouts]) => (
             <div key={dateISO}>
-              <h2 className="hist-date-header"><time dateTime={dateISO}>{formatDatePT(dateISO)}</time></h2>
+              <h2 className="hist-date-header"><time dateTime={dateISO}>{formatDate(dateISO, locale, {
+                weekday: 'long', day: 'numeric', month: 'long',
+                year: dateISO.slice(0, 4) === today.slice(0, 4) ? undefined : 'numeric',
+              })}</time></h2>
               {dayWorkouts.map((workout) => {
                 const routine =
                   workout.routineId !== undefined
                     ? routineMap.get(workout.routineId)
                     : undefined;
-                const routineName = routine?.name ?? workout.routineName ?? workout.note ?? 'Treino livre';
+                const routineName = routine?.name ?? workout.routineName ?? workout.note ?? t('hist.freeWorkout');
 
                 const category =
                   workout.categoryId !== undefined
@@ -489,6 +577,8 @@ export function Historico() {
                     routineName={routineName}
                     categoryColor={categoryColor}
                     exerciseMap={exerciseMap}
+                    settings={settings}
+                    format={numberFormat}
                     onDelete={handleDelete}
                     requested={requestedWorkout === workout.id}
                   />

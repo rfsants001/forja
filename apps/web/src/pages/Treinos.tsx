@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n';
 import '../styles/setup.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -44,6 +45,7 @@ const WEEKDAY_SHORT_LABELS: Record<Weekday, string> = {
 };
 
 function StarterPlansSheet({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const [selected, setSelected] = useState<string | null>(null);
   const [replaceDays, setReplaceDays] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -60,7 +62,7 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
       const res = await applyStarterPlan(selected, replaceDays);
       setResult(res);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao aplicar plano.');
+      setError(e instanceof Error ? e.message : t('ui.planFailure'));
     } finally {
       setApplying(false);
     }
@@ -73,13 +75,13 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
     }}>
         <div className="sheet-handle" />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h2 id="starter-plans-title" style={{ margin: 0 }}>Planos prontos</h2>
+          <h2 id="starter-plans-title" style={{ margin: 0 }}>{t("workouts.starterPlans")}</h2>
           <button
             className="btn ghost"
             style={{ padding: '8px', borderRadius: '50%' }}
             onClick={onClose}
             disabled={applying}
-            aria-label="Fechar"
+            aria-label={t("workouts.close")}
           >
             <X size={18} strokeWidth={2.4} />
           </button>
@@ -114,21 +116,19 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
             </div>
 
             <label className="starter-replace">
-              <input type="checkbox" checked={replaceDays} onChange={(event) => setReplaceDays(event.target.checked)} />
-              Substituir treinos nos dias já ocupados
-            </label>
+              <input type="checkbox" checked={replaceDays} onChange={(event) => setReplaceDays(event.target.checked)} />{t("ui.replaceBusyDays")}</label>
             {error !== null && (
               <div className="sp-feedback warn" role="alert">{error}</div>
             )}
 
             <div className="btn-row">
-              <button className="btn ghost" disabled={applying} onClick={onClose}>Cancelar</button>
+              <button className="btn ghost" disabled={applying} onClick={onClose}>{t("workouts.cancel")}</button>
               <button
                 className="btn"
                 disabled={selected === null || applying}
                 onClick={() => { void handleApply(); }}
               >
-                {applying ? 'Aplicando…' : 'Aplicar plano'}
+                {applying ? t("workouts.applying") : t("workouts.applyPlan")}
               </button>
             </div>
           </>
@@ -138,9 +138,9 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
             <div className="sp-feedback" role="status">
               {result.created > 0
                 ? `${result.created} rotina${result.created > 1 ? 's' : ''} criada${result.created > 1 ? 's' : ''} com sucesso!`
-                : 'Plano já aplicado — rotinas existentes foram mantidas.'}
+                : t("workouts.alreadyApplied")}
               {result.skipped > 0 && (
-                <span> ({result.skipped} já existia{result.skipped > 1 ? 'm' : ''})</span>
+                <span>{t('ui.planExisting', [result.skipped])}</span>
               )}
             </div>
             {result.preservedDays > 0 && <p className="feedback">{result.preservedDays} dia(s) ocupados foram mantidos.</p>}
@@ -151,7 +151,7 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
               </div>
             )}
             <div className="btn-row" style={{ marginTop: 16 }}>
-              <button className="btn" onClick={onClose}>Fechar</button>
+              <button className="btn" onClick={onClose}>{t("workouts.close")}</button>
             </div>
           </>
         )}
@@ -174,6 +174,7 @@ function DeletePlanDialog({ target, onClose, onDeleted }: {
   onClose: () => void;
   onDeleted: () => void;
 }) {
+  const t = useT();
   const dialog = useRef<HTMLDialogElement>(null);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
@@ -197,7 +198,7 @@ function DeletePlanDialog({ target, onClose, onDeleted }: {
       onDeleted();
     } catch (error) {
       setError(error instanceof Error && error.message.startsWith('O plano recebeu novas rotinas')
-        ? error.message : 'Não foi possível excluir. Tente novamente.');
+        ? error.message : t('ui.deleteFailure'));
     } finally {
       setDeleting(false);
     }
@@ -208,22 +209,21 @@ function DeletePlanDialog({ target, onClose, onDeleted }: {
       aria-describedby="plan-delete-description" onClose={onClose}
       onCancel={(event) => { if (deleting) event.preventDefault(); }}>
       <header className="form-dialog-heading">
-        <h2 id="plan-delete-title">{isPlan ? 'Excluir plano?' : 'Excluir rotina?'}</h2>
+        <h2 id="plan-delete-title">{isPlan ? t("ui.deletePlanQuestion") : t("ui.deleteRoutineQuestion")}</h2>
       </header>
       <p id="plan-delete-description">
-        <strong>{target.name}</strong> será removido de Treinos e da agenda. As sessões concluídas continuarão no Histórico.
-      </p>
+        <strong>{target.name}</strong>{t("ui.routineRemoved")}</p>
       {isPlan && target.routines.length > 0 && (
-        <ul className="plan-delete-list" aria-label="Rotinas que serão excluídas">
+        <ul className="plan-delete-list" aria-label={t("ui.routinesToDelete")}>
           {target.routines.map((routine) => <li key={routine.id}>{routine.name}</li>)}
         </ul>
       )}
-      {containsActive && <p className="hint">Você ainda poderá continuar a sessão em andamento.</p>}
+      {containsActive && <p className="hint">{t("ui.sessionContinues")}</p>}
       {error && <p className="feedback error" role="alert">{error}</p>}
       <div className="form-actions">
-        <button type="button" className="btn ghost" autoFocus disabled={deleting} onClick={() => dialog.current?.close()}>Cancelar</button>
+        <button type="button" className="btn ghost" autoFocus disabled={deleting} onClick={() => dialog.current?.close()}>{t("workouts.cancel")}</button>
         <button type="button" className="btn danger" disabled={deleting} onClick={() => void confirm()}>
-          {deleting ? 'Excluindo…' : isPlan ? 'Excluir plano' : 'Excluir rotina'}
+          {deleting ? t("ui.deleting") : isPlan ? t("ui.deletePlan") : t("re.deleteRoutine")}
         </button>
       </div>
     </dialog>
@@ -233,6 +233,7 @@ function DeletePlanDialog({ target, onClose, onDeleted }: {
 function RoutineRow({ routine, color, activeId, onDelete }: {
   routine: Routine; color?: string; activeId: string | null | undefined; onDelete: () => void;
 }) {
+  const t = useT();
   const resume = activeId === routine.id;
   return (
     <div className="routine-list-row">
@@ -240,22 +241,23 @@ function RoutineRow({ routine, color, activeId, onDelete }: {
         style={color ? { borderLeftColor: color, borderLeftWidth: 3 } : undefined} aria-label={`Editar ${routine.name}`}>
         <div className="routine-info">
           <div className="routine-name">{routine.name}</div>
-          <div className="routine-meta">{routine.exercises.length} exercício(s){routine.note ? ` · ${routine.note}` : ''}</div>
+          <div className="routine-meta">{t('ui.exercisesTotal', [routine.exercises.length, routine.exercises.length === 1 ? '' : 's'])}{routine.note ? ` · ${routine.note}` : ''}</div>
         </div>
       </Link>
       {routine.exercises.length > 0 && (activeId === null || resume) && (
         <Link className="btn ghost" to={`/treino?routineId=${encodeURIComponent(routine.id)}`}
           aria-label={`${resume ? 'Continuar' : 'Treinar agora'} · ${routine.name}`}>
-          {resume ? 'Continuar' : 'Treinar agora'}
+          {resume ? t("ui.continue") : t("ui.trainNow")}
         </Link>
       )}
       <button type="button" className="icon-btn routine-delete" aria-label={`Excluir rotina · ${routine.name}`}
-        title="Excluir rotina" onClick={onDelete}><Trash2 size={16} aria-hidden="true" /></button>
+        title={t("re.deleteRoutine")} onClick={onDelete}><Trash2 size={16} aria-hidden="true" /></button>
     </div>
   );
 }
 
 function DateOverrideEditor({ routines, selectedDate }: { routines: Routine[]; selectedDate?: string }) {
+  const t = useT();
   const [date, setDate] = useState(() => selectedDate ?? toISO(new Date()));
   const [choice, setChoice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -272,7 +274,7 @@ function DateOverrideEditor({ routines, selectedDate }: { routines: Routine[]; s
       else await setDayOverride(date, value);
       setFeedback({ text: 'Agenda desta data atualizada.' });
     } catch {
-      setFeedback({ text: 'Não foi possível alterar a data. Tente novamente.', error: true });
+      setFeedback({ text: t('ui.dateChangeFailure'), error: true });
     } finally {
       setBusy(false);
     }
@@ -280,28 +282,24 @@ function DateOverrideEditor({ routines, selectedDate }: { routines: Routine[]; s
 
   return (
     <form className="card date-override" onSubmit={(event) => void save(event)}>
-      <h2>Mudar só um dia</h2>
-      <p className="hint">Troque a rotina ou marque descanso para uma data. Seu plano semanal continua valendo nos outros dias.</p>
+      <h2>{t("ui.changeDay")}</h2>
+      <p className="hint">{t("ui.changeDayHelp")}</p>
       <div className="field-grid">
-        <label>
-          Data
-          <input type="date" required value={date} disabled={busy} onChange={(event) => {
+        <label>{t("prog.measureDate")}<input type="date" required value={date} disabled={busy} onChange={(event) => {
             setDate(event.target.value);
             setChoice(null);
             setFeedback(null);
           }} />
         </label>
-        <label>
-          Treino desta data
-          <select value={value} disabled={busy} onChange={(event) => setChoice(event.target.value)}>
-            <option value="">Seguir plano semanal</option>
-            <option value="rest">Descanso</option>
+        <label>{t("ui.workoutOnDate")}<select value={value} disabled={busy} onChange={(event) => setChoice(event.target.value)}>
+            <option value="">{t("ui.useWeeklyPlan")}</option>
+            <option value="rest">{t("workouts.rest")}</option>
             {routines.map((routine) => <option key={routine.id} value={routine.id}>{routine.name}</option>)}
           </select>
         </label>
       </div>
       <div className="form-actions">
-        <button type="submit" className="btn" disabled={busy || !date || row === undefined}>{busy ? 'Salvando…' : 'Salvar alteração'}</button>
+        <button type="submit" className="btn" disabled={busy || !date || row === undefined}>{busy ? t("re.saving") : t("ui.saveChange")}</button>
       </div>
       {feedback !== null && <p className={`feedback${feedback.error ? ' error' : ''}`} role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
     </form>
@@ -309,6 +307,7 @@ function DateOverrideEditor({ routines, selectedDate }: { routines: Routine[]; s
 }
 
 export function Treinos() {
+  const t = useT();
   const [searchParams, setSearchParams] = useSearchParams();
   const active = useSessionStore((state) => state.active);
   const [deletion, setDeletion] = useState<Deletion | null>(null);
@@ -404,7 +403,7 @@ export function Treinos() {
     try {
       await handleWeekday(day, value);
     } catch {
-      setScheduleError('Não foi possível atualizar a agenda. Confira se a rotina ainda está disponível.');
+      setScheduleError(t('ui.scheduleError'));
     } finally {
       setSaving(null);
     }
@@ -431,34 +430,28 @@ export function Treinos() {
       {/* Topbar */}
       <div className="topbar">
         <div className="brand">
-          <h1>Treinos</h1>
+          <h1>{t("workouts.title")}</h1>
         </div>
         <div className="page-actions">
           <button
             className="btn ghost"
             style={{ padding: '10px 14px', fontSize: 13 }}
             onClick={() => setShowStarterPlans(true)}
-            title="Planos prontos"
+            title={t("workouts.starterPlans")}
           >
-            <Sparkles size={16} strokeWidth={2.2} aria-hidden />
-            Planos prontos
-          </button>
+            <Sparkles size={16} strokeWidth={2.2} aria-hidden />{t("workouts.starterPlans")}</button>
           <Link
             to="/exercicios"
             className="btn ghost"
             style={{ padding: '10px 14px', fontSize: 13 }}
           >
-            <Library size={16} strokeWidth={2.4} />
-            Exercícios
-          </Link>
+            <Library size={16} strokeWidth={2.4} />{t("workouts.exercises")}</Link>
           <Link
             to="/treinos/rotina/nova"
             className="btn"
             style={{ padding: '10px 16px', fontSize: 13 }}
           >
-            <Plus size={16} strokeWidth={2.8} />
-            Nova rotina
-          </Link>
+            <Plus size={16} strokeWidth={2.8} />{t("workouts.newRoutine")}</Link>
         </div>
       </div>
 
@@ -468,32 +461,26 @@ export function Treinos() {
       <div className="planning-layout">
         <section className="card planning-routines" aria-labelledby="my-routines">
         <h2 className="section-title panel-title" id="my-routines" ref={routinesHeading} tabIndex={-1}>
-          <Dumbbell size={13} style={{ verticalAlign: 'middle', marginRight: 6, opacity: 0.7 }} />
-          Minhas rotinas
-        </h2>
+          <Dumbbell size={13} style={{ verticalAlign: 'middle', marginRight: 6, opacity: 0.7 }} />{t("workouts.myRoutines")}</h2>
 
         <p role="status" className={deletedMessage ? 'feedback plan-deletion-feedback' : 'sr-only'}>{deletedMessage}</p>
         {totalRoutines === 0 && !grouped.some(({ cat }) => cat.slug.startsWith('starter-')) ? (
           <div className="empty">
             <Dumbbell size={40} strokeWidth={1.6} style={{ opacity: 0.4 }} />
-            <p style={{ marginTop: 12 }}>Nenhuma rotina criada ainda.</p>
+            <p style={{ marginTop: 12 }}>{t("workouts.noRoutines")}</p>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 16 }}>
               <button
                 className="btn ghost-accent"
                 style={{ display: 'inline-flex', gap: 6 }}
                 onClick={() => setShowStarterPlans(true)}
               >
-                <Sparkles size={16} strokeWidth={2.2} />
-                Começar com um plano pronto
-              </button>
+                <Sparkles size={16} strokeWidth={2.2} />{t("workouts.startWithPlan")}</button>
               <Link
                 to="/treinos/rotina/nova"
                 className="btn ghost"
                 style={{ display: 'inline-flex' }}
               >
-                <Plus size={16} />
-                Criar rotina do zero
-              </Link>
+                <Plus size={16} />{t("workouts.createFromScratch")}</Link>
             </div>
           </div>
         ) : (
@@ -513,7 +500,7 @@ export function Treinos() {
                       aria-label={`Excluir plano · ${cat.name}`} onClick={() => {
                         setDeletedMessage('');
                         setDeletion({ name: cat.name, categoryId: cat.id, routines: rots });
-                      }}><Trash2 size={14} aria-hidden="true" /> Excluir plano</button>}
+                      }}><Trash2 size={14} aria-hidden="true" />{t("ui.deletePlan")}</button>}
                   </div>
                   <div className="routine-list">
                     {rots.map((routine) => <RoutineRow key={routine.id} routine={routine} color={cat.color} activeId={activeId}
@@ -535,7 +522,7 @@ export function Treinos() {
                 <div className="routine-group">
                   <div className="routine-group-header">
                     <span className="cat-dot" style={{ background: 'var(--text-muted)' }} />
-                    <span className="cat-name">Sem categoria</span>
+                    <span className="cat-name">{t("workouts.noCategory")}</span>
                   </div>
                   <div className="routine-list">
                     {orphans.map((routine) => <RoutineRow key={routine.id} routine={routine} activeId={activeId}
@@ -556,14 +543,10 @@ export function Treinos() {
         <section className="planning-agenda" id="agenda" ref={agendaRef} tabIndex={-1} aria-labelledby="plan-week">
         <div className="card">
         <h2 className="section-title panel-title" id="plan-week">
-          <CalendarDays size={16} aria-hidden />
-          Plano da semana
-        </h2>
+          <CalendarDays size={16} aria-hidden />{t("workouts.weekPlan")}</h2>
 
         {totalRoutines === 0 ? (
-          <p className="hint" style={{ textAlign: 'center', paddingBottom: 12 }}>
-            Crie uma rotina para começar a planejar sua semana.
-          </p>
+          <p className="hint" style={{ textAlign: 'center', paddingBottom: 12 }}>{t("workouts.createFirst")}</p>
         ) : (
           <div className="week-plan">
             {scheduleError && <p className="feedback error" role="alert">{scheduleError}</p>}
@@ -581,7 +564,7 @@ export function Treinos() {
                     disabled={saving === day}
                     aria-label={`Treino de ${WEEKDAY_FULL[day]}`}
                   >
-                    <option value="__rest__">Descanso</option>
+                    <option value="__rest__">{t("workouts.rest")}</option>
                     {(routines ?? []).map((r) => (
                       <option key={r.id} value={r.id}>
                         {r.name}
