@@ -1,18 +1,19 @@
-<p align="center">
-  <img src="apps/web/public/logo.svg" width="210" alt="Forja" />
-</p>
+<h1 align="center">
+  <a href="#telas">
+    <img src="assets/brand/forja-banner.webp" width="1440" alt="Forja, diário de treino de força para PC e celular. Veja as telas de evolução de carga e treino guiado." />
+  </a>
+</h1>
 
-<h1 align="center">Seu próximo treino começa aqui.</h1>
-
 <p align="center">
-  Planeje a semana, registre cada série e saiba o que tentar na próxima sessão.
+  Crie rotinas, registre suas séries e acompanhe o peso que você consegue levantar.
   <br />
-  Um diário de treino de força instalável. Treine offline e sincronize pela sua própria instalação.
+  Instale a Forja pelo navegador. Para sincronizar PC e celular, use sua própria instalação.
 </p>
 
 <p align="center">
-  <a href="#telas">Ver o app</a> · <a href="#rodar-localmente">Rodar localmente</a> ·
-  <a href="#instalar-como-app">Instalar como app</a> · <a href="#sincronizar-pc-e-celular">Sincronizar</a> · <a href="#seus-dados">Fazer backup</a>
+  <strong><a href="#telas">Ver a Forja em ação</a> · <a href="#rodar-localmente">Rodar localmente</a></strong>
+  <br />
+  <a href="#instalar-como-app">Instalar como app</a> · <a href="#sincronizar-pc-e-celular">Configurar a sincronização</a> · <a href="#seus-dados">Fazer backup</a>
 </p>
 
 <a name="screenshots"></a>
