@@ -28,7 +28,7 @@
     <th scope="col">Histórico no celular</th>
   </tr>
   <tr>
-    <td><a href="assets/screenshots/hoje.webp"><img src="assets/screenshots/hoje.webp" width="240" alt="Tela Hoje em tema claro, com atalho para continuar o treino e agenda da semana"></a></td>
+    <td><a href="assets/screenshots/hoje.webp"><img src="assets/screenshots/hoje.webp" width="240" alt="Tela Hoje em grafite e laranja, com próximo treino, evolução de carga e agenda da semana"></a></td>
     <td><a href="assets/screenshots/treino-mobile.webp"><img src="assets/screenshots/treino-mobile.webp" width="240" alt="Séries, descanso, demonstração do supino e mapa muscular no treino guiado"></a></td>
     <td><a href="assets/screenshots/historico-mobile.webp"><img src="assets/screenshots/historico-mobile.webp" width="240" alt="Histórico em Semana passada, com sessões agrupadas por dia e séries de uma sessão aberta"></a></td>
   </tr>
@@ -79,7 +79,7 @@
 | **Evoluir** | Veja a próxima meta, o motivo e a evolução da carga por exercício em 4 ou 8 semanas. Acompanhe volume, recordes, esforço e medidas corporais. No **Histórico**, filtre por semana ou por datas e abra uma sessão para ver o mapa muscular, as séries, o aquecimento e corrigir registros. |
 | **Encontrar exercícios** | Filtre pelo equipamento que você tem ou pelos músculos envolvidos. Consulte o atlas e as demonstrações disponíveis offline. |
 
-Em **Perfil → Configurações → Cor de acento**, escolha **Âmbar** para usar a paleta grafite e laranja no tema escuro. Durante o treino, o descanso continua contando enquanto você consulta **Como executar**. Os recursos locais do guia funcionam após carregar o app. A busca no YouTube abre outra aba e usa a conexão do aparelho.
+A paleta padrão é **Âmbar**, com grafite e laranja no tema escuro e papel e laranja no claro. Em **Perfil → Configurações → Cor de acento**, você pode trocar a paleta. Durante o treino, o descanso continua contando enquanto você consulta **Como executar**. Os recursos locais do guia funcionam após carregar o app. A busca no YouTube abre outra aba e usa a conexão do aparelho.
 
 Em **Treinos → Minhas rotinas**, o botão **Excluir plano** remove o conjunto criado a partir de um plano pronto. Use a lixeira de uma rotina para removê-la individualmente. Os agendamentos associados são retirados e as sessões já registradas continuam no Histórico.
 

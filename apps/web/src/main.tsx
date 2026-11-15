@@ -13,7 +13,7 @@ async function applyInitialAppearance() {
     const s = await getSettings();
     applyAppearance(s.theme, s.accent, window.matchMedia('(prefers-color-scheme: light)').matches);
   } catch {
-    // banco ainda não existe no primeiro boot — mantém dark/flame (padrão do CSS)
+    // Atributos do HTML mantêm a aparência inicial se a leitura falhar.
   }
 }
 

@@ -344,11 +344,11 @@ type SettingKey = 'lang' | 'unit' | 'defaultRestSec' | 'theme' | 'accent' | 'wee
 
 /** Paletas de acento disponíveis */
 const ACCENT_PALETTES: { name: string; label: string; color: string }[] = [
+  { name: 'amber',   label: 'Âmbar',   color: '#f5a623' },
   { name: 'flame',   label: 'Índigo',  color: '#6551dd' },
   { name: 'blue',    label: 'Azul',    color: '#3b8ff5' },
   { name: 'violet',  label: 'Violeta', color: '#9b5de5' },
   { name: 'green',   label: 'Verde',   color: '#22c55e' },
-  { name: 'amber',   label: 'Âmbar',   color: '#f5a623' },
   { name: 'rose',    label: 'Rosa',    color: '#f43f5e' },
   { name: 'cyan',    label: 'Ciano',   color: '#06b6d4' },
   { name: 'magenta', label: 'Magenta', color: '#d946ef' },
@@ -489,7 +489,7 @@ function SettingsSection({ settings }: { settings: Settings }) {
         </div>
         <div className="accent-swatches" role="group" aria-label={t('locale.accent')}>
           {ACCENT_PALETTES.map((p) => {
-            const active = (settings.accent ?? 'flame') === p.name;
+            const active = (settings.accent ?? DEFAULT_SETTINGS.accent) === p.name;
             return (
               <button
                 key={p.name}

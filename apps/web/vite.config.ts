@@ -50,8 +50,8 @@ export default defineConfig({
         name: 'Forja — Treino',
         short_name: 'Forja',
         description: 'Tracker de treino local-first, gamificado. Dono dos seus dados.',
-        theme_color: '#151525',
-        background_color: '#151525',
+        theme_color: '#181816',
+        background_color: '#181816',
         display: 'standalone',
         start_url: '/',
         icons: [

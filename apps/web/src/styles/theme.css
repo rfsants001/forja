@@ -32,7 +32,7 @@
   --control-border: #777799;
   color-scheme: dark;
 
-  /* acento ativo (padrão flame; sobrescrito por [data-accent] ou categoria via inline style) */
+  /* Acento ativo. A paleta Âmbar da marca usa os tokens definidos abaixo. */
   --accent: var(--accent-dark, #bdb4ff);
   --on-accent: #1b124b;
 

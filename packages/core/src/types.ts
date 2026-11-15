@@ -279,6 +279,6 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
   trackEffort: false,
   weekStartsOn: 1,
-  accent: 'flame',
+  accent: 'amber',
   lang: 'pt',
 };

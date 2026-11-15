@@ -63,15 +63,16 @@
   min-height: clamp(270px, 32vw, 350px);
   padding: clamp(20px, 4vw, 37px);
   border-radius: var(--r-lg);
-  background-color: #222040;
-  color: #faf8ff;
-  background-image: linear-gradient(100deg, #22174d 3%, rgb(37 26 88 / 95%) 36%, rgb(42 33 108 / 20%) 100%), url('../assets/forja-training.webp');
+  background-color: #221d16;
+  color: #f5f0e6;
+  background-image: linear-gradient(100deg, #211b13 3%, rgb(32 26 18 / 95%) 36%, rgb(25 22 17 / 32%) 100%), url('../assets/forja-training.webp');
+  background-blend-mode: normal, luminosity;
   background-size: cover;
   background-position: center, 66% center;
-  border: 1px solid #464365;
+  border: 1px solid var(--border);
 }
 .journal-session-content { max-width: 490px; }
-.journal-session-content > p { color: #e1dcfb; }
+.journal-session-content > p { color: #e4dacc; }
 .journal-session-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 9px; }
 .journal-session h2 {
   font: 700 clamp(30px, 4vw, 52px)/1.02 var(--font-heading);
@@ -79,9 +80,15 @@
   overflow-wrap: anywhere;
   margin-bottom: 13px;
 }
-.journal-session .journal-start { margin-top: 22px; background: #e7e2ff; color: #25175e; padding-inline: 17px; }
-.journal-session .journal-start:focus-visible { outline-color: #e3dcff; }
-.journal-session .journal-start:hover { background: #ffffff; }
+.journal-session .journal-start {
+  --session-cta: var(--accent-dark, #bdb4ff);
+  margin-top: 22px;
+  padding-inline: 17px;
+  background: var(--session-cta);
+  color: #191511;
+}
+.journal-session .journal-start:focus-visible { outline-color: #fff3df; }
+.journal-session .journal-start:hover { background: color-mix(in srgb, var(--session-cta) 82%, white); }
 
 .journal-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 17px 20px; }
 .journal-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }

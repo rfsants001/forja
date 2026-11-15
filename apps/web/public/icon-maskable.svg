@@ -1,7 +1,7 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <rect width="64" height="64" fill="#352bb8"/>
+  <rect width="64" height="64" fill="#ffc777"/>
   <g transform="translate(9.6 9.6) scale(.7)">
-    <path fill="#fff" d="M19 17h30l-5 8H30l-3 5h12l-5 8h-8l-6 10h-9z"/>
-    <path fill="#c7c0ff" d="M43 32h8l-9 16h-8z"/>
+    <path fill="#221507" d="M19 17h30l-5 8H30l-3 5h12l-5 8h-8l-6 10h-9z"/>
+    <path fill="#683a10" d="M43 32h8l-9 16h-8z"/>
   </g>
 </svg>

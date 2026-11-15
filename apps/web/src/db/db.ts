@@ -1,6 +1,7 @@
 // Camada de persistência local-first (IndexedDB via Dexie). Toda a leitura/escrita do
 // cliente passa por aqui. A instalação opcional replica apenas as tabelas de treino.
 import Dexie, { type Table } from 'dexie';
+import { DEFAULT_SETTINGS } from '@forja/core';
 import type {
   BodyMeasurement,
   Category,
@@ -85,6 +86,12 @@ export class ForjaDB extends Dexie {
       syncOutbox: '++seq, id',
       coachEdits: 'id, [after.id+after.updatedAt]',
     });
+    this.version(4).stores({}).upgrade((transaction) =>
+      transaction.table<SettingsRow, string>('settings').where('id').equals('app').modify((settings) => {
+        // O banco antigo gravava índigo como padrão sem distinguir uma escolha explícita.
+        if (settings.accent === 'flame') settings.accent = DEFAULT_SETTINGS.accent;
+      }),
+    );
   }
 }
 

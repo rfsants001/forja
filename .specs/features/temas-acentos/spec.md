@@ -37,9 +37,9 @@ O estado e o aceite acima prevalecem nesta revisão.
 
 ## Escopo
 - **Core:** adicionar `accent?: string` em `Settings` (nome do acento, ex. `'flame'`), manter
-  `DEFAULT_SETTINGS.accent = 'flame'`. Não quebrar tipos existentes.
+  `DEFAULT_SETTINGS.accent = 'amber'`. O Dexie v4 migra a preferência índigo anterior para Âmbar e conserva as outras cores. Índigo continua disponível no Perfil.
 - **Paleta:** 8 acentos nomeados em CSS (`:root[data-accent='...']` sobrescreve `--accent` e
-  `--on-accent`): flame(padrão), blue, violet, green, amber, rose, cyan, magenta. Cores que
+  `--on-accent`): amber (padrão), flame, blue, violet, green, rose, cyan, magenta. Cores que
   funcionem em dark E light (contraste ok).
 - **Aplicar:** `applyAccent()` seta `document.documentElement.dataset.accent`. Tema + acento
   aplicados no boot a partir de `Settings` (sem flash).

@@ -20,7 +20,7 @@ Atualizado em 15/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [
 ## Caderno de treino · revisão local
 
 - A Home reúne treino do dia, agenda com link por data, registros recentes e métricas. O desktop usa navegação lateral e painéis em colunas. No celular, a navegação inferior inclui a biblioteca.
-- A identidade usa um monograma F geométrico, índigo, grafite e off-white. Inter é a fonte dos títulos e formulários. Barlow Condensed aparece em métricas. A fotografia da Home, as fontes e os ícones da PWA fazem parte do build offline.
+- A identidade usa um monograma F geométrico e a paleta Âmbar com grafite, laranja e off-white. Inter é a fonte dos títulos e formulários. Barlow Condensed aparece em métricas. A fotografia da Home, as fontes e os ícones da PWA fazem parte do build offline.
 - Biblioteca com atlas MuscleMap (MIT) nas duas figuras e suas vistas de frente/costas, 48 entradas com demonstração local, controles de posição, créditos, filtros por músculos auxiliares e inventário próprio. Progresso oferece séries, volume de carga e último treino.
 - Aquecimentos de repetições são opcionais e persistem em `warmupSets` no rascunho e no log. O histórico permite corrigir as séries. Hevy importa o tipo de série e o backup v2 conserva aquecimento e inventário. Progressão, volume e recordes consultam séries de trabalho.
 - Histórico com barra de busca e rotina acima da lista, contagem e ação de limpar. Formulários têm rótulos associados, aparência compartilhada, ações compactas e feedback. O Perfil grava descanso e meta por envio explícito. O tema explícito se sobrepõe à preferência do SO, e o modo Sistema acompanha a preferência.
