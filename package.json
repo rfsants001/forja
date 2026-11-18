@@ -9,6 +9,7 @@
     "dev": "pnpm --filter @forja/web dev",
     "prestart": "pnpm --filter @forja/web build",
     "start": "node apps/server/src/index.mjs --local",
+    "start:win": "pnpm --filter @forja/web build && node apps/server/src/index.mjs --local",
     "build": "pnpm -r build",
     "test": "pnpm --filter @forja/core test && pnpm --filter @forja/server test",
     "typecheck": "pnpm -r typecheck",
