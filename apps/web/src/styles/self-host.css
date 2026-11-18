@@ -59,3 +59,8 @@
 .coach-evidence { border-block-start: 1px solid var(--border-soft); }
 .coach-evidence p { margin-block-end: 8px; }
 .coach-evidence a { color: var(--accent); text-decoration: underline; }
+
+.inventory-page { max-width: 660px; }
+.inventory-page .inventory-form label { font-weight: 650; }
+.inventory-page .inventory-icon { min-width: var(--control-h); padding-inline: 0; justify-content: center; }
+.inventory-page .self-host-list small { display: block; }

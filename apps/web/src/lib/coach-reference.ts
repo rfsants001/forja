@@ -3,12 +3,14 @@ import { parseBackup } from './backup';
 import { parseFitNotes, parseStrong, parseHevy } from './importers';
 import { parsePlan } from './plan-share';
 import { UiError } from './ui-error';
+import { readExternalReferences } from './coach-external-reference';
 
-export type ReferenceSource = 'fitnotes' | 'strong' | 'hevy' | 'backup' | 'plan';
+export type ReferenceSource = 'fitnotes' | 'strong' | 'hevy' | 'backup' | 'plan' | 'external';
 export interface ReferenceExercise {
   name: string;
   sets: number;
   reps?: string;
+  seconds?: number;
   loadKg?: number;
 }
 export interface CoachReference {
@@ -54,7 +56,9 @@ export async function readCoachReferences(file: File, source: ReferenceSource, c
   const raw = await file.text();
   const names = namesFrom(catalog);
   let result: CoachReference[];
-  if (source === 'backup') {
+  if (source === 'external') {
+    result = await readExternalReferences(raw, file.name);
+  } else if (source === 'backup') {
     const { data } = parseBackup(raw);
     // parseBackup validates both tables before returning its generic row map.
     for (const { id, name } of (data.exercises ?? []) as unknown as Exercise[]) names.set(id, name);
@@ -63,9 +67,12 @@ export async function readCoachReferences(file: File, source: ReferenceSource, c
     const { routines, exercises } = parsePlan(raw);
     for (const { id, name } of exercises) names.set(id, name);
     result = routines.flatMap((routine) => {
-      const moves = routine.exercises.flatMap(({ exerciseId, sets, targetReps }) => {
+      const moves = routine.exercises.flatMap(({ exerciseId, sets, targetReps, targetSec }) => {
         const name = names.get(exerciseId);
-        return name ? [{ name: name.slice(0, 220), sets: Math.min(100, sets), reps: /^\d{1,4}(?:[–-]\d{1,4})?$/.test(targetReps?.trim() ?? '') ? targetReps?.trim() : undefined }] : [];
+        return name ? [{ name: name.slice(0, 220), sets: Math.min(100, sets),
+          reps: /^\d{1,4}(?:[–-]\d{1,4})?$/.test(targetReps?.trim() ?? '') ? targetReps?.trim() : undefined,
+          seconds: targetSec !== undefined && Number.isInteger(targetSec) && targetSec > 0 && targetSec <= 86400 ? targetSec : undefined,
+        }] : [];
       }).slice(0, limit);
       return moves.length ? [{ key: routine.id, label: routine.name, kind: 'prescribed' as const, exercises: moves }] : [];
     }).slice(0, 40);

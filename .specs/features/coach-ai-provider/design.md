@@ -84,6 +84,10 @@ A tela Perfil → Conexões de IA lista os provedores e grava a seleção no SQL
 
 O Bubblewrap dá ao Codex acesso de leitura aos certificados do sistema. Em Fedora e Nobara, os caminhos sob `/etc/ssl` referenciam bundles PEM em `/etc/pki`. Esses arquivos precisam estar visíveis dentro do processo para a troca do token HTTPS funcionar.
 
+O inventário é editado em Perfil → Meus equipamentos. Guarda os nomes informados em `Settings.gymEquipment`. A normalização separa tipos de barra, acessórios e apoios. O treino em casa combina opções verificadas da biblioteca, movimentos domésticos e exercícios personalizados com os equipamentos informados. O salvamento confere novamente o inventário e materializa novos movimentos na mesma transação da rotina.
+
+A origem Plano externo aceita o JSON `opengym_plan: 1`, um CSV tabular ou um JSON portátil de rotinas. Os IDs padrão do OpenGym são resolvidos pelo dataset público e os personalizados pelo campo `customEx`. A sessão escolhida é enviada como prescrição, incluindo segundos quando houver. Leitura, nomes de rotinas e arquivo original ficam no navegador.
+
 ## Contexto e programação do treino
 
 O assistente lê referência local, CSV de Hevy/Strong/FitNotes e JSON de backup/plano da Forja no navegador. O usuário escolhe uma sessão ou rotina. A rota de montagem recebe um recorte de até 16 exercícios com séries, reps e carga registrada conforme disponibilidade. Rótulos da sessão, nomes de arquivo e notas ficam fora do pedido. Nada é gravado ao anexar a referência.

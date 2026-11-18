@@ -165,11 +165,17 @@ Com a Forja aberta por `npm start` ou `npm run dev`, vá a **Perfil → Conexõe
 
 Abra **Treinos → Montar treino com IA**. Informe o local, o objetivo, o foco e a duração total da sessão. O coach propõe séries, repetições e descanso. A Forja confere a duração estimada, a ordem dos exercícios e a adequação ao objetivo antes de mostrar o resultado. A seção **Como a Forja montou este treino** explica a progressão e a base das escolhas. [Posição da ACSM sobre treino resistido](https://acsm.org/resistance-training-guidelines-update-2026/).
 
-Em **Usar treino anterior como referência**, escolha uma sessão do Histórico ou abra um CSV de Hevy, Strong ou FitNotes, um backup JSON ou um plano JSON da Forja. A prévia mostra até 40 sessões ou rotinas para escolher. O arquivo é lido no navegador. Ao gerar, a IA recebe somente o resumo selecionado, com exercícios, séries, reps e carga quando disponível. Para gravar o arquivo no Histórico, use **Perfil → Importar de outro app**.
+Em **Usar treino anterior como referência**, escolha uma sessão do Histórico, um CSV de Hevy, Strong ou FitNotes, um JSON da Forja ou **Plano externo (CSV ou JSON)**. A prévia mostra até 40 sessões ou rotinas. O arquivo é lido no navegador. Ao gerar, a IA recebe somente o resumo escolhido, com exercícios, séries, repetições, tempo e carga quando disponíveis. Para gravar sessões no Histórico, use **Perfil → Importar de outro app**.
 
-Em casa, os exercícios respeitam o seu inventário e incluem opções com peso corporal. Na academia, a prévia mostra substituições por outra resistência quando a biblioteca tem uma variação da mesma família, como crucifixo com halter, máquina ou cabo. As alternativas são registradas nas notas da rotina após confirmar o salvamento.
+**Plano externo** aceita o JSON de plano do OpenGym (`opengym_plan: 1`). Você também pode montar um CSV com `treino,exercicio,series,repeticoes,segundos,carga_kg` ou um JSON com `routines` e uma lista de `exercises` por rotina. No CSV, só `exercicio` e `series` são obrigatórios. No JSON, `name` e `sets` são obrigatórios por exercício e `reps`, `seconds` e `loadKg` são opcionais. Um arquivo com uma rotina pode ter este formato.
 
-Em **Exercícios → Meus equipamentos**, digite os nomes dos itens que você tem. Os exercícios personalizados entram no filtro quando usam o mesmo nome de equipamento. Na revisão semanal, a Forja envia apenas os agregados e as opções de troca da prévia. A revisão exige confirmação para alterar uma rotina e permite desfazer enquanto a versão aplicada for a atual.
+```json
+{"routines":[{"name":"Corpo inteiro","exercises":[{"name":"Agachamento","sets":3,"reps":"8–12"}]}]}
+```
+
+Cadastre seu inventário em **Perfil → Meus equipamentos** ou pelo link no Assistente. Informe os tipos que você tem, como barra fixa, barra EZ, halteres ou anilhas. A IA escolhe uma sessão para casa com exercícios de peso corporal, variações adaptadas e exercícios personalizados compatíveis. Barra fixa, barra EZ e anilhas não atendem ao requisito de uma barra reta. Supino com barra requer também um banco adequado e um suporte para a barra.
+
+Na academia, a prévia mostra substituições por outra resistência quando a biblioteca tem uma variação da mesma família, como crucifixo com halter, máquina ou cabo. As alternativas ficam nas notas da rotina. Na revisão semanal, a Forja envia os agregados e as opções de troca da prévia. A revisão exige confirmação e permite desfazer a alteração enquanto a versão aplicada for a atual.
 
 O login fica no perfil dedicado do Codex no host. O servidor usa o provedor e o modelo escolhidos na tela. Instalações avançadas ainda podem indicar caminhos absolutos por `FORJA_CODEX_BINARY` e `FORJA_CODEX_HOME`. Use `pnpm self-host:codex-probe` para testar o perfil dedicado com dados fictícios.
 

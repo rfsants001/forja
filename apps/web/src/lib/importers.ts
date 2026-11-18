@@ -44,7 +44,7 @@ export interface ImportCounts {
 // ---------------------------------------------------------------------------
 
 /** Parser CSV mínimo: respeita campos entre aspas e quebras de linha em campos. */
-function parseCSV(csv: string): string[][] {
+function parseCSV(csv: string, delimiter: ',' | ';'): string[][] {
   const rows: string[][] = [];
   const lines = csv.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   let row: string[] = [];
@@ -68,7 +68,7 @@ function parseCSV(csv: string): string[][] {
     } else {
       if (ch === '"') {
         inQuotes = true;
-      } else if (ch === ',') {
+      } else if (ch === delimiter) {
         row.push(field);
         field = '';
       } else if (ch === '\n') {
@@ -92,8 +92,8 @@ function parseCSV(csv: string): string[][] {
 }
 
 /** Remove linhas vazias e retorna header + dados. */
-function csvToObjects(csv: string, required: string[]): Array<Record<string, string>> {
-  const rows = parseCSV(csv).filter((r) => r.some((c) => c.trim() !== ''));
+export function csvToObjects(csv: string, required: string[], delimiter: ',' | ';' = ','): Array<Record<string, string>> {
+  const rows = parseCSV(csv, delimiter).filter((r) => r.some((c) => c.trim() !== ''));
   if (rows.length === 0) throw new UiError('file.csvEmpty');
   const header = rows[0]?.map((h) => h.replace(/^\uFEFF/, '').trim()) ?? [];
   if (!required.every((field) => header.includes(field))) {

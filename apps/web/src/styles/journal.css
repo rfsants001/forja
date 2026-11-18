@@ -307,8 +307,7 @@
 .catalog-check { display: flex; align-items: center; gap: 8px; min-height: 40px; cursor: pointer; font-size: 13px; }
 .catalog-check input { width: 17px; height: 17px; accent-color: var(--accent); }
 .catalog-inventory { border-top: 1px solid var(--border-soft); padding-top: 6px; }
-.catalog-inventory summary { display: list-item; align-content: center; min-height: 40px; font-weight: 600; cursor: pointer; }
-.catalog-inventory-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(98px, 1fr)); }
+.inventory-link { color: var(--accent); text-decoration: underline; font-size: 13px; }
 .catalog-illustrated { border-top: 1px solid var(--border-soft); margin-top: 6px; padding-top: 3px; }
 dialog.exercise-detail {
   position: fixed;
@@ -355,10 +354,3 @@ dialog.exercise-detail {
 :is(.session-guide-muscles, .hist-muscle-map) .muscle-atlas {
   --muscle-unhighlighted: color-mix(in srgb, var(--text-muted) 28%, var(--surface-2));
 }
-
-.inventory-form { display: grid; gap: 6px; margin-block: 12px; }
-.inventory-form > div { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.inventory-form input { flex: 1 1 160px; min-width: 0; }
-.inventory-list { list-style: none; display: grid; gap: 4px; margin-block: 8px; }
-.inventory-list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-block-end: 1px solid var(--border-soft); }
-.inventory-list li span { overflow-wrap: anywhere; }

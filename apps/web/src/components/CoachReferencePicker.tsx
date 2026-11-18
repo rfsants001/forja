@@ -4,7 +4,7 @@ import { useT } from '../lib/i18n';
 import { localCoachReferences, readCoachReferences, type CoachReference, type ReferenceSource } from '../lib/coach-reference';
 import { UiError } from '../lib/ui-error';
 
-const formats = ['hevy', 'strong', 'fitnotes', 'backup', 'plan'] as const;
+const formats = ['external', 'hevy', 'strong', 'fitnotes', 'backup', 'plan'] as const;
 type Source = ReferenceSource | 'none' | 'history';
 
 interface Props {
@@ -60,8 +60,10 @@ export function CoachReferencePicker({ catalog, workouts, reference, onChange, d
           <option value="history">{t('coach.referenceHistory')}</option>
           {formats.map((format) => <option value={format} key={format}>{t('coach.reference.' + format)}</option>)}
         </select></label>
+        {source === 'external' && <p className="hint">{t('coach.referenceExternalHelp')}</p>}
         {needsFile && <label>{t('coach.referenceFile')}<input key={source} type="file" disabled={disabled || reading}
-          accept={source === 'plan' || source === 'backup' ? '.json,application/json' : '.csv,text/csv'}
+          accept={source === 'external' ? '.csv,text/csv,.json,application/json'
+            : source === 'plan' || source === 'backup' ? '.json,application/json' : '.csv,text/csv'}
           onChange={(event) => void read(event.target.files?.[0], source)} /></label>}
         {source === 'history' && items.length === 0 && <p className="hint">{t('coach.referenceEmpty')}</p>}
         {items.length > 0 && (
@@ -77,7 +79,8 @@ export function CoachReferencePicker({ catalog, workouts, reference, onChange, d
             <ul className="self-host-list">
               {reference.exercises.map((item, index) => <li key={index}>
                 <span>{item.name}</span>
-                <span>{t('coach.referenceSet', [item.sets])}{item.reps && ` · ${item.reps} reps`}{item.loadKg !== undefined && ` · ${item.loadKg} kg`}</span>
+                <span>{t('coach.referenceSet', [item.sets])}{item.reps && ` · ${item.reps} reps`}
+                  {item.seconds !== undefined && ` · ${item.seconds} s`}{item.loadKg !== undefined && ` · ${item.loadKg} kg`}</span>
               </li>)}
             </ul>
           </>

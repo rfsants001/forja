@@ -39,8 +39,8 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
   const request = useRef<AbortController | null>(null);
   const saving = useRef(false);
   const restrictEquipment = venue === 'home' || useInventory;
-  const eligible = useMemo(() => eligiblePlanExercises(exercises ?? [], settings?.gymEquipment ?? [], focus, restrictEquipment),
-    [exercises, settings?.gymEquipment, focus, restrictEquipment]);
+  const eligible = useMemo(() => eligiblePlanExercises(exercises ?? [], settings?.gymEquipment ?? [], focus, restrictEquipment, venue),
+    [exercises, settings?.gymEquipment, focus, restrictEquipment, venue]);
   const options = useMemo(() => planCandidates(eligible, restrictEquipment ? settings?.gymEquipment ?? [] : [],
     reference?.exercises.map(({ name }) => name) ?? []),
     [eligible, restrictEquipment, settings?.gymEquipment, reference]);
@@ -90,7 +90,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
         return options.length && exercise ? [`${exercise.name} → ${options.map(({ name }) => name).join(' / ')}`] : [];
       });
       const note = substitutions.length ? [t('coach.variantsNote'), ...substitutions].join('\n') : undefined;
-      setSavedId((await saveCoachPlan(result, selectedCategory, note)).id);
+      setSavedId((await saveCoachPlan(result, selectedCategory, restrictEquipment, note)).id);
     } catch (failure) {
       setError(failure instanceof SyncError && failure.code === 'STALE_PROPOSAL' ? t('coach.planStale') : t('ui.saveRoutineFailed'));
     } finally {
@@ -120,10 +120,11 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
               onChange={(event) => { setMinutes(Number(event.target.value)); resetPreview(); }} /></label>
           </div>
           <div className="coach-inventory-choice">
-            {venue === 'home' ? <span className="hint">{t('coach.homeEquipment')}</span> :
+            {venue === 'home' ? <span className="hint">{settings?.gymEquipment?.length
+              ? t('coach.homeEquipmentList', [settings.gymEquipment.join(', ')]) : t('coach.homeEquipment')}</span> :
               <label className="coach-plan-inventory"><input type="checkbox" checked={useInventory}
                 onChange={(event) => { setUseInventory(event.target.checked); resetPreview(); }} /> {t('ui.applyMyEquipment')}</label>}
-            <Link to="/exercicios?inventario=1">{t('inventory.manage')}</Link>
+            <Link to="/perfil/equipamentos" state={{ from: 'coach' }}>{t('inventory.manage')}</Link>
           </div>
         </fieldset>
         <CoachReferencePicker catalog={exercises ?? []} workouts={workouts ?? []} disabled={busy}
@@ -154,7 +155,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
             {result.exercises.map(({ exerciseId, sets, reps, restSec }) => {
               const variants = alternativesFor(exerciseId);
               return <li key={exerciseId}>
-                <strong>{exercises?.find(({ id }) => id === exerciseId)?.name ?? exerciseId}</strong>
+                <strong>{eligible.find(({ id }) => id === exerciseId)?.name ?? exerciseId}</strong>
                 <span>{t('coach.planSet', [sets, reps, restSec])}</span>
                 {!!variants.length && <span className="coach-alternatives hint">
                   {t('coach.variants', [variants.map(({ name }) => name).join(' · ')])}

@@ -1,12 +1,12 @@
 import { useT } from '../lib/i18n';
 import '../styles/setup.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Search, Plus, X, Pencil, Trash2, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import type { Exercise, ExerciseMode, MuscleGroup } from '@forja/core';
 import { db } from '../db/db';
-import { upsertExercise, deleteExercise, updateSettings } from '../db/repo';
+import { upsertExercise, deleteExercise } from '../db/repo';
 import {
   MUSCLE_OPTIONS,
   MODE_OPTIONS,
@@ -14,7 +14,7 @@ import {
 import { hasExerciseMedia, Media } from '../components/Media';
 import { MuscleCoverage } from '../components/MuscleCoverage';
 import { normalizeExName } from '../lib/normalize';
-import { EQUIP_FILTERS, equipmentKey, supportsEquipment } from '../lib/equipment';
+import { EQUIP_FILTERS, catalogEquipmentKey, exerciseRequirements, inventoryKeys, supportsEquipment } from '../lib/equipment';
 
 // ---------------------------------------------------------------------------
 // Tipos do formulário
@@ -70,45 +70,18 @@ export function Exercicios() {
   const [onlyMyEquipment, setOnlyMyEquipment] = useState(false);
   const settings = useLiveQuery(() => db.settings.get('app'), []);
   const savedEquipment = settings?.gymEquipment;
-  const [equipmentName, setEquipmentName] = useState('');
-  const [equipmentError, setEquipmentError] = useState('');
-  const [savingEquipment, setSavingEquipment] = useState(false);
-  const myEquipment = useMemo(() => new Set(savedEquipment), [savedEquipment]);
+  const myEquipment = useMemo(() => inventoryKeys(savedEquipment ?? []), [savedEquipment]);
   const equipmentOptions = useMemo(() => {
     const options = new Map<string, string>();
     for (const exercise of exercises ?? []) {
       for (const label of exercise.equipment) {
-        const key = equipmentKey(label);
+        const key = catalogEquipmentKey(label);
         const standard = EQUIP_FILTERS.find((item) => item.terms[0] === key);
         if (key && !options.has(key)) options.set(key, standard ? t(standard.key) : label);
       }
     }
     return [...options].sort((a, b) => a[1].localeCompare(b[1]));
   }, [exercises, t]);
-
-  async function saveEquipment(value: string, remove = false) {
-    const name = value.trim();
-    const key = equipmentKey(name);
-    if (!key || savingEquipment) return;
-    setSavingEquipment(true);
-    setEquipmentError('');
-    try {
-      await db.transaction('rw', db.settings, async () => {
-        const current = (await db.settings.get('app'))?.gymEquipment ?? [];
-        if (!remove && current.some((item) => equipmentKey(item) === key)) {
-          setEquipmentError(t('inventory.duplicate'));
-          return;
-        }
-        await updateSettings({ gymEquipment: remove ? current.filter((item) => item !== value) : [...current, name] });
-        if (!remove) setEquipmentName('');
-      });
-      resetPaging();
-    } catch {
-      setEquipmentError(t('ui.equipmentSaveError'));
-    } finally {
-      setSavingEquipment(false);
-    }
-  }
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -151,8 +124,8 @@ export function Exercicios() {
       if (muscleFilter !== null && ex.primaryMuscle !== muscleFilter
         && !(includeSecondary && ex.secondaryMuscles.includes(muscleFilter))) return false;
       if (onlyIllustrated && !hasExerciseMedia(ex.id, ex.demo)) return false;
-      if (onlyMyEquipment && !supportsEquipment(ex.equipment, myEquipment)) return false;
-      if (equipFilter && !ex.equipment.some((item) => equipmentKey(item) === equipFilter)) {
+      if (onlyMyEquipment && !supportsEquipment(exerciseRequirements(ex), myEquipment)) return false;
+      if (equipFilter && !ex.equipment.some((item) => catalogEquipmentKey(item) === equipFilter)) {
         return false;
       }
       return true;
@@ -268,6 +241,8 @@ export function Exercicios() {
   // Render
   // ---------------------------------------------------------------------------
 
+  if (searchParams.get('inventario') === '1') return <Navigate to="/perfil/equipamentos" replace />;
+
   return (
     <>
       {/* Topbar */}
@@ -324,37 +299,13 @@ export function Exercicios() {
             {equipmentOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
         </div>
-        <details className="catalog-inventory" open={searchParams.get('inventario') === '1' || undefined}>
-          <summary>{t("ui.myEquipment")}</summary>
-          <p className="hint">{t('inventory.description')}</p>
-          {myEquipment.size === 0 ? <p className="hint">{t('inventory.empty')}</p> : (
-            <ul className="inventory-list">
-              {[...myEquipment].map((name) => {
-                const legacy = EQUIP_FILTERS.find((item) => item.terms[0] === name);
-                const label = legacy ? t(legacy.key) : name;
-                return <li key={name}>
-                  <span>{label}</span>
-                  <button className="btn ghost" type="button" disabled={savingEquipment} aria-label={t('inventory.remove', [label])}
-                    onClick={() => void saveEquipment(name, true)}><Trash2 size={16} aria-hidden /></button>
-                </li>;
-              })}
-            </ul>
-          )}
-          <form className="inventory-form" onSubmit={(event) => { event.preventDefault(); void saveEquipment(equipmentName); }}>
-            <label htmlFor="inventory-name">{t('inventory.name')}</label>
-            <div>
-              <input id="inventory-name" type="text" value={equipmentName} maxLength={80}
-                onChange={(event) => setEquipmentName(event.target.value)} />
-              <button className="btn" type="submit" disabled={!settings || savingEquipment || !equipmentName.trim()}>{t('inventory.add')}</button>
-            </div>
-          </form>
+        <div className="catalog-inventory">
           <label className="catalog-check"><input type="checkbox" checked={onlyMyEquipment} onChange={(event) => {
             setOnlyMyEquipment(event.target.checked);
             resetPaging();
-          }} />{t("ui.applyMyEquipment")}</label>
-          <p className="hint">{t("ui.bodyWeightIncluded")}</p>
-          {equipmentError && <p className="feedback error" role="alert">{equipmentError}</p>}
-        </details>
+          }} />{t('ui.applyMyEquipment')}</label>
+          {onlyMyEquipment && <Link className="inventory-link" to="/perfil/equipamentos">{t('inventory.manage')}</Link>}
+        </div>
         <label className="catalog-check catalog-illustrated"><input type="checkbox" checked={onlyIllustrated} onChange={(event) => {
           setOnlyIllustrated(event.target.checked);
           resetPaging();

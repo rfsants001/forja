@@ -62,10 +62,11 @@ function referenceInput(reference) {
     && reference.exercises.length > 0 && reference.exercises.length <= 16);
   return { kind: reference.kind, exercises: reference.exercises.map((item) => {
     assert(item && text(item.name, 220) && integer(item.sets, 1, 100));
-    const { name, sets, reps, loadKg } = item;
+    const { name, sets, reps, loadKg, seconds } = item;
     assert(reps === undefined || (text(reps, 18) && /^\d{1,4}(?:[–-]\d{1,4})?$/.test(reps)));
     assert(loadKg === undefined || Number.isFinite(loadKg) && loadKg >= 0 && loadKg <= 1000);
-    return { name, sets, reps, loadKg };
+    assert(seconds === undefined || integer(seconds, 1, 86400));
+    return { name, sets, reps, loadKg, ...(seconds === undefined ? {} : { seconds }) };
   }) };
 }
 

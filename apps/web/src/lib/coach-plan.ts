@@ -1,11 +1,12 @@
 import type { Exercise, MuscleGroup } from '@forja/core';
 import { db } from '../db/db';
-import { upsertRoutine } from '../db/repo';
+import { upsertExercise, upsertRoutine } from '../db/repo';
 import { syncWrite } from '../db/sync-write';
-import { equipmentKey, supportsEquipment } from './equipment';
+import { equipmentKey, exerciseRequirements, inventoryKeys, supportsEquipment } from './equipment';
 import { normalizeExName } from './normalize';
 import { movementFamily, resistance } from './coach-movements';
 import { SyncError } from './sync-client';
+import { canPlanAtHome, homeMovements } from './home-exercises';
 
 export type PlanGoal = 'strength' | 'muscle' | 'general';
 export type PlanFocus = 'full' | 'upper' | 'lower';
@@ -27,14 +28,17 @@ export interface CoachPlanResult {
 const lower = new Set<MuscleGroup>(['quads', 'hamstrings', 'glutes', 'calves']);
 const upper = new Set<MuscleGroup>(['chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps', 'lats']);
 
-export function eligiblePlanExercises(catalog: readonly Exercise[], equipment: string[], focus: PlanFocus, useInventory: boolean) {
-  const available = new Set(equipment);
-  return catalog.filter((exercise) => {
+export function eligiblePlanExercises(catalog: readonly Exercise[], equipment: string[], focus: PlanFocus, useInventory: boolean, venue: PlanVenue) {
+  const available = inventoryKeys(equipment);
+  const list = venue === 'home' ? new Map([...homeMovements, ...catalog.map((exercise) => [exercise.id, exercise] as const)]) : catalog;
+  return [...list.values()].filter((exercise) => {
     const muscle = exercise.primaryMuscle;
     if (exercise.mode !== 'reps' || muscle === 'other' || muscle === 'cardio') return false;
     if (focus === 'lower' && !lower.has(muscle)) return false;
     if (focus === 'upper' && !upper.has(muscle)) return false;
-    return !useInventory || supportsEquipment(exercise.equipment, available);
+    if (!useInventory) return true;
+    const requirements = exerciseRequirements(exercise);
+    return (venue !== 'home' || canPlanAtHome(exercise, requirements)) && supportsEquipment(requirements, available);
   });
 }
 
@@ -45,7 +49,7 @@ export function planCandidates(eligible: readonly Exercise[], equipment: string[
   const sorted = [...eligible].sort((a, b) => rank(b) - rank(a));
   const picked = new Map<string, Exercise>();
   for (const key of new Set(equipment.map(equipmentKey))) {
-    const item = sorted.find((exercise) => exercise.equipment.some((value) => equipmentKey(value) === key));
+    const item = sorted.find((exercise) => exerciseRequirements(exercise).includes(key));
     if (item) picked.set(item.id, item);
   }
   const groups = new Set<string>();
@@ -68,13 +72,21 @@ export function planCandidates(eligible: readonly Exercise[], equipment: string[
   }));
 }
 
-export async function saveCoachPlan(plan: CoachPlanResult, categoryId: string, note?: string) {
-  return syncWrite(['routines', 'categories', 'exercises'], async () => {
+export async function saveCoachPlan(plan: CoachPlanResult, categoryId: string, useInventory: boolean, note?: string) {
+  return syncWrite(['routines', 'categories', 'exercises', 'settings'], async () => {
     const [category, catalog] = await Promise.all([
       db.categories.get(categoryId),
       db.exercises.bulkGet(plan.exercises.map(({ exerciseId }) => exerciseId)),
     ]);
-    if (!category || catalog.some((exercise) => exercise?.mode !== 'reps')) throw new SyncError('STALE_PROPOSAL');
+    const equipment = inventoryKeys((await db.settings.get('app'))?.gymEquipment ?? []);
+    if (!category) throw new SyncError('STALE_PROPOSAL');
+    for (const [index, { exerciseId }] of plan.exercises.entries()) {
+      const exercise = catalog[index] ?? homeMovements.get(exerciseId);
+      if (!exercise || exercise.mode !== 'reps' || (useInventory && !supportsEquipment(exerciseRequirements(exercise), equipment))) {
+        throw new SyncError('STALE_PROPOSAL');
+      }
+      if (!catalog[index]) await upsertExercise(exercise);
+    }
     return upsertRoutine({
       name: plan.name, categoryId, note, order: ((await db.routines.orderBy('order').last())?.order ?? -1) + 1,
       exercises: plan.exercises.map(({ exerciseId, sets, reps, restSec }) => ({

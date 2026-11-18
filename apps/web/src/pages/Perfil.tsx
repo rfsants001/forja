@@ -9,7 +9,7 @@ import { useLocation } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   User, Trash2, CheckCircle2, Download, Upload,
-  Database, ArrowDownToLine, Share2, Printer, FileInput, ClipboardList, PlugZap, Laptop, ChevronRight,
+  Database, ArrowDownToLine, Share2, Printer, FileInput, ClipboardList, PlugZap, Laptop, Dumbbell, ChevronRight,
 } from 'lucide-react';
 import { DEFAULT_SETTINGS, toISO } from '@forja/core';
 import type { Settings, BodyWeight } from '@forja/core';
@@ -1085,6 +1085,7 @@ export function Perfil() {
           <nav className="profile-tools" aria-label={t('perf.settingsTitle')}>
             {([
               ['/perfil/assistente', 'coach.title', 'profile.assistantHint', ClipboardList],
+              ['/perfil/equipamentos', 'ui.myEquipment', 'profile.inventoryHint', Dumbbell],
               ['/perfil/ia', 'engines.title', 'profile.aiHint', PlugZap],
               ['/perfil/dispositivos', 'sync.devices', 'profile.devicesHint', Laptop],
             ] as const).map(([path, label, hint, Icon]) => (

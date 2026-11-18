@@ -74,7 +74,10 @@ test('use a bounded previous workout summary and enforce the goal and duration',
     async listModels() { return { available: true, models: ['default'] }; },
     async generate(model, system, input) {
       assert.match(system, /ACSM 2026/);
-      assert.deepEqual(input.reference, { kind: 'logged', exercises: [{ name: 'Goblet squat', sets: 3, reps: '8–10', loadKg: 20 }] });
+      assert.deepEqual(input.reference, { kind: 'prescribed', exercises: [
+        { name: 'Goblet squat', sets: 3, reps: '8–10', loadKg: 20 },
+        { name: 'Dead hang', sets: 3, reps: undefined, loadKg: undefined, seconds: 25 },
+      ] });
       assert(!JSON.stringify(input).includes('private'));
       return {
         name: 'Sample', summary: 'Training session',
@@ -84,8 +87,9 @@ test('use a bounded previous workout summary and enforce the goal and duration',
   });
   const output = await coach.plan({
     ...example, venue: 'gym', goal: 'strength', minutes: 15, exercises: candidates,
-    reference: { kind: 'logged', filename: 'private.csv', notes: 'private', exercises: [
+    reference: { kind: 'prescribed', filename: 'private.csv', notes: 'private', exercises: [
       { name: 'Goblet squat', sets: 3, reps: '8–10', loadKg: 20, note: 'private' },
+      { name: 'Dead hang', sets: 3, seconds: 25 },
     ] },
   });
   assert(output.estimatedMinutes <= 15);

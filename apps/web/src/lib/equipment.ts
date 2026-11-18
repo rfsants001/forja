@@ -1,29 +1,79 @@
+import type { Exercise } from '@forja/core';
 import { normalizeExName } from './normalize';
 
-// Equipamentos frequentes para sugestão de chips
 export const EQUIP_FILTERS = [
-  { label: 'Barra', key: 'equip.bar', terms: ['barra', 'barra ez', 'barra olimpica', 'barra hexagonal'] },
-  { label: 'Barra fixa', key: 'equip.pullupBar', terms: ['barra fixa'] },
-  { label: 'Halteres', key: 'equip.dumbbells', terms: ['halter', 'halteres'] },
-  { label: 'Cabo', key: 'equip.cable', terms: ['polia', 'cabo'] },
-  { label: 'Máquina', key: 'equip.machine', terms: ['maquina', 'smith machine', 'maquina articulada'] },
-  { label: 'Peso corporal', key: 'equip.bodyweight', terms: ['peso corporal'] },
-  { label: 'Elástico', key: 'equip.band', terms: ['elastica', 'elastico', 'faixa elastica', 'faixa de resistencia'] },
-  { label: 'Kettlebell', key: 'equip.kettlebell', terms: ['kettlebell'] },
-  { label: 'Banco', key: 'equip.bench', terms: ['banco'] },
+  { key: 'equip.bar', terms: ['barra reta', 'barra olimpica', 'barra olimpica reta', 'barbell', 'straight barbell'] },
+  { key: 'equip.ezBar', terms: ['barra ez', 'barra w', 'barra z', 'ez bar', 'ez curl bar'] },
+  { key: 'equip.trapBar', terms: ['barra hexagonal', 'trap bar', 'hex bar'] },
+  { key: 'equip.pullupBar', terms: ['barra fixa', 'barra de porta', 'barra fixa de porta', 'pullup bar', 'pull up bar'] },
+  { key: 'equip.plates', terms: ['anilha', 'anilhas', 'weight plate', 'weight plates', 'plate', 'plates'] },
+  { key: 'equip.dumbbells', terms: ['halter', 'halteres', 'dumbbell', 'dumbbells'] },
+  { key: 'equip.cable', terms: ['polia', 'cabo', 'cable machine'] },
+  { key: 'equip.machine', terms: ['maquina', 'maquina articulada'] },
+  { key: 'equip.smith', terms: ['smith machine', 'maquina smith'] },
+  { key: 'equip.bodyweight', terms: ['peso corporal', 'bodyweight', 'body weight'] },
+  { key: 'equip.band', terms: ['elastica', 'elastico', 'elasticos', 'faixa elastica', 'faixas elasticas', 'faixa de resistencia', 'resistance band', 'resistance bands'] },
+  { key: 'equip.kettlebell', terms: ['kettlebell', 'kettlebells'] },
+  { key: 'equip.bench', terms: ['banco', 'banco reto', 'flat bench', 'bench'] },
+  { key: 'equip.inclineBench', terms: ['banco inclinado', 'incline bench'] },
+  { key: 'equip.adjustableBench', terms: ['banco regulavel', 'banco ajustavel', 'adjustable bench'] },
+  { key: 'equip.declineBench', terms: ['banco declinado', 'decline bench'] },
+  { key: 'equip.rack', terms: ['rack', 'rack de agachamento', 'power rack', 'squat rack', 'suporte para barra'] },
+  { key: 'equip.dipBars', terms: ['paralelas', 'barras paralelas', 'dip bars'] },
+  { key: 'equip.sliders', terms: ['disco deslizante', 'discos deslizantes', 'slider', 'sliders'] },
+  { key: 'equip.pushupHandles', terms: ['apoio de flexao', 'apoios de flexao', 'suporte de flexao', 'suportes de flexao', 'pushup handles'] },
+  { key: 'equip.backpack', terms: ['mochila', 'mochila com peso', 'weighted backpack', 'backpack'] },
 ] as const;
-const INVENTORY_TERMS = new Map<string, string>(EQUIP_FILTERS.flatMap((group) =>
-  group.terms.map((term) => [term, group.terms[0]])));
+
+const aliases = new Map<string, string>(EQUIP_FILTERS.flatMap(({ terms }) => terms.map((term) => [term, terms[0]])));
 
 export function equipmentKey(value: string): string {
   const name = normalizeExName(value);
-  return INVENTORY_TERMS.get(name) ?? name;
+  const withoutWeight = name.replace(/\s+(?:de\s+)?\d+\s*(?:kg|kgs|lb|lbs)$/, '');
+  return aliases.get(name) ?? aliases.get(withoutWeight) ?? name;
 }
 
-export function supportsEquipment(required: readonly string[], available: ReadonlySet<string>): boolean {
-  const keys = new Set([...available].map(equipmentKey));
-  return required.every((item) => {
-    const key = equipmentKey(item);
-    return key === 'peso corporal' || keys.has(key);
-  });
+export function inventoryKeys(items: readonly string[]): Set<string> {
+  const available = new Set(items.map(equipmentKey));
+  if (available.has('banco regulavel')) {
+    available.add('banco');
+    available.add('banco inclinado');
+  }
+  return available;
+}
+
+/** The public catalog uses “barra” as shorthand for a straight barbell. */
+export function catalogEquipmentKey(value: string): string {
+  const key = equipmentKey(value);
+  return key === 'barra' ? 'barra reta' : key;
+}
+
+export function exerciseRequirements(exercise: Exercise): string[] {
+  const requirements = new Set(exercise.equipment.map(catalogEquipmentKey));
+  const name = normalizeExName(exercise.name);
+
+  // Some catalog rows describe only the resistance and omit the fixture used.
+  if (/\b(barra (?:ez|w|z)|ez bar(?:bell)?)\b/.test(name)) requirements.add('barra ez');
+  else if (/\b(barra hexagonal|trap bar|hex bar)\b/.test(name)) requirements.add('barra hexagonal');
+  else if (/\b(barbell|barra)\b/.test(name) && !/\b(barra fixa|barra de porta|barra paralela)\b/.test(name)) requirements.add('barra reta');
+  if (/\b(pullups?|pull ups?|chinups?|chin ups?|dead hang|barra fixa|hanging)\b/.test(name)
+      && !requirements.has('maquina') && !requirements.has('polia')) requirements.add('barra fixa');
+  if (/\b(bench press|supino|dumbbell fly|crucifixo com halteres?)\b/.test(name)
+      && !/\b(floor|chao|solo|ball|bola)\b/.test(name)
+      && !requirements.has('maquina') && !requirements.has('polia')) {
+    requirements.add(/\b(incline|inclinado)\b/.test(name) ? 'banco inclinado'
+      : /\b(decline|declinado)\b/.test(name) ? 'banco declinado' : 'banco');
+    if (requirements.has('barra reta') || requirements.has('barra ez')) requirements.add('rack');
+  }
+  if (/\b(steps? up|stepups?|box jumps?|feet elevated|pes elevados)\b/.test(name)) requirements.add('step');
+  if (/\b(bench dips?|mergulho em banco|on bench)\b/.test(name) && !/\b(floor|chao)\b/.test(name)) requirements.add('banco');
+  if (/\b(parallel bars|dip bars|on dip|paralelas)\b/.test(name)) requirements.add('paralelas');
+  if (requirements.has('barra reta') && /\b(squats?|agachamento|rack pull)\b/.test(name)) requirements.add('rack');
+  if (/\b(dumbbells?|halter|halteres)\b/.test(name)) requirements.add('halter');
+  if (/\b(weight plates?|anilha|anilhas)\b/.test(name)) requirements.add('anilha');
+  return [...requirements];
+}
+
+export function supportsEquipment(requirements: readonly string[], available: ReadonlySet<string>): boolean {
+  return requirements.every((key) => key === 'peso corporal' || available.has(key));
 }
