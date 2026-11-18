@@ -99,3 +99,38 @@ test('use a bounded previous workout summary and enforce the goal and duration',
   assert(output.exercises.some(({ exerciseId }) => exerciseId === 'press'));
   assert.notEqual(output.exercises[0].exerciseId, 'fly');
 });
+
+test('fit cardio and strength into a weight-loss session while forwarding only relevant profile data', async () => {
+  const inventory = [
+    { name: 'Weight plates', quantity: 4, unitWeightKg: 5, note: 'private' },
+    { name: 'Weight plates', quantity: 2, unitWeightKg: 10 },
+    { name: 'Treadmill', quantity: 1 },
+  ];
+  const cardioCandidates = [{ id: 'treadmill', name: 'Treadmill' }, { id: 'walk', name: 'Walk' }];
+  let received;
+  let cardioExerciseId = 'treadmill';
+  const coach = createCoach({
+    id: 'fixture',
+    async listModels() { return { available: true, models: ['default'] }; },
+    async generate(_model, _system, input, schema) {
+      received = JSON.parse(JSON.stringify(input));
+      assert.equal(schema.required.includes('cardioExerciseId'), input.goal === 'weight-loss');
+      return { ...result, cardioExerciseId, exercises: result.exercises.map((item) => ({ ...item, sets: 4, reps: 15 })) };
+    },
+  });
+  const input = { ...example, goal: 'weight-loss', venue: 'home', minutes: 15, inventory, cardioCandidates,
+    weightGoal: { currentKg: 88, targetKg: 80, history: 'private' } };
+  const session = await coach.plan(input);
+  assert.deepEqual(received.weightGoal, { currentKg: 88, targetKg: 80 });
+  assert.deepEqual(received.inventory[0], { name: 'Weight plates', quantity: 4, unitWeightKg: 5 });
+  assert.deepEqual(received.inventory[1], inventory[1]);
+  assert.deepEqual(session.cardio, { exerciseId: 'treadmill', seconds: 300 });
+  assert(session.estimatedMinutes <= 15);
+  cardioExerciseId = 'unavailable';
+  const withoutMachines = await coach.plan({ ...input, cardioCandidates: [cardioCandidates[1]] });
+  assert.deepEqual(withoutMachines.cardio, { exerciseId: 'walk', seconds: 300 });
+  const general = await coach.plan({ ...input, goal: 'general' });
+  assert.equal(general.cardio, undefined);
+  assert.equal(received.weightGoal, undefined);
+  await assert.rejects(coach.plan({ ...input, inventory: [{ name: 'Weight plates', quantity: 0 }] }));
+});

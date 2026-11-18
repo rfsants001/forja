@@ -245,6 +245,14 @@ export interface BodyMeasurement {
   note?: string;
 }
 
+export interface EquipmentItem {
+  id: string;
+  name: string;
+  /** Ausente em itens cadastrados antes da contagem de unidades. */
+  quantity?: number;
+  unitWeightKg?: number;
+}
+
 /** Preferências do usuário. */
 export interface Settings {
   unit: Unit;
@@ -253,8 +261,9 @@ export interface Settings {
   trackEffort: boolean;
   /** 0=domingo, 1=segunda. */
   weekStartsOn: 0 | 1;
-  /** Chaves do equipamento disponível no filtro da biblioteca. */
+  /** Inventário legado, preservado no backup e para leitores antigos. */
   gymEquipment?: string[];
+  equipmentInventory?: EquipmentItem[];
   bodyWeightGoalKg?: number;
   /** Figura usada no mapa muscular. */
   muscleFigure?: 'male' | 'female';

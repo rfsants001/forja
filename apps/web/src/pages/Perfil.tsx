@@ -1043,8 +1043,8 @@ export function Perfil() {
   const t = useT();
   const { hash } = useLocation();
   useEffect(() => {
-    if (hash !== '#importar-historico') return;
-    const heading = document.getElementById('importar-historico');
+    if (hash !== '#importar-historico' && hash !== '#profile-weight') return;
+    const heading = document.getElementById(hash.slice(1));
     heading?.focus({ preventScroll: true });
     heading?.scrollIntoView();
   }, [hash]);
@@ -1100,7 +1100,7 @@ export function Perfil() {
         </section>
         <div className="profile-data">
           <section aria-labelledby="profile-weight">
-            <h2 className="section-title" id="profile-weight">{t("perf.weightTitle")}</h2>
+            <h2 className="section-title" id="profile-weight" tabIndex={-1}>{t("perf.weightTitle")}</h2>
             <div className="card">
               <WeightChart points={entries} goalKg={settings.bodyWeightGoalKg} />
               <BodyWeightForm />

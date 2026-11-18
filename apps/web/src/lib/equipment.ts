@@ -1,11 +1,11 @@
-import type { Exercise } from '@forja/core';
+import type { EquipmentItem, Exercise, Settings } from '@forja/core';
 import { normalizeExName } from './normalize';
 
 export const EQUIP_FILTERS = [
-  { key: 'equip.bar', terms: ['barra reta', 'barra olimpica', 'barra olimpica reta', 'barbell', 'straight barbell'] },
-  { key: 'equip.ezBar', terms: ['barra ez', 'barra w', 'barra z', 'ez bar', 'ez curl bar'] },
-  { key: 'equip.trapBar', terms: ['barra hexagonal', 'trap bar', 'hex bar'] },
-  { key: 'equip.pullupBar', terms: ['barra fixa', 'barra de porta', 'barra fixa de porta', 'pullup bar', 'pull up bar'] },
+  { key: 'equip.bar', terms: ['barra reta', 'barras retas', 'barra olimpica', 'barra olimpica reta', 'barbell', 'straight barbell'] },
+  { key: 'equip.ezBar', terms: ['barra ez', 'barras ez', 'barra w', 'barras w', 'barra z', 'ez bar', 'ez curl bar'] },
+  { key: 'equip.trapBar', terms: ['barra hexagonal', 'barras hexagonais', 'trap bar', 'hex bar'] },
+  { key: 'equip.pullupBar', terms: ['barra fixa', 'barras fixas', 'barra de porta', 'barra fixa de porta', 'pullup bar', 'pull up bar'] },
   { key: 'equip.plates', terms: ['anilha', 'anilhas', 'weight plate', 'weight plates', 'plate', 'plates'] },
   { key: 'equip.dumbbells', terms: ['halter', 'halteres', 'dumbbell', 'dumbbells'] },
   { key: 'equip.cable', terms: ['polia', 'cabo', 'cable machine'] },
@@ -23,14 +23,35 @@ export const EQUIP_FILTERS = [
   { key: 'equip.sliders', terms: ['disco deslizante', 'discos deslizantes', 'slider', 'sliders'] },
   { key: 'equip.pushupHandles', terms: ['apoio de flexao', 'apoios de flexao', 'suporte de flexao', 'suportes de flexao', 'pushup handles'] },
   { key: 'equip.backpack', terms: ['mochila', 'mochila com peso', 'weighted backpack', 'backpack'] },
+  { key: 'equip.treadmill', terms: ['esteira', 'esteira ergometrica', 'treadmill'] },
+  { key: 'equip.exerciseBike', terms: ['bicicleta ergometrica', 'bike ergometrica', 'bicicleta estacionaria', 'spinning', 'exercise bike', 'stationary bike'] },
+  { key: 'equip.elliptical', terms: ['eliptico', 'aparelho eliptico', 'elliptical'] },
+  { key: 'equip.rower', terms: ['remo ergometrico', 'ergometro de remo', 'rowing machine', 'rower'] },
 ] as const;
 
 const aliases = new Map<string, string>(EQUIP_FILTERS.flatMap(({ terms }) => terms.map((term) => [term, terms[0]])));
 
 export function equipmentKey(value: string): string {
   const name = normalizeExName(value);
+  if (name === 'barras') return 'barra';
   const withoutWeight = name.replace(/\s+(?:de\s+)?\d+\s*(?:kg|kgs|lb|lbs)$/, '');
   return aliases.get(name) ?? aliases.get(withoutWeight) ?? name;
+}
+
+export function equipmentItems(settings?: Settings): EquipmentItem[] {
+  return settings?.equipmentInventory ?? (settings?.gymEquipment ?? []).map((name, index) => ({ id: 'legacy-' + index, name }));
+}
+
+export function hasDumbbellPair(items: readonly EquipmentItem[]): boolean {
+  const weights = new Map<number | undefined, number>();
+  for (const item of items) {
+    if (equipmentKey(item.name) !== 'halter') continue;
+    if (item.quantity === undefined) return true;
+    const count = (weights.get(item.unitWeightKg) ?? 0) + item.quantity;
+    if (count >= 2) return true;
+    weights.set(item.unitWeightKg, count);
+  }
+  return false;
 }
 
 export function inventoryKeys(items: readonly string[]): Set<string> {

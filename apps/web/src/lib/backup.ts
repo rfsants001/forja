@@ -80,6 +80,10 @@ const set = fields({
 const settings = fields({
   unit: optional(oneOf('kg', 'lb')), theme: optional(oneOf('dark', 'light', 'system')), defaultRestSec: optNumber,
   gymEquipment: optional(list(id)), trackEffort: optional(boolean), weekStartsOn: optional(oneOf(0, 1)), bodyWeightGoalKg: optNumber,
+  equipmentInventory: optional(list(fields({ id, name: id,
+    quantity: optional((value) => positiveInteger(value) && value <= 999),
+    unitWeightKg: optional((value) => number(value) && value > 0 && value <= 1000),
+  }))),
   muscleFigure: optional(oneOf('male', 'female')), accent: optString, lang: optional(oneOf('pt', 'en')),
 });
 const validRow: Record<TableName, (value: unknown) => boolean> = {

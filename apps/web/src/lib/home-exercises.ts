@@ -27,6 +27,7 @@ export const homeMovements = new Map([
   movement('glute-bridge', 'Ponte de glúteo no chão', 'glutes', ['peso corporal'], ['hamstrings']),
   movement('prone-row', 'Remada deitada sem carga', 'back', ['peso corporal'], ['shoulders']),
   movement('supine-floor-press', 'Supino com halteres no chão', 'chest', ['halter'], ['triceps', 'shoulders']),
+  movement('single-arm-floor-press', 'Supino unilateral com halter no chão', 'chest', ['halter'], ['triceps', 'shoulders']),
   movement('floor-fly', 'Crucifixo com halteres no chão', 'chest', ['halter'], ['shoulders']),
   movement('plate-squat', 'Agachamento segurando anilha', 'quads', ['anilha'], ['glutes']),
   movement('plate-raise', 'Elevação frontal com anilha', 'shoulders', ['anilha'], []),
@@ -37,6 +38,8 @@ export const homeMovements = new Map([
   movement('pushup-handles', 'Flexão com apoios de flexão', 'chest', ['apoio de flexao'], ['triceps', 'shoulders']),
   movement('backpack-squat', 'Agachamento segurando mochila com peso', 'quads', ['mochila'], ['glutes']),
 ].map((exercise) => [exercise.id, exercise]));
+
+export const pairedDumbbellExercises = new Set(['ds-0289', 'ds-0308', 'home-supine-floor-press', 'home-floor-fly']);
 
 export function canPlanAtHome(exercise: Exercise, requirements: readonly string[]): boolean {
   return (exercise.custom === true && requirements.length > 0) || verified.has(exercise.id) || homeMovements.has(exercise.id);

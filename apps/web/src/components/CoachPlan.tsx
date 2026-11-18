@@ -5,6 +5,8 @@ import type { Exercise, Settings, WorkoutLog } from '@forja/core';
 import { db } from '../db/db';
 import { eligiblePlanExercises, planCandidates, saveCoachPlan, type CoachPlanResult, type PlanFocus, type PlanGoal, type PlanVenue } from '../lib/coach-plan';
 import { planAlternatives } from '../lib/coach-movements';
+import { cardioExercises } from '../lib/coach-cardio';
+import { equipmentItems, inventoryKeys, supportsEquipment } from '../lib/equipment';
 import type { CoachReference } from '../lib/coach-reference';
 import { CoachReferencePicker } from './CoachReferencePicker';
 import { useT } from '../lib/i18n';
@@ -39,16 +41,28 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
   const request = useRef<AbortController | null>(null);
   const saving = useRef(false);
   const restrictEquipment = venue === 'home' || useInventory;
-  const eligible = useMemo(() => eligiblePlanExercises(exercises ?? [], settings?.gymEquipment ?? [], focus, restrictEquipment, venue),
-    [exercises, settings?.gymEquipment, focus, restrictEquipment, venue]);
-  const options = useMemo(() => planCandidates(eligible, restrictEquipment ? settings?.gymEquipment ?? [] : [],
+  const weightLoss = goal === 'weight-loss';
+  const latestWeight = useLiveQuery(() => weightLoss ? db.bodyweight.orderBy('dateISO').last() : undefined, [weightLoss]);
+  const inventory = useMemo(() => equipmentItems(settings), [settings]);
+  const names = useMemo(() => inventory.map(({ name }) => name), [inventory]);
+  const eligible = useMemo(() => eligiblePlanExercises(exercises ?? [], inventory, focus, restrictEquipment, venue),
+    [exercises, inventory, focus, restrictEquipment, venue]);
+  const options = useMemo(() => planCandidates(eligible, restrictEquipment ? names : [],
     reference?.exercises.map(({ name }) => name) ?? []),
-    [eligible, restrictEquipment, settings?.gymEquipment, reference]);
+    [eligible, restrictEquipment, names, reference]);
   const alternativesFor = (exerciseId: string) => {
     const exercise = eligible.find(({ id }) => id === exerciseId);
     return venue === 'gym' && exercise ? planAlternatives(exercise, eligible) : [];
   };
   const english = settings?.lang === 'en';
+  const cardio = useMemo(() => {
+    const available = inventoryKeys(names);
+    return cardioExercises(english ? 'en' : 'pt').filter((exercise) => !restrictEquipment || supportsEquipment(exercise.equipment, available));
+  }, [names, restrictEquipment, english]);
+  const currentKg = latestWeight?.kg;
+  const targetKg = settings?.bodyWeightGoalKg;
+  const formatter = new Intl.NumberFormat(english ? 'en' : 'pt-BR', { maximumFractionDigits: 2 });
+  const weightLabel = (value?: number) => value ? formatter.format(value) + ' kg' : t('coach.weightMissing');
   const selectedCategory = categories?.some((item) => item.id === categoryId) ? categoryId : categories?.[0]?.id ?? '';
   useEffect(() => () => request.current?.abort(), []);
 
@@ -68,6 +82,11 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
       const draft = await post<CoachPlanResult>('/coach/plans', {
         model, provider, goal, focus, minutes, venue, lang: english ? 'en' : 'pt', exercises: options,
         reference: reference && { kind: reference.kind, exercises: reference.exercises },
+        inventory: restrictEquipment ? inventory.slice(0, 100).map(({ name, quantity, unitWeightKg }) => ({
+          name: name.trim().slice(0, 80), quantity, unitWeightKg,
+        })) : undefined,
+        ...(weightLoss ? { cardioCandidates: cardio.map(({ id, name }) => ({ id, name })),
+          weightGoal: { currentKg, targetKg } } : {}),
       }, controller.signal);
       if (!controller.signal.aborted) setResult(draft);
     } catch (failure) {
@@ -106,26 +125,40 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
       <form onSubmit={(event) => { event.preventDefault(); void generate(); }}>
         <fieldset className="coach-plan-inputs" disabled={busy}>
           <div className="coach-plan-fields">
-            <label>{t('coach.venue')}<select value={venue} onChange={(event) => { setVenue(event.target.value as PlanVenue); resetPreview(); }}>
+            <label><span id="coach-venue-label">{t('coach.venue')}</span><select aria-labelledby="coach-venue-label" value={venue}
+              onChange={(event) => { setVenue(event.target.value as PlanVenue); resetPreview(); }}>
               <option value="home">{t('coach.venue.home')}</option>
               <option value="gym">{t('coach.venue.gym')}</option>
             </select></label>
-            <label>{t('coach.goal')}<select value={goal} onChange={(event) => { setGoal(event.target.value as PlanGoal); resetPreview(); }}>
-              {(['general', 'strength', 'muscle'] as const).map((value) => <option key={value} value={value}>{t('coach.goal.' + value)}</option>)}
+            <label><span id="coach-goal-label">{t('coach.goal')}</span><select aria-labelledby="coach-goal-label" value={goal}
+              onChange={(event) => { setGoal(event.target.value as PlanGoal); resetPreview(); }}>
+              {(['general', 'strength', 'muscle', 'weight-loss'] as const).map((value) => <option key={value} value={value}>{t('coach.goal.' + value)}</option>)}
             </select></label>
-            <label>{t('coach.focus')}<select value={focus} onChange={(event) => { setFocus(event.target.value as PlanFocus); resetPreview(); }}>
+            <label><span id="coach-focus-label">{t('coach.focus')}</span><select aria-labelledby="coach-focus-label" value={focus}
+              onChange={(event) => { setFocus(event.target.value as PlanFocus); resetPreview(); }}>
               {(['full', 'upper', 'lower'] as const).map((value) => <option key={value} value={value}>{t('coach.focus.' + value)}</option>)}
             </select></label>
             <label>{t('coach.minutes')}<input type="number" required min={15} max={90} value={minutes || ''}
               onChange={(event) => { setMinutes(Number(event.target.value)); resetPreview(); }} /></label>
           </div>
           <div className="coach-inventory-choice">
-            {venue === 'home' ? <span className="hint">{settings?.gymEquipment?.length
-              ? t('coach.homeEquipmentList', [settings.gymEquipment.join(', ')]) : t('coach.homeEquipment')}</span> :
+            {venue === 'home' ? <span className="hint">{inventory.length
+              ? t('coach.homeEquipmentList', [inventory.map(({ name, quantity, unitWeightKg }) =>
+                [quantity === undefined ? name : t('coach.inventoryCount', [quantity, name]),
+                  unitWeightKg === undefined ? '' : t('inventory.weightEach', [formatter.format(unitWeightKg)])].filter(Boolean).join(' · ')).join(' / ')])
+              : t('coach.homeEquipment')}</span> :
               <label className="coach-plan-inventory"><input type="checkbox" checked={useInventory}
                 onChange={(event) => { setUseInventory(event.target.checked); resetPreview(); }} /> {t('ui.applyMyEquipment')}</label>}
             <Link to="/perfil/equipamentos" state={{ from: 'coach' }}>{t('inventory.manage')}</Link>
           </div>
+          {weightLoss && <div className="coach-weight-context">
+            <dl className="coach-metrics">
+              <div><dt>{t('coach.currentWeight')}</dt><dd>{weightLabel(currentKg)}</dd></div>
+              <div><dt>{t('coach.targetWeight')}</dt><dd>{weightLabel(targetKg)}</dd></div>
+            </dl>
+            <p className="hint">{t('coach.weightUse')}</p>
+            <Link to="/perfil#profile-weight">{t('coach.editWeight')}</Link>
+          </div>}
         </fieldset>
         <CoachReferencePicker catalog={exercises ?? []} workouts={workouts ?? []} disabled={busy}
           reference={reference} onReading={setReadingReference} onChange={(value) => { setReference(value); resetPreview(); }} />
@@ -162,6 +195,11 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
                 </span>}
               </li>;
             })}
+            {result.cardio && <li>
+              <strong>{cardio.find(({ id }) => id === result.cardio?.exerciseId)?.name ?? t('coach.cardioTitle')}</strong>
+              <span>{t('coach.cardioTime', [formatter.format(result.cardio.seconds / 60)])}</span>
+              <span className="coach-alternatives hint">{t('coach.cardioIntensity')}</span>
+            </li>}
           </ul>
           <details className="coach-evidence">
             <summary>{t('coach.evidence')}</summary>
@@ -169,6 +207,8 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
             <p>{t('coach.evidenceProgression')}</p>
             <p>{t('coach.evidenceRest')}</p>
             <a href="https://acsm.org/resistance-training-guidelines-update-2026/" target="_blank" rel="noreferrer">ACSM (2026)</a>
+            {weightLoss && <> · <a href="https://www.cdc.gov/healthy-weight-growth/physical-activity/" target="_blank"
+              rel="noreferrer">{t('coach.cardioSource')}</a></>}
           </details>
           {savedId ? <p role="status">{t('coach.planSaved')} <Link to={'/treinos/rotina/' + encodeURIComponent(savedId)}>{t('re.editRoutine')}</Link></p> : (
             <>

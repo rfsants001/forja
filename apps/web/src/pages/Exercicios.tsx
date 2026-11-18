@@ -14,7 +14,7 @@ import {
 import { hasExerciseMedia, Media } from '../components/Media';
 import { MuscleCoverage } from '../components/MuscleCoverage';
 import { normalizeExName } from '../lib/normalize';
-import { EQUIP_FILTERS, catalogEquipmentKey, exerciseRequirements, inventoryKeys, supportsEquipment } from '../lib/equipment';
+import { EQUIP_FILTERS, catalogEquipmentKey, equipmentItems, exerciseRequirements, inventoryKeys, supportsEquipment } from '../lib/equipment';
 
 // ---------------------------------------------------------------------------
 // Tipos do formulário
@@ -69,8 +69,7 @@ export function Exercicios() {
   const [includeSecondary, setIncludeSecondary] = useState(false);
   const [onlyMyEquipment, setOnlyMyEquipment] = useState(false);
   const settings = useLiveQuery(() => db.settings.get('app'), []);
-  const savedEquipment = settings?.gymEquipment;
-  const myEquipment = useMemo(() => inventoryKeys(savedEquipment ?? []), [savedEquipment]);
+  const myEquipment = useMemo(() => inventoryKeys(equipmentItems(settings).map(({ name }) => name)), [settings]);
   const equipmentOptions = useMemo(() => {
     const options = new Map<string, string>();
     for (const exercise of exercises ?? []) {

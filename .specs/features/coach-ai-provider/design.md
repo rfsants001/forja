@@ -84,7 +84,9 @@ A tela Perfil → Conexões de IA lista os provedores e grava a seleção no SQL
 
 O Bubblewrap dá ao Codex acesso de leitura aos certificados do sistema. Em Fedora e Nobara, os caminhos sob `/etc/ssl` referenciam bundles PEM em `/etc/pki`. Esses arquivos precisam estar visíveis dentro do processo para a troca do token HTTPS funcionar.
 
-O inventário é editado em Perfil → Meus equipamentos. Guarda os nomes informados em `Settings.gymEquipment`. A normalização separa tipos de barra, acessórios e apoios. O treino em casa combina opções verificadas da biblioteca, movimentos domésticos e exercícios personalizados com os equipamentos informados. O salvamento confere novamente o inventário e materializa novos movimentos na mesma transação da rotina.
+O inventário é editado em Perfil → Meus equipamentos. Cada linha em `Settings.equipmentInventory` guarda um tipo, a quantidade e o peso unitário quando aplicável. Tipos com pesos diferentes têm linhas separadas. Os nomes legados de `gymEquipment` continuam disponíveis com quantidade desconhecida até serem editados. O treino em casa combina opções verificadas da biblioteca, movimentos domésticos e exercícios personalizados. O salvamento confere novamente o inventário e materializa novos movimentos na mesma transação da rotina.
+
+Emagrecimento usa o último registro de peso e a meta do Perfil como contexto. Apenas com esse objetivo a geração recebe esses valores. O servidor reserva parte da duração total para cardio moderado e valida o ID escolhido contra as opções disponíveis. A rotina salva guarda o cardio como exercício por tempo no fluxo normal de treino guiado. [Atividade física e peso (CDC)](https://www.cdc.gov/healthy-weight-growth/physical-activity/).
 
 A origem Plano externo aceita o JSON `opengym_plan: 1`, um CSV tabular ou um JSON portátil de rotinas. Os IDs padrão do OpenGym são resolvidos pelo dataset público e os personalizados pelo campo `customEx`. A sessão escolhida é enviada como prescrição, incluindo segundos quando houver. Leitura, nomes de rotinas e arquivo original ficam no navegador.
 

@@ -10,6 +10,7 @@ import { useT } from '../lib/i18n';
 import { applySuggestion, undoSuggestion, weeklyReview } from '../lib/coach-review';
 import type { ReviewResult, Suggestion } from '../lib/coach-review';
 import { CoachPlan } from '../components/CoachPlan';
+import { equipmentItems } from '../lib/equipment';
 import { syncMessage } from './Dispositivos';
 
 interface Providers { id: 'ollama' | 'codex-cli'; destination: string; models: string[]; available: boolean; reason?: string; selectedModel?: string }
@@ -36,7 +37,7 @@ export function Assistente() {
   const edits = useLiveQuery(() => db.coachEdits.toArray(), []);
   const pending = useLiveQuery(() => db.syncOutbox.count(), []);
   const preview = end && workouts && routines && exercises
-    ? weeklyReview(end, workouts, routines, exercises, settings?.gymEquipment ?? []) : undefined;
+    ? weeklyReview(end, workouts, routines, exercises, equipmentItems(settings).map(({ name }) => name)) : undefined;
 
   const refreshProvider = useCallback(async (initializeDate = false) => {
     try {

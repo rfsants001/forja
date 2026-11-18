@@ -72,3 +72,5 @@ Servidor com SQLite, pareamento, sincronização e revisão Ollama estão dispon
 ## Treino anterior no Assistente
 
 O Coach usa referências do Histórico, CSV de Hevy/Strong/FitNotes, JSON da Forja e planos externos OpenGym ou portáteis em CSV/JSON. A prévia é local e a IA recebe o recorte autorizado, com séries, repetições, segundos ou carga disponíveis. Em Perfil → Meus equipamentos, a pessoa cadastra o inventário usado para montar treinos em casa. O filtro distingue tipos de barra e requisitos de apoio, como banco e rack. Na academia, a programação oferece substituições por família. Ver [SDD do Coach](../features/coach-ai-provider/design.md#contexto-e-programação-do-treino).
+
+O inventário registra quantidades por peso unitário e inclui aparelhos de cardio. Emagrecimento usa o último peso e a meta do Perfil e salva musculação e cardio moderado em uma rotina compatível com o treino guiado.

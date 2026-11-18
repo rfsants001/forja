@@ -173,7 +173,9 @@ Em **Usar treino anterior como referência**, escolha uma sessão do Histórico,
 {"routines":[{"name":"Corpo inteiro","exercises":[{"name":"Agachamento","sets":3,"reps":"8–12"}]}]}
 ```
 
-Cadastre seu inventário em **Perfil → Meus equipamentos** ou pelo link no Assistente. Informe os tipos que você tem, como barra fixa, barra EZ, halteres ou anilhas. A IA escolhe uma sessão para casa com exercícios de peso corporal, variações adaptadas e exercícios personalizados compatíveis. Barra fixa, barra EZ e anilhas não atendem ao requisito de uma barra reta. Supino com barra requer também um banco adequado e um suporte para a barra.
+Cadastre seu inventário em **Perfil → Meus equipamentos** ou pelo link no Assistente. Informe o tipo, a quantidade e, quando houver, o peso por unidade. Cadastre 4 anilhas de 5 kg e 2 de 10 kg em linhas separadas. O inventário aceita esteira, bicicleta ergométrica, elíptico e remo ergométrico. A IA usa os equipamentos e as quantidades para escolher as variações em casa. Supino com barra requer barra reta, banco e suporte para a barra.
+
+O objetivo **Emagrecimento** mostra o último peso registrado e a meta de peso do Perfil. Ao gerar, o provedor recebe esses dois valores quando preenchidos. A sessão combina musculação com cardio moderado dentro da duração total. O cardio considera os aparelhos disponíveis e inclui caminhada como opção sem aparelho. [Atividade física e peso (CDC)](https://www.cdc.gov/healthy-weight-growth/physical-activity/).
 
 Na academia, a prévia mostra substituições por outra resistência quando a biblioteca tem uma variação da mesma família, como crucifixo com halter, máquina ou cabo. As alternativas ficam nas notas da rotina. Na revisão semanal, a Forja envia os agregados e as opções de troca da prévia. A revisão exige confirmação e permite desfazer a alteração enquanto a versão aplicada for a atual.
 

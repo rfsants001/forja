@@ -4,7 +4,7 @@ import { db } from '../db/db';
 import { syncWrite } from '../db/sync-write';
 import { computeSummary } from './stats';
 import { sameValue } from './sync-protocol';
-import { exerciseRequirements, inventoryKeys, supportsEquipment } from './equipment';
+import { equipmentItems, exerciseRequirements, inventoryKeys, supportsEquipment } from './equipment';
 import { SyncError } from './sync-client';
 
 export interface Candidate {
@@ -58,7 +58,8 @@ export async function applySuggestion(suggestion: Suggestion, baseline: Routine)
       || entry.progression === '531') throw new SyncError('STALE_PROPOSAL');
     const [from, to] = await db.exercises.bulkGet([suggestion.fromId, suggestion.toId]);
     const settings = await db.settings.get('app');
-    if (!from || !to || !compatible(from, to, inventoryKeys(settings?.gymEquipment ?? []))) throw new SyncError('STALE_PROPOSAL');
+    const available = inventoryKeys(equipmentItems(settings).map(({ name }) => name));
+    if (!from || !to || !compatible(from, to, available)) throw new SyncError('STALE_PROPOSAL');
     const exercises = current.exercises.map((item, index) => index === suggestion.index
       ? { ...item, exerciseId: to.id, trainingMaxKg: undefined, trainingMaxIncrementKg: undefined }
       : item);
