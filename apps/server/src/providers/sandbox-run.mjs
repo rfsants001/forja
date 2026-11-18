@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, open, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, open, rm, stat, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -80,21 +80,40 @@ async function windowsRun({ binary, home, argv, timeout, signal, prompt, schema,
     env.USERPROFILE = forjaHome;
     env.NO_COLOR = '1';
     env.BROWSER = '';
+    // Resolve the output filenames against scratch: without Bubblewrap's --chdir
+    // we cannot rely on Codex honoring the relative paths from its own cwd.
+    const mapped = argv.map((arg) => arg === 'schema.json' ? join(scratch, 'schema.json')
+      : arg === 'response.json' ? join(scratch, 'response.json') : arg);
     // .cmd/.bat shims require shell: true; native .exe runs without a shell.
     const needsShell = /\.(cmd|bat)$/i.test(binary);
-    const child = execute(binary, argv, {
-      cwd: scratch, timeout, maxBuffer: maxOutput, signal,
-      windowsHide: true, env, ...(needsShell ? { shell: true } : {}),
-    });
-    if (onOutput) {
-      child.child.stdout?.on('data', onOutput);
-      child.child.stderr?.on('data', onOutput);
+    const debug = process.env.FORJA_COACH_DEBUG === '1';
+    let output;
+    try {
+      const child = execute(binary, mapped, {
+        cwd: scratch, timeout, maxBuffer: maxOutput, signal,
+        windowsHide: true, env, ...(needsShell ? { shell: true } : {}),
+      });
+      if (onOutput) {
+        child.child.stdout?.on('data', onOutput);
+        child.child.stderr?.on('data', onOutput);
+      }
+      if (child.child.stdin) {
+        child.child.stdin.on('error', () => {});
+        child.child.stdin.end(prompt);
+      }
+      output = await child;
+    } catch (error) {
+      if (debug) console.error('Forja Codex (win): exit', error.code,
+        '\nstdout:', String(error.stdout ?? '').slice(0, 2000),
+        '\nstderr:', String(error.stderr ?? '').slice(0, 2000));
+      throw error;
     }
-    if (child.child.stdin) {
-      child.child.stdin.on('error', () => {});
-      child.child.stdin.end(prompt);
+    if (debug) {
+      const size = await stat(join(scratch, 'response.json')).then((s) => s.size, () => 'MISSING');
+      console.error('Forja Codex (win): exit 0, response.json', size,
+        '\nstdout:', String(output.stdout ?? '').slice(0, 1500),
+        '\nstderr:', String(output.stderr ?? '').slice(0, 1500));
     }
-    const output = await child;
     if (!schema) return output.stdout + output.stderr;
     return readResponse(scratch);
   } finally {
