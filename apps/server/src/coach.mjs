@@ -195,7 +195,7 @@ export function createCoach(provider) {
         'Não prescreva dieta, calorias, prazo para emagrecer, intensidade baseada só no peso ou perda adicional após atingir a meta.' : ''),
       input, withCardio ? cardioPlanSchema : planSchema, signal);
     const name = typeof result?.name === 'string' ? result.name.trim() : '';
-    assert(text(name, 80) && text(result.summary, 650)
+    assert(text(name, 80) && text(result.summary, 2500)
       && Array.isArray(result.exercises) && integer(result.exercises.length, 3, 6), 'INVALID_PROVIDER_RESPONSE', 502);
     const permitted = new Map(input.exercises.map((exercise) => [exercise.id, exercise]));
     const used = new Set();
