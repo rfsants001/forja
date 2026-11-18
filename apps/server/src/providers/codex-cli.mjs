@@ -20,9 +20,14 @@ async function executable(path) {
 
 async function locate(binary) {
   if (binary) return executable(resolve(binary));
+  const extensions = process.platform === 'win32'
+    ? (process.env.PATHEXT ?? '.exe;.cmd;.bat').split(';').map((e) => e.toLowerCase()).filter(Boolean)
+    : [''];
   for (const dir of (process.env.PATH ?? '').split(delimiter).filter(Boolean)) {
-    const found = await executable(join(dir, 'codex'));
-    if (found) return found;
+    for (const ext of extensions) {
+      const found = await executable(join(dir, 'codex' + ext));
+      if (found) return found;
+    }
   }
 }
 
@@ -32,7 +37,8 @@ export function codexCliProvider({
   const models = [model || 'default'];
 
   async function runtime(requireLogin = true) {
-    if (process.platform !== 'linux') throw new ApiError(503, 'PROVIDER_UNAVAILABLE');
+    if (process.platform !== 'linux' && process.platform !== 'win32') throw new ApiError(503, 'PROVIDER_UNAVAILABLE');
+    const posix = process.platform !== 'win32';
     const installed = await locate(binary);
     if (!installed) throw new ApiError(503, 'PROVIDER_UNAVAILABLE');
     if (!requireLogin) await mkdir(home, { recursive: true, mode: 0o700 });
@@ -43,8 +49,10 @@ export function codexCliProvider({
     }
     const folder = await stat(directory);
     const auth = await lstat(join(directory, 'auth.json')).catch(() => undefined);
-    if (!folder.isDirectory() || (folder.mode & 0o077) !== 0 || folder.uid !== process.getuid()
-      || (requireLogin && (!auth?.isFile() || auth.uid !== process.getuid() || (auth.mode & 0o077) !== 0))) {
+    if (!folder.isDirectory()
+      || (posix && ((folder.mode & 0o077) !== 0 || folder.uid !== process.getuid()))
+      || (requireLogin && (!auth?.isFile()
+        || (posix && (auth.uid !== process.getuid() || (auth.mode & 0o077) !== 0))))) {
       throw new ApiError(503, 'CODEX_LOGIN_REQUIRED');
     }
     return { binary: installed, home: directory };
@@ -70,7 +78,7 @@ export function codexCliProvider({
       '--ignore-rules', '--ephemeral', '--skip-git-repo-check', '--disable', 'shell_tool',
       '--disable', 'plugins', '--disable', 'multi_agent', '-c', 'web_search="disabled"',
       '-c', 'history.persistence="none"', '-c', 'hide_agent_reasoning=true',
-      '--output-schema', '/work/schema.json', '--output-last-message', '/work/response.json',
+      '--output-schema', 'schema.json', '--output-last-message', 'response.json',
       ...(model ? ['--model', model] : []), '-',
     ];
     let output;

@@ -156,7 +156,7 @@ Para copiar a instalação inteira, pare o servidor e copie a pasta de dados, in
 Com a Forja aberta por `npm start` ou `npm run dev`, vá a **Perfil → Conexões de IA**. O Assistente funciona no computador que roda o servidor. **Dispositivos** cuida do sync e do acesso remoto.
 
 - **Ollama.** Deixe o Ollama aberto com um modelo instalado. Selecione **Verificar Ollama**, escolha o modelo e clique em **Usar no Assistente**. A Forja detecta o serviço local em `http://127.0.0.1:11434`. O administrador pode usar `FORJA_OLLAMA_URL` para um endpoint alternativo.
-- **Codex CLI.** No Linux com Codex CLI oficial e Bubblewrap instalados, clique em **Conectar ChatGPT** e abra o login da OpenAI que a Forja mostrar. Quando o login aparecer como reconhecido, use **Usar no Assistente**. O modo com código de dispositivo é uma alternativa quando habilitada na conta. [Autenticação do Codex](https://learn.chatgpt.com/docs/auth).
+- **Codex CLI.** No Linux com Codex CLI oficial e Bubblewrap instalados, ou no Windows com o `codex.exe` nativo instalado, clique em **Conectar ChatGPT** e abra o login da OpenAI que a Forja mostrar. Quando o login aparecer como reconhecido, use **Usar no Assistente**. O modo com código de dispositivo é uma alternativa quando habilitada na conta. [Autenticação do Codex](https://learn.chatgpt.com/docs/auth).
 - **Claude Code.** O card informa a disponibilidade. A Anthropic restringe o uso de credenciais de assinatura por aplicativos de terceiros. [Política da Anthropic](https://code.claude.com/docs/en/legal-and-compliance#authentication-and-credential-use).
 
 <a name="montar-um-treino-com-codex-por-assinatura"></a>
@@ -180,6 +180,8 @@ O objetivo **Emagrecimento** mostra o último peso registrado e a meta de peso d
 Na academia, a prévia mostra substituições por outra resistência quando a biblioteca tem uma variação da mesma família, como crucifixo com halter, máquina ou cabo. As alternativas ficam nas notas da rotina. Na revisão semanal, a Forja envia os agregados e as opções de troca da prévia. A revisão exige confirmação e permite desfazer a alteração enquanto a versão aplicada for a atual.
 
 O login fica no perfil dedicado do Codex no host. O servidor usa o provedor e o modelo escolhidos na tela. Instalações avançadas ainda podem indicar caminhos absolutos por `FORJA_CODEX_BINARY` e `FORJA_CODEX_HOME`. Use `pnpm self-host:codex-probe` para testar o perfil dedicado com dados fictícios.
+
+No Linux, o Codex roda dentro do Bubblewrap para isolamento de sistema de arquivos. No Windows, não há Bubblewrap: o Codex roda diretamente, usando seus próprios guardrails `--sandbox read-only` e um diretório de perfil isolado criado pela Forja. Prefira o executável nativo `codex.exe`; shims `.cmd` também funcionam, mas o executável nativo é recomendado. Se necessário, aponte o caminho completo com `FORJA_CODEX_BINARY`.
 
 
 ## Seus dados
