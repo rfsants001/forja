@@ -311,6 +311,7 @@ export const expansionMessages = {
     'coach.scheduleWeek': "Encaixar na agenda semanal (um treino por dia)",
     'coach.scheduled': "encaixado no dia do nome",
     'coach.scheduleSkipped': "sem dia (não reconhecido ou dia já ocupado)",
+    'coach.referenceAllDays': "Plano com {0} dias · todos serão gerados",
   },
   en: {
     'file.csvEmpty': "The CSV is empty. Choose a file exported by the app.",
@@ -624,5 +625,6 @@ export const expansionMessages = {
     'coach.scheduleWeek': "Add to the weekly schedule (one workout per day)",
     'coach.scheduled': "scheduled by the weekday in its name",
     'coach.scheduleSkipped': "no day (unrecognized or weekday already taken)",
+    'coach.referenceAllDays': "Plan with {0} days · all will be generated",
   },
 } satisfies Record<string, Record<string, string>>;

@@ -55,7 +55,8 @@ export function CoachReferencePicker({ catalog, workouts, reference, onChange, o
 
   return (
     <details className="coach-reference">
-      <summary>{reference ? t('coach.referenceAttached', [reference.label]) : t('coach.referenceTitle')}</summary>
+      <summary>{source === 'external' && items.length > 0 ? t('coach.referenceAllDays', [items.length])
+        : reference ? t('coach.referenceAttached', [reference.label]) : t('coach.referenceTitle')}</summary>
       <div className="coach-reference-fields">
         <p className="hint">{t('coach.referenceHelp')}</p>
         <label>{t('coach.referenceSource')}<select value={source} disabled={disabled || reading} onChange={(event) => {
@@ -76,14 +77,15 @@ export function CoachReferencePicker({ catalog, workouts, reference, onChange, o
             : source === 'plan' || source === 'backup' ? '.json,application/json' : '.csv,text/csv'}
           onChange={(event) => void read(event.target.files?.[0], source)} /></label>}
         {source === 'history' && items.length === 0 && <p className="hint">{t('coach.referenceEmpty')}</p>}
-        {items.length > 0 && (
+        {items.length > 0 && source === 'external' && <p className="hint">{t('coach.referenceAllDays', [items.length])}</p>}
+        {items.length > 0 && source !== 'external' && (
           <label>{t('coach.referenceSession')}<select disabled={disabled} value={reference?.key ?? ''}
             onChange={(event) => onChange(items.find((item) => item.key === event.target.value))}>
             <option value="">{t('coach.referenceChoose')}</option>
             {items.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
           </select></label>
         )}
-        {reference && (
+        {reference && source !== 'external' && (
           <>
             <p className="hint">{t(reference.kind === 'logged' ? 'coach.referenceLogged' : 'coach.referencePrescribed')}</p>
             <ul className="self-host-list">
