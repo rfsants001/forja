@@ -82,6 +82,8 @@ Provider = {
 
 A tela Perfil → Conexões de IA lista os provedores e grava a seleção no SQLite da instalação. Ollama detecta o serviço local. Codex inicia o login oficial do CLI em perfil dedicado e apresenta apenas o link da OpenAI e, na opção remota, o código de dispositivo. Os comandos locais `npm run dev` e `npm start` servem a API na mesma origem do navegador. O fluxo local da IA é separado do sync. Na instalação remota, a geração exige uma sessão autorizada e a configuração exige o dono. O descanso por exercício vem da geração.
 
+O Bubblewrap dá ao Codex acesso de leitura aos certificados do sistema. Em Fedora e Nobara, os caminhos sob `/etc/ssl` referenciam bundles PEM em `/etc/pki`. Esses arquivos precisam estar visíveis dentro do processo para a troca do token HTTPS funcionar.
+
 ## Contexto e programação do treino
 
 O assistente lê referência local, CSV de Hevy/Strong/FitNotes e JSON de backup/plano da Forja no navegador. O usuário escolhe uma sessão ou rotina. A rota de montagem recebe um recorte de até 16 exercícios com séries, reps e carga registrada conforme disponibilidade. Rótulos da sessão, nomes de arquivo e notas ficam fora do pedido. Nada é gravado ao anexar a referência.
