@@ -15,8 +15,10 @@ const errors: Record<string, string> = {
   ADMIN_KEY_INVALID: 'sync.invalidKey', PAIR_REQUIRED: 'sync.pairRequired', PAIRING_EXPIRED: 'sync.expired',
   PAIRING_INVALID: 'sync.invalidCode', PAIRING_CLAIMED: 'sync.claimed', TOO_MANY_ATTEMPTS: 'sync.rateLimit',
   INSTALLATION_CHANGED: 'sync.installationChanged', CONFLICT_REQUIRES_COPY: 'sync.requiresCopy',
-  PAYLOAD_TOO_LARGE: 'sync.payload', UPDATE_REQUIRED: 'sync.updateRequired', PROVIDER_UNAVAILABLE: 'coach.unavailable',
-  MODEL_UNAVAILABLE: 'coach.modelUnavailable', PROVIDER_BUSY: 'coach.busy', CURSOR_RESET: 'sync.cursorReset',
+  PAYLOAD_TOO_LARGE: 'sync.payload', UPDATE_REQUIRED: 'sync.updateRequired', PROVIDER_UNAVAILABLE: 'coach.providerError',
+  COACH_LOCAL_REQUIRED: 'engines.localOnly', ENGINE_CHANGED: 'engines.changed',
+  INVALID_PROVIDER_RESPONSE: 'coach.invalidResponse', CODEX_LOGIN_REQUIRED: 'coach.codexLoginRequired',
+  MODEL_UNAVAILABLE: 'coach.modelMissing', PROVIDER_BUSY: 'coach.busy', CURSOR_RESET: 'sync.cursorReset',
 };
 export function syncMessage(error: unknown, t: ReturnType<typeof useT>) {
   return t((error instanceof SyncError && errors[error.code]) || 'sync.error');

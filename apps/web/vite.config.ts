@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath } from 'node:url';
+import { forjaApi } from './forja-api.mjs';
 
 export default defineConfig({
   resolve: {
@@ -12,7 +13,8 @@ export default defineConfig({
   },
   server: {
     port: 5577,
-    host: true,
+    host: '127.0.0.1',
+    strictPort: true,
   },
   build: {
     // O chunk exercises.generated (~895 KB raw / 96 KB gzip) é carregado de forma
@@ -39,6 +41,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    forjaApi(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon-maskable.svg', 'apple-touch-icon.png'],

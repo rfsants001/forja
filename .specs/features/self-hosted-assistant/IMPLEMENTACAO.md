@@ -6,7 +6,7 @@ Documentos da expansão: [PRD](PRD.md), [TRD](TRD.md), [SDD](SDD.md) e [UX/UI](U
 
 - F6-01 a F6-03 usam Node.js 24 e SQLite, sessão de aparelho por cookie, QR ou código e fila transacional do Dexie. A PWA conserva o uso local sem vínculo.
 - F6-04 lista modelos locais do Ollama, mostra a prévia da semana, valida as sugestões e aplica ou desfaz uma troca na versão esperada da rotina. Aplicar e desfazer foram testados com Ollama simulado. A geração com dados fictícios foi confirmada no Ollama local com `qwen2.5:7b`, que retornou uma sugestão válida.
-- F6-05 fornece uma prova opt-in do Codex CLI em Linux isolada por Bubblewrap. Validar em ambiente com login dedicado antes de considerar uma integração para dados reais.
+- F6-05 inclui Codex CLI opt-in em Linux com Bubblewrap e login ChatGPT dedicado, além do probe sintético de terminal. O Assistente pode montar uma rotina com opções reais da biblioteca, mostrar séries, reps e descanso, e salvar após confirmação. Ver [configuração](../../../README.md#montar-um-treino-com-codex-por-assinatura).
 - P10 mostra a maior carga por exercício em Hoje e Progresso, com janela de 4 ou 8 semanas, pontos, navegação por teclado e tabela. Hoje reúne gráfico, prévia da rotina e agenda. O Assistente informa quando o endereço local precisa da API self-hosted ou quando falta parear o aparelho.
 - O teste de navegador usa dois contextos independentes, simula desconexão, confirma a chegada de uma única sessão após reconectar e resolve a edição concorrente de uma rotina. Validar em PC e celular físicos com HTTPS em LAN ou VPN e medir os tempos de pareamento e reconexão.
 
@@ -56,3 +56,7 @@ P11–P13 implementados no app local. A aplicação foi exercitada no Chromium a
 ## Handoff de cada fatia
 
 Atualize o estado e os documentos afetados com os testes efetivamente executados, versões dos provedores testadas e lacunas. Registre um procedimento de instalação e recuperação adequado à arquitetura escolhida. Use dados sintéticos nas capturas e exemplos. Mantenha arquivos de espec em Markdown para leitura por agentes e humanos.
+
+## Interface do Assistente
+
+Configuração e autenticação ficam em Perfil → Conexões de IA. O atalho de Treinos abre Montar treino, com inventário manual e revisão da proposta antes de salvar. O descanso é definido pelo coach. `npm run dev` e `npm start` dispensam o passo de pareamento para uso no computador que hospeda a Forja. [README](../../../README.md#assistente-de-treino).

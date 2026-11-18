@@ -20,6 +20,7 @@ const Perfil = lazy(() => import('./pages/Perfil').then(m => ({ default: m.Perfi
 const Dispositivos = lazy(() => import('./pages/Dispositivos').then(m => ({ default: m.Dispositivos })));
 const Conectar = lazy(() => import('./pages/Dispositivos').then(m => ({ default: m.Conectar })));
 
+const ConexoesIA = lazy(() => import('./pages/ConexoesIA').then((m) => ({ default: m.ConexoesIA })));
 const Assistente = lazy(() => import('./pages/Assistente').then(m => ({ default: m.Assistente })));
 
 export function App() {
@@ -65,6 +66,7 @@ export function App() {
               <Route path="/perfil" element={<Perfil />} />
               <Route path="/perfil/dispositivos" element={<Dispositivos />} />
               <Route path="/perfil/assistente" element={<Assistente />} />
+              <Route path="/perfil/ia" element={<ConexoesIA />} />
               <Route path="/conectar" element={<Conectar />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

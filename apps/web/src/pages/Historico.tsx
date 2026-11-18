@@ -142,7 +142,7 @@ function EditWorkout({ workout, exerciseMap, onClose }: {
   const [entries, setEntries] = useState(workout.entries);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const labels = { reps: 'Repetições', weightKg: 'Carga (kg)', sec: 'Tempo (s)', distanceM: 'Distância (m)', speedKmh: 'Velocidade (km/h)' };
+  const labels = { reps: t('metric.reps'), weightKg: t('metric.weightKg'), sec: t('metric.sec'), distanceM: t('metric.distanceM'), speedKmh: t('metric.speedKmh') };
 
   function patch(entryIndex: number, setIndex: number, change: Partial<SetLog>, list: 'sets' | 'warmupSets') {
     setEntries((current) => current.map((entry, index) => index === entryIndex ? {

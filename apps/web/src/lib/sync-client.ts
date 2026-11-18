@@ -11,7 +11,7 @@ export class SyncError extends Error {
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response: Response;
   try {
-    const timeout = path.startsWith('/coach/') ? 65_000 : 10_000;
+    const timeout = path.startsWith('/coach/') ? 95_000 : 10_000;
     const signal = AbortSignal.timeout(timeout);
     response = await fetch('/api/v1' + path, {
       ...options, credentials: 'same-origin', redirect: 'error', cache: 'no-store',

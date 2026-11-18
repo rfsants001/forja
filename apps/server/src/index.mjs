@@ -6,7 +6,7 @@ import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createStore, assert, ApiError } from './storage.mjs';
 import { adminKey, createDeviceService } from './devices.mjs';
-import { createCoach } from './coach.mjs';
+import { createCoachEngines } from './coach-engines.mjs';
 
 const mime = {
   '.css': 'text/css', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript',
@@ -49,16 +49,25 @@ export function createForjaServer(options = {}) {
   const devices = createDeviceService(store, config.origin, key);
   const timeZone = options.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   new Intl.DateTimeFormat('en', { timeZone });
-  const coach = createCoach(options.ollama ?? 'http://127.0.0.1:11434');
+  const coach = createCoachEngines(store, options);
+  const loopback = new Set(['127.0.0.1', 'localhost', '[::1]']);
+  const localOrigin = loopback.has(config.hostname);
+  const localHost = (request) => localOrigin
+    && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(request.socket.remoteAddress)
+    && [...loopback].some((name) => request.headers.host === name + (config.port ? ':' + config.port : ''));
+  const sameOrigin = (request) => request.headers.origin === config.origin
+    || (localHost(request) && request.headers.origin === config.protocol + '//' + request.headers.host);
+
 
   async function api(request, response, url) {
     const path = url.pathname.slice('/api/v1'.length);
     const method = request.method;
-    if (method !== 'GET') assert(request.headers.origin === config.origin, 'ORIGIN_REQUIRED', 403);
-        const body = () => readJson(request, path.startsWith('/sync/') ? undefined : path.startsWith('/coach/') ? 96 * 1024 : 2048);
+    if (method !== 'GET') assert(sameOrigin(request), 'ORIGIN_REQUIRED', 403);
+    const body = () => readJson(request, path.startsWith('/sync/') ? undefined : path.startsWith('/coach/') ? 96 * 1024 : 2048);
     if (path === '/session' && method === 'GET') {
       const device = devices.who(request, false);
-      return json(response, { installation: store.installation, origin: config.origin, timeZone, device: device ? devices.view(device) : null });
+      const origin = localHost(request) ? config.protocol + '//' + request.headers.host : config.origin;
+      return json(response, { installation: store.installation, origin, timeZone, device: device ? devices.view(device) : null });
     }
     if (path === '/session/bootstrap' && method === 'POST') {
       const result = devices.bootstrap(request, await body());
@@ -72,6 +81,41 @@ export function createForjaServer(options = {}) {
     if (path === '/pairings/exchange' && method === 'POST') {
       const result = devices.exchange(request, await body());
       return json(response, result.pending ? { pending: true } : { device: result.device }, 200, result.cookie);
+    }
+    if (path.startsWith('/coach/')) {
+      const local = localHost(request);
+      let device;
+      if (!local) {
+        try { device = devices.who(request); }
+        catch (error) {
+          if (error.code !== 'PAIR_REQUIRED') throw error;
+          throw new ApiError(401, 'COACH_LOCAL_REQUIRED');
+        }
+      }
+      const canManage = local || Boolean(device?.owner);
+      if (path === '/coach/engines' && method === 'GET') return json(response, await coach.list(canManage));
+      if (path === '/coach/providers' && method === 'GET') return json(response, await coach.providers());
+      if (path === '/coach/engines/selection' && method === 'POST') {
+        assert(canManage, 'OWNER_REQUIRED', 403);
+        return json(response, await coach.choose(await body()));
+      }
+      if (path === '/coach/engines/codex-login') {
+        assert(canManage, 'OWNER_REQUIRED', 403);
+        if (method === 'GET') return json(response, coach.loginStatus());
+        if (method === 'POST') {
+          const input = await body();
+          return json(response, coach.startLogin(!local || input.device === true));
+        }
+        if (method === 'DELETE') return json(response, coach.cancelLogin());
+      }
+      if (['/coach/test', '/coach/reviews', '/coach/plans'].includes(path) && method === 'POST') {
+        const payload = await body();
+        const controller = new AbortController();
+        response.once('close', () => controller.abort());
+        const kind = path.endsWith('/test') ? 'test' : path.endsWith('/plans') ? 'plan' : 'review';
+        return json(response, await coach.run(kind, payload, controller.signal));
+      }
+      throw new ApiError(404, 'NOT_FOUND');
     }
     const device = devices.who(request);
     if (path === '/session' && method === 'DELETE') {
@@ -87,14 +131,6 @@ export function createForjaServer(options = {}) {
     if (path === '/sync/push' && method === 'POST') {
       const payload = await body();
       return json(response, store.push(devices.who(request), payload));
-    }
-    if (path === '/coach/providers' && method === 'GET') return json(response, await coach.providers());
-    if ((path === '/coach/test' || path === '/coach/reviews') && method === 'POST') {
-      const payload = await body();
-      devices.who(request);
-      const controller = new AbortController();
-      response.once('close', () => controller.abort());
-      return json(response, await (path.endsWith('/test') ? coach.test : coach.review)(payload, controller.signal));
     }
     if (path.startsWith('/pairings') || path.startsWith('/devices')) assert(device.owner, 'OWNER_REQUIRED', 403);
     if (path === '/pairings' && method === 'POST') return json(response, devices.invite(), 201);
@@ -167,20 +203,23 @@ export function createForjaServer(options = {}) {
 
   const server = options.tls ? createTlsServer(options.tls, handle) : createServer(handle);
   server.requestTimeout = 30_000;
-  server.once('close', () => store.close());
+  server.once('close', () => { coach.cancelLogin(); store.close(); });
   return server;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   process.umask(0o077);
-  const port = Number(process.env.FORJA_PORT ?? 8787);
+  const local = process.argv.includes('--local');
+  const port = Number(process.env.FORJA_PORT ?? (local ? 5577 : 8787));
   const host = process.env.FORJA_HOST ?? '127.0.0.1';
-  const origin = process.env.FORJA_URL ?? ('http://127.0.0.1:' + port);
+  const origin = process.env.FORJA_URL ?? ('http://' + (local ? 'localhost:' : '127.0.0.1:') + port);
   const cert = process.env.FORJA_TLS_CERT;
   const key = process.env.FORJA_TLS_KEY;
   if (Boolean(cert) !== Boolean(key)) throw new Error('Configure FORJA_TLS_CERT e FORJA_TLS_KEY juntos.');
   createForjaServer({
-    directory: process.env.FORJA_DATA_DIR, origin, timeZone: process.env.FORJA_TIME_ZONE, ollama: process.env.FORJA_OLLAMA_URL,
+    directory: process.env.FORJA_DATA_DIR, origin, timeZone: process.env.FORJA_TIME_ZONE, env: process.env,
     tls: cert && key ? { cert: readFileSync(cert), key: readFileSync(key) } : undefined,
-  }).listen(port, host, () => console.log('Forja self-hosted em ' + origin + '. Chave do dono: pnpm self-host:admin.'));
+  }).listen(port, host, () => console.log(local
+    ? 'Forja em ' + origin + '. Configure o Assistente em Perfil → Conexões de IA.'
+    : 'Forja self-hosted em ' + origin + '. Chave de sync: pnpm self-host:admin.'));
 }

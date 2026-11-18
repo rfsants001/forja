@@ -22,7 +22,7 @@ A pessoa abre a Forja no computador, pareia o celular em casa, treina em modo av
 - PWA atual no desktop e celular. Pareamento por QR e entrada manual de endereço + código. O fluxo invertido, com código gerado pelo celular e digitado no PC, é extensão opcional quando ambos já acessam o mesmo servidor.
 - Sincronização de rotinas, plano semanal, exceções, categorias necessárias, exercícios personalizados referenciados e treinos concluídos, incluindo correções, nomes históricos e notas do treino.
 - Página de dispositivos com estado do sync, último sucesso, pendências, tentativa manual e revogação.
-- Revisão semanal a partir de indicadores já calculados no app. Ollama local é o primeiro provedor a entregar. A prova do Codex CLI com login do usuário é experimental e tem aceite separado.
+- Revisão semanal a partir de indicadores já calculados no app. Ollama local é o padrão. O Codex CLI com login dedicado é opt-in no Linux e mantém o aceite com assinatura real separado. Ambos montam rotinas com exercícios da biblioteca e confirmação antes de salvar.
 - Aplicar individualmente uma substituição de exercício cadastrada, após confirmar a comparação antes/depois, e desfazer quando a rotina ainda estiver na versão resultante.
 - Peso corporal, medidas, preferências, notas pessoais da biblioteca, modelos instalados e a sessão em andamento, incluindo timers, continuam locais no piloto. Comunicar isso no primeiro pareamento. A sessão passa a sincronizar quando concluída.
 - Lojas de aplicativos, fallback automático de IA para provedor externo, WebRTC, Dexie Cloud gerenciado e sincronização entre instalações diferentes são extensões. Gemini CLI e assinatura Claude Code dependem de validação de provedor.

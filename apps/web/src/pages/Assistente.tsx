@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ClipboardList } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { PlugZap } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { toISO, type Routine } from '@forja/core';
 import { db } from '../db/db';
@@ -9,12 +9,15 @@ import { api, post, sessionInfo, syncNow, syncRuntime, SyncError } from '../lib/
 import { useT } from '../lib/i18n';
 import { applySuggestion, undoSuggestion, weeklyReview } from '../lib/coach-review';
 import type { ReviewResult, Suggestion } from '../lib/coach-review';
+import { CoachPlan } from '../components/CoachPlan';
 import { syncMessage } from './Dispositivos';
 
-interface Providers { destination: string; models: string[]; available: boolean }
+interface Providers { id: 'ollama' | 'codex-cli'; destination: string; models: string[]; available: boolean; reason?: string; selectedModel?: string }
 
 export function Assistente() {
   const t = useT();
+  const [params] = useSearchParams();
+  const reviewMode = params.get('aba') === 'revisao';
   const [end, setEnd] = useState(toISO(new Date()));
   const [providers, setProviders] = useState<Providers>();
   const [connectionError, setConnectionError] = useState<SyncError>();
@@ -44,10 +47,9 @@ export function Assistente() {
         }).formatToParts(new Date());
         setEnd(['year', 'month', 'day'].map((part) => parts.find((item) => item.type === part)?.value).join('-'));
       }
-      if (!session.device) throw new SyncError('PAIR_REQUIRED');
       const next = await api<Providers>('/coach/providers');
       setProviders(next);
-      setModel((current) => next.models.includes(current) ? current : (next.models[0] ?? ''));
+      setModel(next.models.includes(next.selectedModel ?? '') ? next.selectedModel! : next.selectedModel ? '' : next.models[0] ?? '');
       setConnectionError(undefined);
     } catch (error) {
       setProviders(undefined);
@@ -70,12 +72,15 @@ export function Assistente() {
   }, [refreshProvider]);
 
   const noServer = connectionError?.code === 'NO_SERVER';
-  const needsPairing = connectionError?.code === 'PAIR_REQUIRED';
+  const external = providers?.id === 'codex-cli';
+  const unavailableKey = !external ? 'coach.unavailable'
+    : providers.reason === 'CODEX_LOGIN_REQUIRED' ? 'coach.codexLoginRequired' : 'coach.codexUnavailable';
   const providerStatus = noServer ? t('coach.serverRequired')
-    : needsPairing ? t('coach.deviceRequired')
     : connectionError ? syncMessage(connectionError, t)
-    : providers ? (providers.available ? 'Ollama' : t('coach.unavailable'))
-    : t('coach.checking');
+    : !providers ? t('coach.checking')
+    : !providers.available ? t(unavailableKey)
+    : !providers.models.length ? t('coach.modelUnavailable')
+    : !model ? t('coach.modelMissing') : external ? 'Codex CLI · ChatGPT' : 'Ollama';
 
   function generate() {
     if (!preview || !routines) return;
@@ -86,7 +91,7 @@ export function Assistente() {
     const controller = call.current;
     void run(async () => {
       try {
-        const response = await post<ReviewResult>('/coach/reviews', { ...preview, model, lang: settings?.lang }, controller.signal);
+        const response = await post<ReviewResult>('/coach/reviews', { ...preview, model, provider: providers?.id, lang: settings?.lang }, controller.signal);
         if (!controller.signal.aborted) setResult(response);
       } catch (error) {
         if (!controller.signal.aborted) throw error;
@@ -96,103 +101,95 @@ export function Assistente() {
   }
 
   return (
-    <>
-      <header className="topbar"><div className="brand"><span className="mark"><ClipboardList size={20} aria-hidden="true" /></span><h1>{t('coach.title')}</h1></div></header>
-      <div className="self-host-layout">
-        <section className="card self-host-card">
-          <h2>{t('coach.weekly')}</h2>
-          <label>{t('coach.lastDate')}<input type="date" required disabled={busy} value={end} onChange={(event) => {
-            setEnd(event.target.value);
-            setResult(undefined);
-            setSelected(undefined);
-          }} /></label>
-          <h3>{t('coach.preview')}</h3>
-          {preview && (
-            <>
-              <p className="hint">{preview.start} – {preview.end}</p>
-              <dl className="coach-metrics">
-                <div><dt>{t('sync.kind.workouts')}</dt><dd>{preview.workouts}</dd></div>
-                <div><dt>{t('hist.workSets')}</dt><dd>{preview.sets}</dd></div>
-                <div><dt>{t('hist.volume')}</dt><dd>{new Intl.NumberFormat(document.documentElement.lang).format(preview.volume)} kg</dd></div>
-              </dl>
-              {pending ? <p className="hint">{t('coach.pending')}</p> : null}
-              <details><summary>{t('coach.candidates', [preview.candidates.length])}</summary>
-                <ul className="self-host-list">{preview.candidates.map((item) => (
-                  <li key={item.routineId + ':' + item.index + ':' + item.toId}>{item.fromName} → {item.toName}</li>
-                ))}</ul>
-              </details>
-              {providers && <p>{t('coach.destination', [providers.destination])}</p>}
-              <div className="self-host-actions">
-                <button className="btn" type="button" disabled={busy || !model || !preview.workouts} onClick={generate}>{t('coach.generate')}</button>
-                {call.current && <button className="btn ghost" type="button" onClick={() => call.current?.abort()}>{t('tg.cancel')}</button>}
-              </div>
-            </>
-          )}
-          {notice && <p className="feedback" role="status">{notice}</p>}
-          {error && <p className="feedback error" role="alert">{error}</p>}
-          {result && (
-            <div className="self-host-card">
-              <h3>{t('coach.review')}</h3>
-              <p>{result.summary}</p>
-              {result.suggestions.map((suggestion) => {
-                const key = suggestion.routineId + ':' + suggestion.index + ':' + suggestion.toId;
-                const isSelected = selected === suggestion;
-                return <div className="coach-proposal" key={key}>
-                  <p>{baseline.find((routine) => routine.id === suggestion.routineId)?.name}</p>
-                  <p><strong>{t('coach.current')}</strong> {suggestion.fromName}</p>
-                  <p><strong>{t('coach.suggested')}</strong> {suggestion.toName}</p>
-                  <p className="hint">{suggestion.reason}</p>
-                  <div className="self-host-actions">
-                    {!isSelected ? <button type="button" className="btn ghost" onClick={() => setSelected(suggestion)}>{t('coach.reviewChange')}</button>
-                      : <><button type="button" className="btn ghost" onClick={() => setSelected(undefined)}>{t('tg.cancel')}</button>
-                        <button className="btn" disabled={busy || !settings} type="button" onClick={() => void run(async () => {
-                          const original = baseline.find((routine) => routine.id === suggestion.routineId);
-                          if (!original || !settings) throw new SyncError('STALE_PROPOSAL');
-                          if (await db.syncState.get('installation')) {
-                            await syncNow();
-                            if (syncRuntime().status !== 'updated') throw new SyncError('STALE_PROPOSAL');
-                          }
-                          await applySuggestion(suggestion, original);
-                          setSelected(undefined);
-                          setResult(undefined);
-                          setNotice(t('coach.applied'));
-                        })}>{t('coach.apply')}</button></>}
-                  </div>
-                </div>;
-              })}
-            </div>
-          )}
-          {edits?.map((edit) => <div className="self-host-actions" key={edit.id}>
-            <span>{edit.after.name}</span>
-            <button className="btn ghost" type="button" disabled={busy} onClick={() => void run(async () => {
-              await undoSuggestion(edit.id);
-              setNotice(t('coach.undone'));
-            })}>{t('coach.undo')}</button>
-          </div>)}
-        </section>
-        <section className="card self-host-card">
-          <h2>{t('coach.provider')}</h2>
-          <p role="status">{providerStatus}</p>
-          {providers?.available && !providers.models.length && <p className="hint">{t('coach.modelUnavailable')}</p>}
-          {providers && providers.models.length > 0 && (
-            <label>{t('coach.model')}<select disabled={busy} value={model} onChange={(event) => setModel(event.target.value)}>
-              {providers.models.map((name) => <option key={name}>{name}</option>)}
-            </select></label>
-          )}
-          <div className="self-host-actions">
-            {!noServer && !needsPairing && (
-              <button type="button" className="btn ghost" disabled={busy || !(providers || connectionError)} onClick={() => void run(() => refreshProvider())}>{t('coach.refresh')}</button>
-            )}
-            {providers && (
-              <button type="button" className="btn ghost" disabled={busy || !model} onClick={() => void run(async () => {
-                await post('/coach/test', { model });
-                setNotice(t('coach.testOk'));
-              })}>{t('coach.test')}</button>
-            )}
-            {!noServer && <Link className="btn ghost" to="/perfil/dispositivos">{t('sync.devices')}</Link>}
-          </div>
-        </section>
+    <div className="coach-workspace">
+      <header className="coach-page-header">
+        <div><h1>{t('coach.title')}</h1><p className="hint">{t('coach.workspaceIntro')}</p></div>
+        <Link className="btn ghost" to="/perfil/ia"><PlugZap size={16} aria-hidden />{t('engines.title')}</Link>
+      </header>
+      <div className="coach-engine-status">
+        <div><strong>{t('engines.current')}</strong><p role="status">{providerStatus}</p></div>
+        {providers?.available && model && <span>{external && model === 'default' ? t('coach.codexDefaultModel') : model}</span>}
       </div>
-    </>
+      <nav className="coach-modes" aria-label={t('coach.title')}>
+        <Link to="/perfil/assistente" aria-current={!reviewMode ? 'page' : undefined}>{t('coach.planTitle')}</Link>
+        <Link to="/perfil/assistente?aba=revisao" aria-current={reviewMode ? 'page' : undefined}>{t('coach.weekly')}</Link>
+      </nav>
+      {!reviewMode ? (
+        <CoachPlan exercises={exercises} workouts={workouts} settings={settings} model={model} destination={providers?.destination}
+          provider={providers?.id} external={external} />
+      ) : (
+          <section className="card self-host-card">
+            <h2>{t('coach.weekly')}</h2>
+            <label>{t('coach.lastDate')}<input type="date" required disabled={busy} value={end} onChange={(event) => {
+              setEnd(event.target.value);
+              setResult(undefined);
+              setSelected(undefined);
+            }} /></label>
+            <h3>{t('coach.preview')}</h3>
+            {preview && (
+              <>
+                <p className="hint">{preview.start} – {preview.end}</p>
+                <dl className="coach-metrics">
+                  <div><dt>{t('sync.kind.workouts')}</dt><dd>{preview.workouts}</dd></div>
+                  <div><dt>{t('hist.workSets')}</dt><dd>{preview.sets}</dd></div>
+                  <div><dt>{t('hist.volume')}</dt><dd>{new Intl.NumberFormat(document.documentElement.lang).format(preview.volume)} kg</dd></div>
+                </dl>
+                {pending ? <p className="hint">{t('coach.pending')}</p> : null}
+                <details><summary>{t('coach.candidates', [preview.candidates.length])}</summary>
+                  <ul className="self-host-list">{preview.candidates.map((item) => (
+                    <li key={item.routineId + ':' + item.index + ':' + item.toId}>{item.fromName} → {item.toName}</li>
+                  ))}</ul>
+                </details>
+                {providers && <p>{t('coach.destination', [providers.destination])}</p>}
+                <div className="self-host-actions">
+                  <button className="btn" type="button" disabled={busy || !model || !preview.workouts} onClick={generate}>{t(external ? 'coach.sendReview' : 'coach.generate')}</button>
+                  {call.current && <button className="btn ghost" type="button" onClick={() => call.current?.abort()}>{t('tg.cancel')}</button>}
+                </div>
+              </>
+            )}
+            {notice && <p className="feedback" role="status">{notice}</p>}
+            {error && <p className="feedback error" role="alert">{error}</p>}
+            {result && (
+              <div className="self-host-card">
+                <h3>{t('coach.review')}</h3>
+                <p>{result.summary}</p>
+                {result.suggestions.map((suggestion) => {
+                  const key = suggestion.routineId + ':' + suggestion.index + ':' + suggestion.toId;
+                  const isSelected = selected === suggestion;
+                  return <div className="coach-proposal" key={key}>
+                    <p>{baseline.find((routine) => routine.id === suggestion.routineId)?.name}</p>
+                    <p><strong>{t('coach.current')}</strong> {suggestion.fromName}</p>
+                    <p><strong>{t('coach.suggested')}</strong> {suggestion.toName}</p>
+                    <p className="hint">{suggestion.reason}</p>
+                    <div className="self-host-actions">
+                      {!isSelected ? <button type="button" className="btn ghost" onClick={() => setSelected(suggestion)}>{t('coach.reviewChange')}</button>
+                        : <><button type="button" className="btn ghost" onClick={() => setSelected(undefined)}>{t('tg.cancel')}</button>
+                          <button className="btn" disabled={busy || !settings} type="button" onClick={() => void run(async () => {
+                            const original = baseline.find((routine) => routine.id === suggestion.routineId);
+                            if (!original || !settings) throw new SyncError('STALE_PROPOSAL');
+                            if (await db.syncState.get('installation')) {
+                              await syncNow();
+                              if (syncRuntime().status !== 'updated') throw new SyncError('STALE_PROPOSAL');
+                            }
+                            await applySuggestion(suggestion, original);
+                            setSelected(undefined);
+                            setResult(undefined);
+                            setNotice(t('coach.applied'));
+                          })}>{t('coach.apply')}</button></>}
+                    </div>
+                  </div>;
+                })}
+              </div>
+            )}
+            {edits?.map((edit) => <div className="self-host-actions" key={edit.id}>
+              <span>{edit.after.name}</span>
+              <button className="btn ghost" type="button" disabled={busy} onClick={() => void run(async () => {
+                await undoSuggestion(edit.id);
+                setNotice(t('coach.undone'));
+              })}>{t('coach.undo')}</button>
+            </div>)}
+          </section>
+      )}
+    </div>
   );
 }

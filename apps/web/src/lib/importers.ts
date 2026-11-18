@@ -351,6 +351,17 @@ export function parseStrong(csv: string): ImportResult {
 //
 // Workout = agrupado por (title + start_time). Set_type: "normal","warmup","failure","dropset"
 
+const hevyMonths = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+function hevyDateTime(raw: string): string {
+  const named = /^(\d{1,2}) ([a-z]{3}) (\d{4}), (\d{2}:\d{2})$/i.exec(raw);
+  if (!named) return raw.replace(' ', 'T');
+  const [, day, month, year, time] = named;
+  const monthNumber = hevyMonths.indexOf(month!.toLowerCase()) + 1;
+  if (!monthNumber) return '';
+  return `${year}-${String(monthNumber).padStart(2, '0')}-${day!.padStart(2, '0')}T${time}`;
+}
+
 export function parseHevy(csv: string): ImportResult {
   const rows = csvToObjects(csv, ['start_time', 'exercise_title']);
   let skippedRows = 0;
@@ -359,7 +370,8 @@ export function parseHevy(csv: string): ImportResult {
 
   for (const row of rows) {
     const startRaw = row['start_time'] ?? '';
-    const dateISO = startRaw.slice(0, 10);
+    const start = hevyDateTime(startRaw);
+    const dateISO = start.slice(0, 10);
     const exName = (row['exercise_title'] ?? '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO) || !exName) {
       skippedRows++;
@@ -371,10 +383,12 @@ export function parseHevy(csv: string): ImportResult {
     const exId = uid('ex_');
     exerciseNameById.set(exId, exName);
 
-    const weightKg = parseNum(row['weight_kg']);
+    const weightLbs = parseNum(row['weight_lbs']);
+    const weightKg = parseNum(row['weight_kg']) ?? (weightLbs === undefined ? undefined : weightLbs * 0.45359237);
     const reps = parsePosInt(row['reps']);
     const sec = parsePosInt(row['duration_seconds']);
-    const distM = parseNum(row['distance_meters']);
+    const distanceMiles = parseNum(row['distance_miles']);
+    const distM = parseNum(row['distance_meters']) ?? (distanceMiles === undefined ? undefined : distanceMiles * 1609.344);
     const rpe = parseNum(row['rpe']);
 
     // Hevy guarda RIR às vezes no campo rpe como decimal; normalizar
@@ -397,19 +411,14 @@ export function parseHevy(csv: string): ImportResult {
       const wkNote = (row['description'] ?? '').trim() || row['title']?.trim() || undefined;
       // duração: end_time - start_time em segundos
       let durationSec: number | undefined;
-      const endRaw = row['end_time'] ?? '';
-      if (startRaw && endRaw) {
-        const startMs = new Date(startRaw).getTime();
-        const endMs = new Date(endRaw).getTime();
-        if (!isNaN(startMs) && !isNaN(endMs) && endMs > startMs) {
-          durationSec = Math.round((endMs - startMs) / 1000);
-        }
-      }
+      const startMs = Date.parse(start);
+      const endMs = Date.parse(hevyDateTime(row['end_time'] ?? ''));
+      if (endMs > startMs) durationSec = Math.round((endMs - startMs) / 1000);
       workoutsMap.set(mapKey, {
         id: `import-hevy:${encodeURIComponent(mapKey)}`,
         dateISO,
         entries: [],
-        createdAt: Date.parse(startRaw.replace(' ', 'T')) || Date.now(),
+        createdAt: startMs || Date.now(),
         note: wkNote,
         durationSec,
       });

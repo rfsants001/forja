@@ -1,4 +1,4 @@
-import { useT } from '../lib/i18n';
+import { useLang, useT } from '../lib/i18n';
 import '../styles/setup.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -9,43 +9,17 @@ import type { Routine, Weekday } from '@forja/core';
 import { db } from '../db/db';
 import { clearDayOverride, deleteRoutine, deleteStarterPlan, setDayOverride, setWeekday } from '../db/repo';
 import { useSessionStore } from '../store/session';
-import { STARTER_PLANS, applyStarterPlan } from '../lib/starter-plans';
+import { starterPlans, applyStarterPlan } from '../lib/starter-plans';
 import type { ApplyResult } from '../lib/starter-plans';
-
-// ---------------------------------------------------------------------------
-// Helpers de label do dia da semana
-// ---------------------------------------------------------------------------
-
-const WEEKDAY_SHORT: Record<Weekday, string> = {
-  0: 'Dom',
-  1: 'Seg',
-  2: 'Ter',
-  3: 'Qua',
-  4: 'Qui',
-  5: 'Sex',
-  6: 'Sáb',
-};
-
-const WEEKDAY_FULL: Record<Weekday, string> = {
-  0: 'Domingo',
-  1: 'Segunda',
-  2: 'Terça',
-  3: 'Quarta',
-  4: 'Quinta',
-  5: 'Sexta',
-  6: 'Sábado',
-};
+import { UiError } from '../lib/ui-error';
 
 // ---------------------------------------------------------------------------
 // StarterPlansSheet — modal/sheet de seleção e aplicação de planos prontos
 // ---------------------------------------------------------------------------
 
-const WEEKDAY_SHORT_LABELS: Record<Weekday, string> = {
-  0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb',
-};
-
 function StarterPlansSheet({ onClose }: { onClose: () => void }) {
   const t = useT();
+  const lang = useLang();
   const [selected, setSelected] = useState<string | null>(null);
   const [replaceDays, setReplaceDays] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -62,7 +36,7 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
       const res = await applyStarterPlan(selected, replaceDays);
       setResult(res);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('ui.planFailure'));
+      setError(e instanceof UiError ? t(e.key, e.args) : t('ui.planFailure'));
     } finally {
       setApplying(false);
     }
@@ -91,7 +65,7 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
         {result === null ? (
           <>
             <div className="sp-plan-list">
-              {STARTER_PLANS.map((plan) => (
+              {starterPlans(lang).map((plan) => (
                 <button
                   key={plan.id}
                   className={`sp-plan-card${selected === plan.id ? ' selected' : ''}`}
@@ -102,7 +76,7 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
                     <span className="sp-plan-dot" style={{ background: plan.color }} />
                     <span className="sp-plan-name">{plan.name}</span>
                     <span className="sp-plan-days">
-                      {plan.weekdays.map((d) => WEEKDAY_SHORT_LABELS[d]).join(' / ')}
+                      {plan.weekdays.map((d) => t(`wd.short.${d}`)).join(' / ')}
                     </span>
                   </div>
                   <span className="sp-plan-desc">{plan.description}</span>
@@ -137,16 +111,16 @@ function StarterPlansSheet({ onClose }: { onClose: () => void }) {
           <>
             <div className="sp-feedback" role="status">
               {result.created > 0
-                ? `${result.created} rotina${result.created > 1 ? 's' : ''} criada${result.created > 1 ? 's' : ''} com sucesso!`
+                ? t('ui.routinesCreated', [result.created])
                 : t("workouts.alreadyApplied")}
               {result.skipped > 0 && (
                 <span>{t('ui.planExisting', [result.skipped])}</span>
               )}
             </div>
-            {result.preservedDays > 0 && <p className="feedback">{result.preservedDays} dia(s) ocupados foram mantidos.</p>}
+            {result.preservedDays > 0 && <p className="feedback">{t('sp.preservedDays', [result.preservedDays])}</p>}
             {result.unresolved.length > 0 && (
               <div className="sp-feedback warn" style={{ marginTop: 8 }}>
-                Exercícios não encontrados no catálogo:{' '}
+                {t('workouts.unresolved')}
                 {result.unresolved.join(', ')}
               </div>
             )}
@@ -197,8 +171,8 @@ function DeletePlanDialog({ target, onClose, onDeleted }: {
       }
       onDeleted();
     } catch (error) {
-      setError(error instanceof Error && error.message.startsWith('O plano recebeu novas rotinas')
-        ? error.message : t('ui.deleteFailure'));
+      setError(error instanceof UiError && error.key === 'ui.planGotNewRoutines'
+        ? t('ui.planGotNewRoutines') : t('ui.deleteFailure'));
     } finally {
       setDeleting(false);
     }
@@ -238,7 +212,7 @@ function RoutineRow({ routine, color, activeId, onDelete }: {
   return (
     <div className="routine-list-row">
       <Link to={`/treinos/rotina/${encodeURIComponent(routine.id)}`} className="routine-item"
-        style={color ? { borderLeftColor: color, borderLeftWidth: 3 } : undefined} aria-label={`Editar ${routine.name}`}>
+        style={color ? { borderLeftColor: color, borderLeftWidth: 3 } : undefined} aria-label={t('tr.editAria', [routine.name])}>
         <div className="routine-info">
           <div className="routine-name">{routine.name}</div>
           <div className="routine-meta">{t('ui.exercisesTotal', [routine.exercises.length, routine.exercises.length === 1 ? '' : 's'])}{routine.note ? ` · ${routine.note}` : ''}</div>
@@ -246,11 +220,11 @@ function RoutineRow({ routine, color, activeId, onDelete }: {
       </Link>
       {routine.exercises.length > 0 && (activeId === null || resume) && (
         <Link className="btn ghost" to={`/treino?routineId=${encodeURIComponent(routine.id)}`}
-          aria-label={`${resume ? 'Continuar' : 'Treinar agora'} · ${routine.name}`}>
+          aria-label={t(resume ? 'tr.continueAria' : 'tr.trainNowAria', [routine.name])}>
           {resume ? t("ui.continue") : t("ui.trainNow")}
         </Link>
       )}
-      <button type="button" className="icon-btn routine-delete" aria-label={`Excluir rotina · ${routine.name}`}
+      <button type="button" className="icon-btn routine-delete" aria-label={t('tr.deleteRoutineAria', [routine.name])}
         title={t("re.deleteRoutine")} onClick={onDelete}><Trash2 size={16} aria-hidden="true" /></button>
     </div>
   );
@@ -417,7 +391,7 @@ export function Treinos() {
     <>
       {deletion && (
         <DeletePlanDialog target={deletion} onClose={() => setDeletion(null)} onDeleted={() => {
-          setDeletedMessage(deletion.categoryId ? 'Plano excluído.' : 'Rotina excluída.');
+          setDeletedMessage(deletion.categoryId ? t('tr.planDeleted') : t('tr.routineDeleted'));
           setDeletion(null);
           routinesHeading.current?.focus();
         }} />
@@ -433,6 +407,9 @@ export function Treinos() {
           <h1>{t("workouts.title")}</h1>
         </div>
         <div className="page-actions">
+          <Link className="btn ghost" to="/perfil/assistente#montar-treino">
+            <Sparkles size={16} aria-hidden />{t('coach.planTitle')}
+          </Link>
           <button
             className="btn ghost"
             style={{ padding: '10px 14px', fontSize: 13 }}
@@ -497,7 +474,7 @@ export function Treinos() {
                     />
                     <span className="cat-name">{cat.name}</span>
                     {isPlan && <button type="button" className="btn ghost plan-delete"
-                      aria-label={`Excluir plano · ${cat.name}`} onClick={() => {
+                      aria-label={t('tr.deletePlanAria', [cat.name])} onClick={() => {
                         setDeletedMessage('');
                         setDeletion({ name: cat.name, categoryId: cat.id, routines: rots });
                       }}><Trash2 size={14} aria-hidden="true" />{t("ui.deletePlan")}</button>}
@@ -555,14 +532,14 @@ export function Treinos() {
               const currentValue = weekPlan[day] ?? '__rest__';
               return (
                 <div key={day} className="week-row">
-                  <span className={`wd-label${isToday ? ' today' : ''}`} title={WEEKDAY_FULL[day]}>
-                    {WEEKDAY_SHORT[day]}
+                  <span className={`wd-label${isToday ? ' today' : ''}`} title={t(`wd.full.${day}`)}>
+                    {t(`wd.short.${day}`)}
                   </span>
                   <select
                     value={currentValue}
                     onChange={(e) => { void handleWeekdayChange(day, e.target.value); }}
                     disabled={saving === day}
-                    aria-label={`Treino de ${WEEKDAY_FULL[day]}`}
+                    aria-label={t('tr.weekdayAria', [t(`wd.full.${day}`)])}
                   >
                     <option value="__rest__">{t("workouts.rest")}</option>
                     {(routines ?? []).map((r) => (

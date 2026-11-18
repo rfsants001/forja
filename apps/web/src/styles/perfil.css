@@ -312,3 +312,14 @@
 .profile-preferences { padding-top: 15px; border-top: 1px solid var(--border-soft); margin-top: 10px; }
 .profile-preferences .field-grid input { width: 100%; }
 .bw-form > [role='status'], .bw-form > [role='alert'] { flex-basis: 100%; }
+
+.profile-tools { display: grid; gap: 9px; margin-block: 12px 20px; }
+.profile-tool {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 11px 13px; text-decoration: none;
+}
+.profile-tool:hover { background: var(--surface-2); }
+.profile-tool > svg:first-child { color: var(--accent); }
+.profile-tool > span { display: grid; gap: 3px; }
+.profile-tool small { color: var(--text-muted); font-size: 12px; }

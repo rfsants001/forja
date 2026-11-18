@@ -43,13 +43,14 @@ type Period = 7 | 30 | null;
 
 interface PeriodOption {
   label: string;
+  labelKey?: string;
   value: Period;
 }
 
 const PERIOD_OPTIONS: PeriodOption[] = [
   { label: '7d', value: 7 },
   { label: '30d', value: 30 },
-  { label: 'Tudo', value: null },
+  { label: 'Tudo', labelKey: 'period.all', value: null },
 ];
 
 // Chave localStorage para persistir a janela selecionada
@@ -448,9 +449,9 @@ function EffortSection({ workouts, exerciseMap, period, trackEffort }: EffortSec
     }
     return Array.from(ids).map((id) => ({
       id,
-      name: exerciseMap.get(id)?.name ?? `Exercício ${id}`,
+      name: exerciseMap.get(id)?.name ?? t('progress.exerciseFallback', [id]),
     })).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-  }, [workouts, exerciseMap]);
+  }, [workouts, exerciseMap, t]);
 
   // Seleciona automaticamente o primeiro quando a lista muda
   const resolvedExerciseId = selectedExerciseId !== '' && exercisesWithEffort.some((e) => e.id === selectedExerciseId)
@@ -543,16 +544,16 @@ function EffortSection({ workouts, exerciseMap, period, trackEffort }: EffortSec
 // ---------------------------------------------------------------------------
 
 /** Campos disponíveis para gráfico — label curto e chave do BodyMeasurement. */
-const MEASURE_FIELDS: { key: keyof BodyMeasurement; label: string }[] = [
-  { key: 'waistCm',      label: 'Cintura' },
-  { key: 'chestCm',      label: 'Peitoral' },
-  { key: 'hipsCm',       label: 'Quadril' },
-  { key: 'leftArmCm',    label: 'Braço E' },
-  { key: 'rightArmCm',   label: 'Braço D' },
-  { key: 'leftThighCm',  label: 'Coxa E' },
-  { key: 'rightThighCm', label: 'Coxa D' },
-  { key: 'neckCm',       label: 'Pescoço' },
-  { key: 'calfCm',       label: 'Panturrilha' },
+const MEASURE_FIELDS: { key: keyof BodyMeasurement; labelKey: string }[] = [
+  { key: 'waistCm',      labelKey: 'measure.waist' },
+  { key: 'chestCm',      labelKey: 'measure.chest' },
+  { key: 'hipsCm',       labelKey: 'measure.hips' },
+  { key: 'leftArmCm',    labelKey: 'measure.leftArm' },
+  { key: 'rightArmCm',   labelKey: 'measure.rightArm' },
+  { key: 'leftThighCm',  labelKey: 'measure.leftThigh' },
+  { key: 'rightThighCm', labelKey: 'measure.rightThigh' },
+  { key: 'neckCm',       labelKey: 'measure.neck' },
+  { key: 'calfCm',       labelKey: 'measure.calf' },
 ];
 
 /** Rótulo curto dd/mm para o eixo X. */
@@ -776,9 +777,9 @@ function MeasurementsSection() {
             />
           </div>
           <div className="prog-measure-grid">
-            {MEASURE_FIELDS.map(({ key, label }) => (
+            {MEASURE_FIELDS.map(({ key, labelKey }) => (
               <div key={key} className="field" style={{ marginBottom: 6 }}>
-                <label htmlFor={`measure-${key}`}>{label} (cm)</label>
+                <label htmlFor={`measure-${key}`}>{t(labelKey)} (cm)</label>
                 <input
                   id={`measure-${key}`} type="number"
                   inputMode="decimal"
@@ -828,7 +829,7 @@ function MeasurementsSection() {
               aria-label={t("prog.measureAriaLabel")}
             >
               {fieldsWithData.map((f) => (
-                <option key={String(f.key)} value={String(f.key)}>{f.label}</option>
+                <option key={String(f.key)} value={String(f.key)}>{t(f.labelKey)}</option>
               ))}
             </select>
           </div>
@@ -844,7 +845,7 @@ function MeasurementsSection() {
           {[...data].reverse().map((m) => {
             const filled = MEASURE_FIELDS
               .filter((f) => m[f.key] !== undefined)
-              .map((f) => `${f.label}: ${String(m[f.key])} cm`);
+              .map((f) => `${t(f.labelKey)}: ${String(m[f.key])} cm`);
             return (
               <div key={m.dateISO} className="prog-measure-item">
                 <div className="prog-measure-date">{fmtDateShort(m.dateISO)}</div>
@@ -857,7 +858,7 @@ function MeasurementsSection() {
                 <button
                   className="prog-measure-del"
                   onClick={() => { void handleDelete(m.dateISO); }}
-                  aria-label={`Apagar medida de ${m.dateISO}`}
+                  aria-label={t('prog.deleteMeasure', [m.dateISO])}
                 >
                   <Trash2 size={13} />
                 </button>
@@ -987,7 +988,7 @@ export function Progresso() {
                 onClick={() => handlePeriod(opt.value)}
                 aria-pressed={period === opt.value}
               >
-                {opt.label}
+                {opt.labelKey ? t(opt.labelKey) : opt.label}
               </button>
             ))}
           </div>

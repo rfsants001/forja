@@ -19,6 +19,7 @@ import type { RoutineExercise, ProgressionPolicy, ExerciseMode, MuscleGroup, Exe
 import { estimate1RM } from '@forja/core';
 import { db } from '../db/db';
 import { upsertRoutine, deleteRoutine } from '../db/repo';
+import { UiError } from '../lib/ui-error';
 import {
   PROGRESSION_OPTIONS,
   MUSCLE_OPTIONS,
@@ -168,8 +169,8 @@ function ExPicker({ onSelect, onClose }: ExPickerProps) {
         {/* Contador */}
         {filtered.length > 0 && (
           <p className="hint" style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
-            {filtered.length} exercício{filtered.length !== 1 ? 's' : ''}
-            {filtered.length > visibleCount ? ` — mostrando ${visibleCount}` : ''}
+            {t('ui.exercisesTotal', [filtered.length, filtered.length !== 1 ? 's' : ''])}
+            {filtered.length > visibleCount ? t('re.showing', [visibleCount]) : ''}
           </p>
         )}
 
@@ -658,7 +659,7 @@ export function RotinaEditor() {
     }
 
     if (best1RM <= 0) {
-      alert('Nenhum histórico encontrado para este exercício. Informe o TM manualmente.');
+      alert(t('re.noHistoryTM'));
       return;
     }
 
@@ -725,8 +726,8 @@ export function RotinaEditor() {
     if (saving) return;
     if (!canSave) {
       setSaveError(!trimmed ? t('ui.enterRoutineName') : !categoryId ? t('ui.chooseCategory')
-        : rexList.length === 0 ? 'Adicione um exercício para salvar a rotina.'
-        : 'Confira as séries e preencha o máximo de treino dos exercícios em 5/3/1.');
+        : rexList.length === 0 ? t('ui.routineNeedsExercise')
+        : t('ui.routineNeedsTM'));
       return;
     }
 
@@ -745,8 +746,8 @@ export function RotinaEditor() {
       }, { mustExist: !isNew });
       navigate('/treinos');
     } catch (error) {
-      setSaveError(error instanceof Error && error.message === 'Esta rotina já foi excluída.'
-        ? error.message : t('ui.saveRoutineFailed'));
+      setSaveError(error instanceof UiError && error.key === 'ui.routineGone'
+        ? t('ui.routineGone') : t('ui.saveRoutineFailed'));
     } finally {
       setSaving(false);
     }
@@ -817,6 +818,11 @@ export function RotinaEditor() {
             type="text"
             required
             value={name}
+            onInvalid={(event) => {
+              event.preventDefault();
+              setSaveError(t('ui.enterRoutineName'));
+              event.currentTarget.focus();
+            }}
             onChange={(e) => setName(e.target.value)}
             autoFocus={isNew}
           />
@@ -825,6 +831,13 @@ export function RotinaEditor() {
         <div className="field" style={{ marginBottom: 14 }}>
           <label htmlFor="routine-category">{t("ui.category")}</label>
           <select id="routine-category" required
+            onInvalid={(event) => {
+              event.preventDefault();
+              if (name.trim()) {
+                setSaveError(t('ui.chooseCategory'));
+                event.currentTarget.focus();
+              }
+            }}
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
           >
@@ -869,7 +882,7 @@ export function RotinaEditor() {
             onClick={groupSelected}
             disabled={!canGroup}
             style={{ padding: '8px 14px', fontSize: 12 }}
-            title={canGroup ? 'Agrupar em superset' : 'Selecione ao menos 2 exercícios'}
+            title={canGroup ? t('re.groupSuperset') : t('re.selectTwo')}
           >
             <Link2 size={14} />
             Superset ({selectedKeys.size})

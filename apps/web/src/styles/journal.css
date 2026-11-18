@@ -355,3 +355,10 @@ dialog.exercise-detail {
 :is(.session-guide-muscles, .hist-muscle-map) .muscle-atlas {
   --muscle-unhighlighted: color-mix(in srgb, var(--text-muted) 28%, var(--surface-2));
 }
+
+.inventory-form { display: grid; gap: 6px; margin-block: 12px; }
+.inventory-form > div { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.inventory-form input { flex: 1 1 160px; min-width: 0; }
+.inventory-list { list-style: none; display: grid; gap: 4px; margin-block: 8px; }
+.inventory-list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-block-end: 1px solid var(--border-soft); }
+.inventory-list li span { overflow-wrap: anywhere; }

@@ -4,6 +4,7 @@ import { db } from '../db/db';
 import { syncWrite } from '../db/sync-write';
 import { computeSummary } from './stats';
 import { sameValue } from './sync-protocol';
+import { supportsEquipment } from './equipment';
 import { SyncError } from './sync-client';
 
 export interface Candidate {
@@ -25,7 +26,7 @@ export interface ReviewResult {
 
 function compatible(from: Exercise, to: Exercise, equipment: string[]) {
   return from.id !== to.id && from.mode === to.mode && from.primaryMuscle === to.primaryMuscle
-    && to.equipment.every((item) => equipment.includes(item));
+    && supportsEquipment(to.equipment, new Set(equipment));
 }
 
 export function weeklyReview(end: string, workouts: WorkoutLog[], routines: Routine[], catalog: Exercise[], equipment: string[]) {

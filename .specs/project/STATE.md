@@ -33,13 +33,28 @@ Atualizado em 15/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [
 - A transação limpa a semana e as exceções ligadas às rotinas removidas. O histórico mantém a sessão, o nome e a nota, inclusive para filtragem após a exclusão. A sessão ativa continua usando o snapshot em andamento.
 - O README em PT-BR apresenta capturas de desktop e celular e instruções de instalação e backup. O perfil do GitHub aponta para as telas e o guia de execução.
 
-## PT/EN e revisão pendente
+## PT/EN concluído (17/11/2026)
 
-**P5-003 · PT/EN.** O Perfil tem seletor persistente e o HTML acompanha o idioma. Navegação, controles principais e justificativas de progressão usam traduções. O teste no navegador passou por PT → EN → reload → PT. Ainda é preciso revisar a cobertura integral da cópia e dos formatos em fluxos secundários.
+**P5-003 · PT/EN.** O Perfil tem seletor persistente e o HTML acompanha o idioma. Navegação, controles principais e justificativas de progressão usam traduções. O teste no navegador passou por PT → EN → reload → PT.
+
+A revisão de fluxos secundários foi fechada em duas passadas (a segunda após o review do Codex, que achou vazamentos residuais em EN): dias da semana (`wd.short`/`wd.full`), filtros de equipamento da Biblioteca (`equip.*` como exibição, `label` como identidade estável), métricas da edição de histórico (`metric.*`), contadores de exercícios, feedbacks de importação/exportação/exclusão/criação de rotinas, títulos da Home, `aria-label`s de Treinos/Treino Guiado/Progresso/Perfil, rótulos de medida, filtro de período, validações do editor e unidade do mapa muscular. O `db/repo.ts` passou a lançar `UiError` com chave (igual a `backup.ts`/`importers.ts`/`plan-share.ts`), removendo mensagens de erro em PT cru. **A camada de UI está completa** (resta em PT só rota e comentário). Dicionário com paridade PT/EN. `pnpm typecheck`, `pnpm test` (138 core + 2 server) e `pnpm build` passaram.
+
+**Planos prontos em PT/EN.** Descrições, nomes e notas usam o idioma ativo ao aplicar. Reaplicar em outro idioma reaproveita rotinas já existentes e preserva notas salvas. Falhas do catálogo e validação de nome vazio exibem feedback traduzido. Ver [spec i18n](../features/i18n/spec.md).
+
+## Licença
+
+Definida em 17/11: **MIT**. `LICENSE` na raiz (Copyright 2026 Rafael Santos) e `license: "MIT"` no `package.json`. Compatível com o atlas MuscleMap (MIT).
+
+## Para o Codex validar (checks de mundo real, não-código)
+
+- Instalação e atualização da PWA em aparelho físico; timers com tela bloqueada.
+- Leitor de tela nas telas principais e PDF do compartilhamento de plano.
+- Sincronização self-hosted entre dois aparelhos físicos sob HTTPS.
+- Smoke de troca de idioma PT ⇄ EN percorrendo Treinos (dias da semana), Biblioteca (filtros de equipamento), edição de histórico e mensagens de erro de rotina/plano.
 
 ## Expansão self-hosted · piloto local
 
-Servidor com SQLite, pareamento, sincronização e revisão Ollama estão disponíveis no piloto self-hosted. O teste fez um treino offline em um navegador e recebeu uma única sessão no outro após reconectar. A aplicação e a reversão da troca passaram com Ollama simulado. A geração com dados fictícios retornou uma sugestão válida no Ollama local com `qwen2.5:7b`. O Codex CLI tem uma prova de terminal com dados sintéticos. O [handoff](../features/self-hosted-assistant/IMPLEMENTACAO.md#implementação-do-piloto) registra os limites de validação e o [README](../../README.md#sincronizar-pc-e-celular) descreve a instalação.
+Servidor com SQLite, pareamento, sincronização e revisão Ollama estão disponíveis no piloto self-hosted. O teste fez um treino offline em um navegador e recebeu uma única sessão no outro após reconectar. A aplicação e a reversão da troca passaram com Ollama simulado. A geração com dados fictícios retornou uma sugestão válida no Ollama local com `qwen2.5:7b`. Codex CLI está disponível como provedor opt-in em Linux. O Assistente monta uma rotina a partir de exercícios da biblioteca e só grava após a confirmação. O probe de terminal continua disponível para verificar o login dedicado. Ver [Coach AI Provider](../features/coach-ai-provider/design.md). O [handoff](../features/self-hosted-assistant/IMPLEMENTACAO.md#implementação-do-piloto) registra os limites de validação e o [README](../../README.md#sincronizar-pc-e-celular) descreve a instalação.
 
 ## Verificação e limites
 
@@ -49,3 +64,11 @@ Servidor com SQLite, pareamento, sincronização e revisão Ollama estão dispon
 - Falta teste em aparelho físico, instalação e atualização da PWA, timers com tela bloqueada, leitor de tela e PDF.
 - Na revisão local, 138 testes do core, typecheck e build passaram. O Chromium validou o layout de 320 a 1440 px, envio por teclado, filtros do Histórico, preferências após recarga e tema explícito. O axe não apontou violações WCAG A/AA nas três telas verificadas: Histórico escuro, novo exercício escuro e Perfil claro. A PWA abriu em modo offline com foto, fonte, atlas e demonstrações e iniciou o plano de casa.
 - Specs e notas já existentes da Forja integram a documentação versionada do projeto. A vault permanece como índice e visão de produto.
+
+## Jornada do Assistente
+
+`npm run dev` e `npm start` abrem app e API juntos. Em Perfil → Conexões de IA, a Forja detecta Ollama, inicia o login do Codex e persiste a seleção. Pareamento é o fluxo de sync. O inventário começa vazio e aceita nomes manuais. O Assistente separa Montar treino e Revisão semanal. O tempo informado é a duração total. O modelo propõe o descanso.
+
+## Treino anterior no Assistente
+
+O Coach pode usar uma referência do Histórico, CSV de Hevy/Strong/FitNotes ou JSON da Forja. A prévia é local e a IA recebe o recorte autorizado. A programação distingue casa e academia, valida a duração estimada e oferece substituições por família. Ver [SDD do Coach](../features/coach-ai-provider/design.md#contexto-e-programação-do-treino).

@@ -403,7 +403,7 @@ function SetRow({
               step={10}
               value={set.distanceM ?? ''}
               onChange={(e) => onChange({ distanceM: e.target.value === '' ? undefined : Number(e.target.value) })}
-              aria-label={`${rowLabel} — distância metros`}
+              aria-label={t('tg.distanceRow', [rowLabel])}
               placeholder="m"
             />
           </>
@@ -524,7 +524,7 @@ function SetRow({
               const val = e.target.value === '' ? undefined : Math.min(10, Math.max(0, Number(e.target.value)));
               onChange({ effort: { ...set.effort, rir: val } });
             }}
-            aria-label={`${rowLabel} — RIR (repetições na reserva)`}
+            aria-label={t('tg.rirRow', [rowLabel])}
           />
           <span className="tg-rir-hint">{t("tg.rirHint")}</span>
         </div>
@@ -1110,7 +1110,7 @@ export function TreinoGuiado() {
                     }}
                   />
                   <button type="button" className="tg-warmup-remove" disabled={saving || restActive}
-                    onClick={() => removeWarmup(active.currentIndex, index)} aria-label={`Remover aquecimento ${index + 1}`}>
+                    onClick={() => removeWarmup(active.currentIndex, index)} aria-label={t('tg.removeWarmup', [index + 1])}>
                     <Trash2 size={16} />
                   </button>
                 </div>

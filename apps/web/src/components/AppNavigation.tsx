@@ -21,7 +21,7 @@ export function AppNavigation() {
 
   return (
     <aside className="app-navigation">
-      <Link className="app-wordmark" to="/" aria-label="Forja · início">
+      <Link className="app-wordmark" to="/" aria-label={t('nav.homeAria')}>
         <img className="app-wordmark-icon" src="/favicon.svg" alt="" width="34" height="34" />
         <span>Forja</span>
       </Link>

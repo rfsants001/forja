@@ -191,7 +191,7 @@ export function MuscleMap({
             return (
               <g key={part} fill={group ? fillColor(group) : 'var(--muscle-unhighlighted, var(--surface-2))'}>
                 {group && <title>{tMuscle(`muscle.${group}`)}{volume > 0 && !preview
-                  ? ` · ${Math.round(volume).toLocaleString('pt-BR')} ${metric === 'sets' ? 'séries' : 'kg'}`
+                  ? ` · ${Math.round(volume).toLocaleString(document.documentElement.lang || 'pt-BR')} ${metric === 'sets' ? tMuscle('unit.sets') : 'kg'}`
                   : ''}</title>}
                 {paths.map((path, index) => <path key={index} d={path} />)}
               </g>

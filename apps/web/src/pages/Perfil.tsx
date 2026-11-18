@@ -9,7 +9,7 @@ import { useLocation } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   User, Trash2, CheckCircle2, Download, Upload,
-  Database, ArrowDownToLine, Share2, Printer, FileInput,
+  Database, ArrowDownToLine, Share2, Printer, FileInput, ClipboardList, PlugZap, Laptop, ChevronRight,
 } from 'lucide-react';
 import { DEFAULT_SETTINGS, toISO } from '@forja/core';
 import type { Settings, BodyWeight } from '@forja/core';
@@ -324,7 +324,7 @@ function BodyWeightList({ entries }: { entries: BodyWeight[] }) {
           <span className="bw-kg">{item.kg.toFixed(1)} kg</span>
           <button
             className="bw-del"
-            aria-label={`Excluir registro de ${fmtDate(item.dateISO)}`}
+            aria-label={t('prof.deleteWeight', [fmtDate(item.dateISO)])}
             onClick={() => { void handleDelete(item.dateISO); }}
           >
             <Trash2 size={15} />
@@ -594,7 +594,7 @@ function SeusDadosSection() {
     setStatus('busy');
     try {
       await downloadBackup();
-      showFeedback('Backup exportado com sucesso!', 'ok');
+      showFeedback(t('ui.backupExported'), 'ok');
     } catch (err) {
       showFeedback(
         errorMessage(err, t, 'ui.exportError'),
@@ -794,9 +794,9 @@ function ImportarAppSection() {
     try {
       const counts = await applyImport(preview.result);
       setFeedback(
-        `Importado: ${counts.workouts} treino(s), ${counts.exercises} exercício(s) novo(s)` +
-        (counts.bodyweight > 0 ? `, ${counts.bodyweight} registro(s) de peso` : '') +
-        (counts.duplicates > 0 ? `, ${counts.duplicates} treino(s) já presente(s)` : '') + '.',
+        t('perf.importDone', [counts.workouts, counts.exercises]) +
+        (counts.bodyweight > 0 ? t('perf.importBodyweight', [counts.bodyweight]) : '') +
+        (counts.duplicates > 0 ? t('perf.importDuplicates', [counts.duplicates]) : '') + '.',
       );
       setStatus('done');
       setPreview(null);
@@ -936,7 +936,7 @@ function CompartilharPlanoSection() {
     setStatus('busy');
     try {
       await downloadPlan();
-      showFeedback('Plano exportado com sucesso!', 'ok');
+      showFeedback(t('ui.planExported'), 'ok');
     } catch (err) {
       showFeedback(errorMessage(err, t, 'ui.exportError'), 'error');
     }
@@ -962,8 +962,8 @@ function CompartilharPlanoSection() {
       const json = await file.text();
       const counts = await importPlan(json, replacePlanDays);
       showFeedback(
-        `Plano importado: ${counts.categories} categoria(s), ${counts.routines} rotina(s), ${counts.weekPlan} dia(s) atualizado(s).` +
-        (counts.preservedDays > 0 ? ` ${counts.preservedDays} dia(s) ocupados foram mantidos.` : ''),
+        t('perf.planImported', [counts.categories, counts.routines, counts.weekPlan]) +
+        (counts.preservedDays > 0 ? ` ${t('sp.preservedDays', [counts.preservedDays])}` : ''),
         'ok',
       );
     } catch (err) {
@@ -1082,10 +1082,19 @@ export function Perfil() {
       <div className="profile-layout">
         <section aria-labelledby="profile-settings">
           <h2 className="section-title" id="profile-settings">{t('perf.settingsTitle')}</h2>
-          <div className="btn-row">
-            <Link className="btn ghost" to="/perfil/dispositivos">{t('sync.devices')}</Link>
-            <Link className="btn ghost" to="/perfil/assistente">{t('coach.title')}</Link>
-          </div>
+          <nav className="profile-tools" aria-label={t('perf.settingsTitle')}>
+            {([
+              ['/perfil/assistente', 'coach.title', 'profile.assistantHint', ClipboardList],
+              ['/perfil/ia', 'engines.title', 'profile.aiHint', PlugZap],
+              ['/perfil/dispositivos', 'sync.devices', 'profile.devicesHint', Laptop],
+            ] as const).map(([path, label, hint, Icon]) => (
+              <Link className="profile-tool" to={path} key={path}>
+                <Icon size={19} aria-hidden />
+                <span><strong>{t(label)}</strong><small>{t(hint)}</small></span>
+                <ChevronRight size={16} aria-hidden />
+              </Link>
+            ))}
+          </nav>
           {rawSettings === undefined ? <p role="status" className="hint">{t("ui.loadingPreferences")}</p> : <SettingsSection settings={settings} />}
         </section>
         <div className="profile-data">

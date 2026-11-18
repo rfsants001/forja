@@ -14,6 +14,7 @@ import {
 import { hasExerciseMedia, Media } from '../components/Media';
 import { MuscleCoverage } from '../components/MuscleCoverage';
 import { normalizeExName } from '../lib/normalize';
+import { EQUIP_FILTERS, equipmentKey, supportsEquipment } from '../lib/equipment';
 
 // ---------------------------------------------------------------------------
 // Tipos do formulário
@@ -37,20 +38,7 @@ const EMPTY_FORM: ExForm = {
   instructions: '',
 };
 
-// Equipamentos frequentes para sugestão de chips
-const EQUIP_FILTERS = [
-  { label: 'Barra', terms: ['barra', 'barra ez', 'barra olimpica', 'barra hexagonal'] },
-  { label: 'Barra fixa', terms: ['barra fixa'] },
-  { label: 'Halteres', terms: ['halter', 'halteres'] },
-  { label: 'Cabo', terms: ['polia', 'cabo'] },
-  { label: 'Máquina', terms: ['maquina', 'smith machine', 'maquina articulada'] },
-  { label: 'Peso corporal', terms: ['peso corporal'] },
-  { label: 'Elástico', terms: ['elastica', 'elastico', 'faixa elastica', 'faixa de resistencia'] },
-  { label: 'Kettlebell', terms: ['kettlebell'] },
-  { label: 'Banco', terms: ['banco'] },
-] as const;
-const INVENTORY_TERMS = new Map<string, string>(EQUIP_FILTERS.flatMap((group) =>
-  group.terms.map((term) => [term, group.terms[0]])));
+
 
 
 // Performance: exibe 50 itens + "carregar mais" para suportar 1324+ exercícios.
@@ -82,42 +70,46 @@ export function Exercicios() {
   const [onlyMyEquipment, setOnlyMyEquipment] = useState(false);
   const settings = useLiveQuery(() => db.settings.get('app'), []);
   const savedEquipment = settings?.gymEquipment;
-  const [equipmentChanges, setEquipmentChanges] = useState<Record<string, boolean>>({});
-  const [equipmentError, setEquipmentError] = useState(false);
-  const myEquipment = useMemo(() => {
-    const selected = new Set(savedEquipment);
-    for (const [term, checked] of Object.entries(equipmentChanges)) {
-      if (checked) selected.add(term);
-      else selected.delete(term);
+  const [equipmentName, setEquipmentName] = useState('');
+  const [equipmentError, setEquipmentError] = useState('');
+  const [savingEquipment, setSavingEquipment] = useState(false);
+  const myEquipment = useMemo(() => new Set(savedEquipment), [savedEquipment]);
+  const equipmentOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    for (const exercise of exercises ?? []) {
+      for (const label of exercise.equipment) {
+        const key = equipmentKey(label);
+        const standard = EQUIP_FILTERS.find((item) => item.terms[0] === key);
+        if (key && !options.has(key)) options.set(key, standard ? t(standard.key) : label);
+      }
     }
-    return selected;
-  }, [savedEquipment, equipmentChanges]);
-  useEffect(() => {
-    setEquipmentChanges((changes) => {
-      const pending = Object.entries(changes).filter(([term, checked]) => (savedEquipment?.includes(term) ?? false) !== checked);
-      return pending.length === Object.keys(changes).length ? changes : Object.fromEntries(pending);
-    });
-  }, [savedEquipment]);
-  async function toggleEquipment(term: string, checked: boolean) {
-    setEquipmentChanges((changes) => ({ ...changes, [term]: checked }));
-    setEquipmentError(false);
+    return [...options].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [exercises, t]);
+
+  async function saveEquipment(value: string, remove = false) {
+    const name = value.trim();
+    const key = equipmentKey(name);
+    if (!key || savingEquipment) return;
+    setSavingEquipment(true);
+    setEquipmentError('');
     try {
       await db.transaction('rw', db.settings, async () => {
-        const selected = new Set((await db.settings.get('app'))?.gymEquipment);
-        if (checked) selected.add(term);
-        else selected.delete(term);
-        await updateSettings({ gymEquipment: [...selected] });
+        const current = (await db.settings.get('app'))?.gymEquipment ?? [];
+        if (!remove && current.some((item) => equipmentKey(item) === key)) {
+          setEquipmentError(t('inventory.duplicate'));
+          return;
+        }
+        await updateSettings({ gymEquipment: remove ? current.filter((item) => item !== value) : [...current, name] });
+        if (!remove) setEquipmentName('');
       });
+      resetPaging();
     } catch {
-      setEquipmentChanges((changes) => {
-        const next = { ...changes };
-        if (next[term] === checked) delete next[term];
-        return next;
-      });
-      setEquipmentError(true);
+      setEquipmentError(t('ui.equipmentSaveError'));
+    } finally {
+      setSavingEquipment(false);
     }
   }
-  // Paginação — reset quando filtros mudam
+
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Formulário / sheet
@@ -154,19 +146,13 @@ export function Exercicios() {
   const filtered = useMemo(() => {
     const all = exercises ?? [];
     const q = normalizeExName(query);
-    const equipment = EQUIP_FILTERS.find((filter) => filter.label === equipFilter);
     const matching = all.filter((ex) => {
       if (q.length > 0 && !normalizeExName(ex.name).includes(q)) return false;
       if (muscleFilter !== null && ex.primaryMuscle !== muscleFilter
         && !(includeSecondary && ex.secondaryMuscles.includes(muscleFilter))) return false;
       if (onlyIllustrated && !hasExerciseMedia(ex.id, ex.demo)) return false;
-      if (onlyMyEquipment && !ex.equipment.every((item) => {
-        const name = normalizeExName(item);
-        const equipment = INVENTORY_TERMS.get(name);
-        return name === 'peso corporal' || (equipment !== undefined && myEquipment.has(equipment));
-
-      })) return false;
-      if (equipment && !ex.equipment.some((item) => equipment.terms.some((term) => normalizeExName(item) === term))) {
+      if (onlyMyEquipment && !supportsEquipment(ex.equipment, myEquipment)) return false;
+      if (equipFilter && !ex.equipment.some((item) => equipmentKey(item) === equipFilter)) {
         return false;
       }
       return true;
@@ -335,26 +321,39 @@ export function Exercicios() {
             resetPaging();
           }}>
             <option value="">{t("ex.all")}</option>
-            {EQUIP_FILTERS.map((equipment) => <option key={equipment.label} value={equipment.label}>{equipment.label}</option>)}
+            {equipmentOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
         </div>
-        <details className="catalog-inventory">
+        <details className="catalog-inventory" open={searchParams.get('inventario') === '1' || undefined}>
           <summary>{t("ui.myEquipment")}</summary>
-          <div className="catalog-inventory-options">
-            {EQUIP_FILTERS.filter((group) => group.terms[0] !== 'peso corporal').map((group) => (
-              <label key={group.label} className="catalog-check">
-                <input type="checkbox" checked={myEquipment.has(group.terms[0])}
-                  disabled={!settings} onChange={(event) => void toggleEquipment(group.terms[0], event.target.checked)} />
-                {group.label}
-              </label>
-            ))}
-          </div>
+          <p className="hint">{t('inventory.description')}</p>
+          {myEquipment.size === 0 ? <p className="hint">{t('inventory.empty')}</p> : (
+            <ul className="inventory-list">
+              {[...myEquipment].map((name) => {
+                const legacy = EQUIP_FILTERS.find((item) => item.terms[0] === name);
+                const label = legacy ? t(legacy.key) : name;
+                return <li key={name}>
+                  <span>{label}</span>
+                  <button className="btn ghost" type="button" disabled={savingEquipment} aria-label={t('inventory.remove', [label])}
+                    onClick={() => void saveEquipment(name, true)}><Trash2 size={16} aria-hidden /></button>
+                </li>;
+              })}
+            </ul>
+          )}
+          <form className="inventory-form" onSubmit={(event) => { event.preventDefault(); void saveEquipment(equipmentName); }}>
+            <label htmlFor="inventory-name">{t('inventory.name')}</label>
+            <div>
+              <input id="inventory-name" type="text" value={equipmentName} maxLength={80}
+                onChange={(event) => setEquipmentName(event.target.value)} />
+              <button className="btn" type="submit" disabled={!settings || savingEquipment || !equipmentName.trim()}>{t('inventory.add')}</button>
+            </div>
+          </form>
           <label className="catalog-check"><input type="checkbox" checked={onlyMyEquipment} onChange={(event) => {
             setOnlyMyEquipment(event.target.checked);
             resetPaging();
           }} />{t("ui.applyMyEquipment")}</label>
           <p className="hint">{t("ui.bodyWeightIncluded")}</p>
-          {equipmentError && <p className="feedback error" role="alert">{t("ui.equipmentSaveError")}</p>}
+          {equipmentError && <p className="feedback error" role="alert">{equipmentError}</p>}
         </details>
         <label className="catalog-check catalog-illustrated"><input type="checkbox" checked={onlyIllustrated} onChange={(event) => {
           setOnlyIllustrated(event.target.checked);
@@ -365,8 +364,8 @@ export function Exercicios() {
         {/* Contador */}
         {filtered.length > 0 && (
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
-            {filtered.length} exercício{filtered.length !== 1 ? 's' : ''}
-            {hasMore ? ` — mostrando ${visibleCount}` : ''}
+            {t('ui.exercisesTotal', [filtered.length, filtered.length !== 1 ? 's' : ''])}
+            {hasMore ? t('ex.showing', [visibleCount]) : ''}
           </p>
         )}
 

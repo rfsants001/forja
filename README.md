@@ -108,21 +108,15 @@ Você precisa de **Git**, **Node.js 24** e **pnpm 10.34.9** ou **12.16.1**. Para
 git clone https://github.com/rfsants001/forja.git
 cd forja
 pnpm install --frozen-lockfile
-pnpm dev
+npm start
 ```
 
-Abra **http://localhost:5577**. Em **Hoje**, selecione **Começar com um plano** para preparar o primeiro treino.
+Abra **http://localhost:5577**. Em **Hoje**, selecione **Começar com um plano** para preparar o primeiro treino. Para desenvolver com recarga automática, use `npm run dev` no lugar de `npm start`. Os dois comandos abrem o app com a API do Assistente.
 
 ## Instalar como app
 
-Para testar instalação e modo offline, use o build de produção.
+Rode `npm start` e abra **http://localhost:5577**. O comando gera o build e sobe o servidor. Após carregar o app, use **Instalar aplicativo** ou **Adicionar à Tela de Início** no navegador. Em outro dispositivo, sirva a instalação por HTTPS.
 
-```sh
-pnpm build
-pnpm --filter @forja/web preview --host 127.0.0.1 --port 4173 --strictPort
-```
-
-Abra **http://127.0.0.1:4173** e aguarde o carregamento inicial. No navegador compatível, use **Instalar aplicativo** ou **Adicionar à Tela de Início**. Em outro dispositivo, sirva o build por HTTPS para habilitar a PWA.
 
 ## Sincronizar PC e celular
 
@@ -155,15 +149,30 @@ Se você já usava a Forja em outro endereço, exporte um backup JSON de lá e i
 
 Para copiar a instalação inteira, pare o servidor e copie a pasta de dados, incluindo a chave do dono e os arquivos do SQLite. Guarde a cópia em local privado. Restaure com o servidor parado e confira o vínculo dos aparelhos ao voltar. A janela de revisão usa o fuso de `FORJA_TIME_ZONE` ou o fuso do host.
 
-## Assistente local
+<a name="assistente-local"></a>
 
-O Assistente usa a API da instalação self-hosted. Rode `pnpm build` e `pnpm self-host`, abra **http://127.0.0.1:8787** e identifique-se como dono ou pareie o aparelho em **Perfil → Dispositivos**. `npm run dev` e `pnpm dev` abrem a interface de desenvolvimento na porta 5577. Se seus treinos estão no endereço de desenvolvimento, exporte um backup em **Perfil → Seus dados** e importe no endereço self-hosted.
+## Assistente de treino
 
-Com o Ollama e um modelo local instalados no host, abra **Perfil → Assistente de treino**. Use **Atualizar modelos**, teste o modelo e confira o período e os dados que serão usados antes de gerar uma revisão. O endpoint padrão é `http://127.0.0.1:11434`. Use `FORJA_OLLAMA_URL` se a instância estiver em outro endereço administrado por você.
+Com a Forja aberta por `npm start` ou `npm run dev`, vá a **Perfil → Conexões de IA**. O Assistente funciona no computador que roda o servidor. **Dispositivos** cuida do sync e do acesso remoto.
 
-A revisão usa agregados da semana e pode propor trocar um exercício por outro da biblioteca com o mesmo grupo principal e modalidade, conforme o equipamento selecionado em **Exercícios → Meus equipamentos**. Compare a rotina atual com a proposta antes de aplicar. É possível desfazer enquanto a rotina continuar na versão aplicada.
+- **Ollama.** Deixe o Ollama aberto com um modelo instalado. Selecione **Verificar Ollama**, escolha o modelo e clique em **Usar no Assistente**. A Forja detecta o serviço local em `http://127.0.0.1:11434`. O administrador pode usar `FORJA_OLLAMA_URL` para um endpoint alternativo.
+- **Codex CLI.** No Linux com Codex CLI oficial e Bubblewrap instalados, clique em **Conectar ChatGPT** e abra o login da OpenAI que a Forja mostrar. Quando o login aparecer como reconhecido, use **Usar no Assistente**. O modo com código de dispositivo é uma alternativa quando habilitada na conta. [Autenticação do Codex](https://learn.chatgpt.com/docs/auth).
+- **Claude Code.** O card informa a disponibilidade. A Anthropic restringe o uso de credenciais de assinatura por aplicativos de terceiros. [Política da Anthropic](https://code.claude.com/docs/en/legal-and-compliance#authentication-and-credential-use).
 
-Para a prova opcional do Codex CLI, use um login oficial dedicado em Linux com Bubblewrap e execute `pnpm self-host:codex-probe` com `FORJA_CODEX_HOME` e `FORJA_CODEX_BINARY` apontando para esse perfil e o binário oficial. A prova envia um prompt sintético e valida uma resposta JSON. [Modo não interativo do Codex](https://learn.chatgpt.com/docs/non-interactive-mode).
+<a name="montar-um-treino-com-codex-por-assinatura"></a>
+
+### Montar um treino
+
+Abra **Treinos → Montar treino com IA**. Informe o local, o objetivo, o foco e a duração total da sessão. O coach propõe séries, repetições e descanso. A Forja confere a duração estimada, a ordem dos exercícios e a adequação ao objetivo antes de mostrar o resultado. A seção **Como a Forja montou este treino** explica a progressão e a base das escolhas. [Posição da ACSM sobre treino resistido](https://acsm.org/resistance-training-guidelines-update-2026/).
+
+Em **Usar treino anterior como referência**, escolha uma sessão do Histórico ou abra um CSV de Hevy, Strong ou FitNotes, um backup JSON ou um plano JSON da Forja. A prévia mostra até 40 sessões ou rotinas para escolher. O arquivo é lido no navegador. Ao gerar, a IA recebe somente o resumo selecionado, com exercícios, séries, reps e carga quando disponível. Para gravar o arquivo no Histórico, use **Perfil → Importar de outro app**.
+
+Em casa, os exercícios respeitam o seu inventário e incluem opções com peso corporal. Na academia, a prévia mostra substituições por outra resistência quando a biblioteca tem uma variação da mesma família, como crucifixo com halter, máquina ou cabo. As alternativas são registradas nas notas da rotina após confirmar o salvamento.
+
+Em **Exercícios → Meus equipamentos**, digite os nomes dos itens que você tem. Os exercícios personalizados entram no filtro quando usam o mesmo nome de equipamento. Na revisão semanal, a Forja envia apenas os agregados e as opções de troca da prévia. A revisão exige confirmação para alterar uma rotina e permite desfazer enquanto a versão aplicada for a atual.
+
+O login fica no perfil dedicado do Codex no host. O servidor usa o provedor e o modelo escolhidos na tela. Instalações avançadas ainda podem indicar caminhos absolutos por `FORJA_CODEX_BINARY` e `FORJA_CODEX_HOME`. Use `pnpm self-host:codex-probe` para testar o perfil dedicado com dados fictícios.
+
 
 ## Seus dados
 

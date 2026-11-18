@@ -55,9 +55,9 @@ export function Home() {
   const routine = dashboard?.todayRoutine;
   const hasToday = !!routine?.exercises.length;
   const firstVisit = dashboard !== undefined && !dashboard.ready;
-  const title = active !== null ? active.routineName ?? 'Treino em andamento'
-    : hasToday ? routine.name : firstVisit ? 'Monte seu primeiro treino'
-    : dashboard ? 'Dia livre' : 'Treino de hoje';
+  const title = active !== null ? active.routineName ?? t('home.ongoing')
+    : hasToday ? routine.name : firstVisit ? t('home.buildFirst')
+    : dashboard ? t('home.freeDay') : t('home.today');
   const completedDays = dashboard?.week.filter((day) => day.completed).length ?? 0;
   const date = fromISO(today);
 
@@ -83,7 +83,7 @@ export function Home() {
             <p>{t("ui.chooseFirst")}</p>
           ) : dashboard ? (
             <p>{dashboard.next?.routine
-              ? `Próximo treino: ${dashboard.next.routine.name} · ${dateShort.format(fromISO(dashboard.next.date))}`
+              ? t('home.nextWorkout', [dashboard.next.routine.name, dateShort.format(fromISO(dashboard.next.date))])
               : t("ui.noScheduled")}</p>
           ) : (
             <p role="status">{t("ui.agendaLoading")}</p>

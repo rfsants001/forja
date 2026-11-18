@@ -6,7 +6,7 @@ O servidor em `apps/server` usa módulos HTTP e SQLite do Node.js 24. A PWA e a 
 
 Dexie grava as mudanças e a fila juntas em `db/sync-write.ts`. O cliente mantém a versão conhecida por entidade, preserva escritas locais ao receber mudanças e confirma o cursor junto à aplicação dos dados. O servidor compara a versão de base e persiste a operação, os marcadores de exclusão e o feed em uma transação SQLite. O feed preserva os limites de cada lote. As rotinas excluídas liberam a agenda correspondente e preservam o nome histórico.
 
-A revisão aplica a troca no repositório local por comparação da rotina atual com a versão exibida. A alteração entra na fila de sync e o registro de desfazer fica no aparelho. O Codex CLI tem uma prova de terminal separada com dados sintéticos e saída estruturada. [Instalação e backups](../../../README.md#sincronizar-pc-e-celular).
+A revisão aplica a troca no repositório local por comparação da rotina atual com a versão exibida. A alteração entra na fila de sync e o registro de desfazer fica no aparelho. O Assistente usa Ollama ou Codex CLI. A rota de montagem envia objetivo, foco, tempo e exercícios elegíveis. A saída validada se torna uma rotina no Dexie apenas após a confirmação. O Codex CLI mantém uma prova de terminal com dados sintéticos. [SDD dos provedores](../coach-ai-provider/design.md). [Instalação e backups](../../../README.md#sincronizar-pc-e-celular).
 
 ## Componentes e fronteiras
 

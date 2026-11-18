@@ -2,10 +2,13 @@
   "name": "forja",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Forja — tracker de treino local-first, gamificado, dono dos seus dados. Melhor que o openGym.",
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @forja/web dev",
+    "prestart": "pnpm --filter @forja/web build",
+    "start": "node apps/server/src/index.mjs --local",
     "build": "pnpm -r build",
     "test": "pnpm --filter @forja/core test && pnpm --filter @forja/server test",
     "typecheck": "pnpm -r typecheck",
@@ -15,7 +18,7 @@
     "self-host:codex-probe": "node apps/server/src/codex-probe.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

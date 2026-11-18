@@ -1,7 +1,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { createServer } from 'node:http';
+import { createServer, request } from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -22,7 +22,14 @@ const fakeOllama = createServer(async (incoming, response) => {
   for await (const chunk of incoming) input += chunk;
   const { messages } = JSON.parse(input);
   assert(!input.includes('nota da sessão'));
-  const { candidates } = JSON.parse(messages[1].content);
+  const { candidates, exercises } = JSON.parse(messages[1].content);
+  if (exercises) {
+    response.end(JSON.stringify({ message: { content: JSON.stringify({
+      name: 'Treino de teste', summary: 'Três exercícios',
+      exercises: exercises.slice(0, 3).map(({ id }) => ({ exerciseId: id, sets: 3, reps: 8, restSec: 75 })),
+    }) } }));
+    return;
+  }
   const suggestions = candidates?.length ? [
     { ...candidates[0], kind: 'replaceExercise', reason: 'Fixture' },
     { ...candidates[0], toId: 'invalid', kind: 'replaceExercise', reason: 'Fixture invalid' },
@@ -53,6 +60,29 @@ function client() {
     return { status: response.status, ...await response.json() };
   };
 }
+
+test('local engine management works without pairing while sync and foreign origins stay protected', async () => {
+  function call(path, method = 'GET', originHeader = origin) {
+    return new Promise((resolve, reject) => {
+      const payload = method === 'POST' ? JSON.stringify({ id: 'ollama', model: 'fixture:1' }) : undefined;
+      const req = request(base + path, {
+        method, headers: { Host: '127.0.0.1', Origin: originHeader, 'Content-Type': 'application/json',
+          ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {}) },
+      }, (res) => {
+        let body = '';
+        res.setEncoding('utf8').on('data', (part) => { body += part; });
+        res.on('end', () => resolve({ status: res.statusCode, ...JSON.parse(body) }));
+      });
+      req.on('error', reject);
+      req.end(payload);
+    });
+  }
+  assert.equal((await call('/coach/engines')).canManage, true);
+  assert.equal((await call('/sync/changes')).status, 401);
+  assert.equal((await call('/coach/engines/selection', 'POST', 'https://other.invalid')).status, 403);
+  assert.equal((await call('/coach/engines/selection', 'POST')).model, 'fixture:1');
+  assert.equal((await call('/coach/providers')).selectedModel, 'fixture:1');
+});
 
 const category = { id: 'cat', name: 'Força', slug: 'forca', color: '#123456', order: 0, createdAt: 0, updatedAt: 0 };
 const routine = { id: 'rot', name: 'Superior', categoryId: 'cat', exercises: [], createdAt: 0, updatedAt: 0 };
@@ -122,6 +152,12 @@ test('pair, retry an offline workout, handle concurrent edits and deletes, and r
     candidates: [{ routineId: 'rot', index: 0, fromId: 'supino', toId: 'supino-halter', fromName: 'Supino', toName: 'Supino halter' }],
   });
   assert.equal(review.suggestions.length, 1);
+  const plan = await mobile('/coach/plans', 'POST', {
+    model: 'fixture:1', goal: 'general', focus: 'full', minutes: 40,
+    exercises: ['a', 'b', 'c'].map((id) => ({ id, name: 'Exercício ' + id, muscle: 'quads' })),
+  });
+  assert.equal(plan.status, 200);
+  assert.deepEqual(plan.exercises.map(({ exerciseId }) => exerciseId), ['a', 'b', 'c']);
   assert.equal(review.suggestions[0].toId, 'supino-halter');
   await desktop('/devices/' + linked.device.id, 'DELETE');
   assert.equal((await mobile('/sync/changes')).error, 'DEVICE_REVOKED');

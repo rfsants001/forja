@@ -538,6 +538,51 @@ const messages: Record<Lang, Record<string, string>> = {
     'equip.machine':       'Máquina',
     'equip.bodyweight':    'Peso corporal',
     'equip.band':          'Elástico',
+    'equip.pullupBar':     'Barra fixa',
+    'equip.kettlebell':    'Kettlebell',
+    'equip.bench':         'Banco',
+
+    // Métricas de série (edição de histórico)
+    'metric.reps':         'Repetições',
+    'metric.weightKg':     'Carga (kg)',
+    'metric.sec':          'Tempo (s)',
+    'metric.distanceM':    'Distância (m)',
+    'metric.speedKmh':     'Velocidade (km/h)',
+
+    // Fluxos secundários
+    'nav.homeAria':        'Forja · início',
+    'home.nextWorkout':    'Próximo treino: {0} · {1}',
+    'sp.preservedDays':    '{0} dia(s) ocupados foram mantidos.',
+    'perf.importBodyweight': ', {0} registro(s) de peso',
+    'perf.importDuplicates': ', {0} treino(s) já presente(s)',
+    'tr.planDeleted':      'Plano excluído.',
+    'tr.routineDeleted':   'Rotina excluída.',
+    'tr.weekdayAria':      'Treino de {0}',
+    'progress.exerciseFallback': 'Exercício {0}',
+    'ui.backupExported':   'Backup exportado com sucesso!',
+    'ui.planExported':     'Plano exportado com sucesso!',
+    'ui.routinesCreated':  '{0} rotina(s) criada(s) com sucesso!',
+    'ui.routineNeedsExercise': 'Adicione um exercício para salvar a rotina.',
+    'ui.routineNeedsTM':   'Confira as séries e preencha o máximo de treino dos exercícios em 5/3/1.',
+    'ui.starterUnavailable': 'Plano pronto indisponível.',
+    'ui.planGotNewRoutines': 'O plano recebeu novas rotinas. Revise a lista e confirme novamente.',
+    'ui.workoutGone':      'Este treino não está mais no histórico.',
+    'home.buildFirst':     'Monte seu primeiro treino',
+    'home.freeDay':        'Dia livre',
+    'tr.editAria':         'Editar {0}',
+    'tr.trainNowAria':     'Treinar agora · {0}',
+    'tr.continueAria':     'Continuar · {0}',
+    'tr.deleteRoutineAria': 'Excluir rotina · {0}',
+    'tr.deletePlanAria':   'Excluir plano · {0}',
+    'tg.rirRow':           '{0} — RIR (repetições na reserva)',
+    'tg.removeWarmup':     'Remover aquecimento {0}',
+    'prof.deleteWeight':   'Excluir registro de {0}',
+    're.noHistoryTM':      'Nenhum histórico encontrado para este exercício. Informe o TM manualmente.',
+    're.groupSuperset':    'Agrupar em superset',
+    're.selectTwo':        'Selecione ao menos 2 exercícios',
+    'period.all':          'Tudo',
+    'unit.sets':           'séries',
+    'perf.planImported':   'Plano importado: {0} categoria(s), {1} rotina(s), {2} dia(s) atualizado(s).',
 
     // Perfil
     'perf.title':              'Per',
@@ -1201,6 +1246,51 @@ const messages: Record<Lang, Record<string, string>> = {
     'equip.machine':       'Machine',
     'equip.bodyweight':    'Bodyweight',
     'equip.band':          'Resistance band',
+    'equip.pullupBar':     'Pull-up bar',
+    'equip.kettlebell':    'Kettlebell',
+    'equip.bench':         'Bench',
+
+    // Set metrics (history editing)
+    'metric.reps':         'Reps',
+    'metric.weightKg':     'Load (kg)',
+    'metric.sec':          'Time (s)',
+    'metric.distanceM':    'Distance (m)',
+    'metric.speedKmh':     'Speed (km/h)',
+
+    // Secondary flows
+    'nav.homeAria':        'Forja · home',
+    'home.nextWorkout':    'Next workout: {0} · {1}',
+    'sp.preservedDays':    '{0} scheduled day(s) were kept.',
+    'perf.importBodyweight': ', {0} bodyweight record(s)',
+    'perf.importDuplicates': ', {0} workout(s) already present',
+    'tr.planDeleted':      'Plan deleted.',
+    'tr.routineDeleted':   'Routine deleted.',
+    'tr.weekdayAria':      '{0} workout',
+    'progress.exerciseFallback': 'Exercise {0}',
+    'ui.backupExported':   'Backup exported successfully!',
+    'ui.planExported':     'Plan exported successfully!',
+    'ui.routinesCreated':  '{0} routine(s) created successfully!',
+    'ui.routineNeedsExercise': 'Add an exercise to save the routine.',
+    'ui.routineNeedsTM':   'Check the sets and fill in the training max for 5/3/1 exercises.',
+    'ui.starterUnavailable': 'Starter plan unavailable.',
+    'ui.planGotNewRoutines': 'The plan received new routines. Review the list and confirm again.',
+    'ui.workoutGone':      'This workout is no longer in your history.',
+    'home.buildFirst':     'Build your first workout',
+    'home.freeDay':        'Free day',
+    'tr.editAria':         'Edit {0}',
+    'tr.trainNowAria':     'Train now · {0}',
+    'tr.continueAria':     'Continue · {0}',
+    'tr.deleteRoutineAria': 'Delete routine · {0}',
+    'tr.deletePlanAria':   'Delete plan · {0}',
+    'tg.rirRow':           '{0} — RIR (reps in reserve)',
+    'tg.removeWarmup':     'Remove warm-up {0}',
+    'prof.deleteWeight':   'Delete entry from {0}',
+    're.noHistoryTM':      'No history found for this exercise. Enter the TM manually.',
+    're.groupSuperset':    'Group into superset',
+    're.selectTwo':        'Select at least 2 exercises',
+    'period.all':          'All',
+    'unit.sets':           'sets',
+    'perf.planImported':   'Plan imported: {0} category(ies), {1} routine(s), {2} day(s) updated.',
 
     // Perfil
     'perf.title':              'Pro',
@@ -1378,9 +1468,12 @@ export function t(key: string, lang: Lang, params?: (string | number)[]): string
  * Hook que lê `Settings.lang` via useLiveQuery e devolve uma função
  * `t(key, params?)` já amarrada no idioma atual. Padrão: 'pt'.
  */
-export function useT(): (key: string, params?: (string | number)[]) => string {
+export function useLang(): Lang {
   const settings = useLiveQuery(() => db.settings.get('app'), []);
-  const lang: Lang = (settings?.lang as Lang | undefined) ?? 'pt';
+  return settings?.lang ?? 'pt';
+}
 
+export function useT(): (key: string, params?: (string | number)[]) => string {
+  const lang = useLang();
   return useCallback((key: string, params?: (string | number)[]) => t(key, lang, params), [lang]);
 }

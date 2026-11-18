@@ -13,6 +13,8 @@ import type { RoutineExercise, Weekday } from '@forja/core';
 import { db } from '../db/db';
 import { upsertCategory, upsertExercise, upsertRoutine, setWeekday } from '../db/repo';
 import { loadExerciseDataset } from './exercise-dataset';
+import type { Lang } from './i18n';
+import { UiError } from './ui-error';
 import { normalizeExName } from './normalize';
 
 // ---------------------------------------------------------------------------
@@ -71,21 +73,30 @@ export interface ApplyResult {
 // Definição dos planos
 // ---------------------------------------------------------------------------
 
-export const STARTER_PLANS: StarterPlan[] = [
+type Localized = string | { pt: string; en: string };
+type SeedExercise = Omit<PlanExercise, 'note'> & { note?: Localized };
+type SeedRoutine = Omit<PlanRoutine, 'name' | 'note' | 'exercises'> & {
+  name: Localized; note?: Localized; exercises: SeedExercise[];
+};
+type SeedPlan = Omit<StarterPlan, 'name' | 'description' | 'routines'> & {
+  name: Localized; description: Localized; routines: SeedRoutine[];
+};
+
+const STARTER_PLANS: SeedPlan[] = [
   // -------------------------------------------------------------------------
   // 1. Full Body 3×/semana — iniciante, seg/qua/sex
   // -------------------------------------------------------------------------
   {
     id: 'fullbody-3x',
     name: 'Full Body 3×',
-    description: 'Treino completo 3 vezes por semana. Ideal para iniciantes: compostos principais + assistência básica.',
+    description: { pt: 'Treino completo 3 vezes por semana. Ideal para iniciantes: compostos principais + assistência básica.', en: 'A three-day full-body plan for beginners, with compound lifts and basic accessories.' },
     weekdays: [1, 3, 5], // seg, qua, sex
     color: '#4ade80',
     icon: 'Dumbbell',
     routines: [
       {
         name: 'Full Body',
-        note: 'Mesmo treino nas 3 sessões semanais',
+        note: { pt: 'Mesmo treino nas 3 sessões semanais', en: 'Repeat this workout in all three weekly sessions.' },
         exercises: [
           {
             canonicalName: 'barbell full squat',
@@ -128,7 +139,7 @@ export const STARTER_PLANS: StarterPlan[] = [
             targetReps: '5–8',
             restSec: 90,
             progression: 'off',
-            note: 'Assistido se necessário',
+            note: { pt: 'Assistido se necessário', en: 'Use assistance if needed.' },
           },
         ],
       },
@@ -141,14 +152,14 @@ export const STARTER_PLANS: StarterPlan[] = [
   {
     id: 'upper-lower-4x',
     name: 'Upper / Lower 4×',
-    description: 'Divisão superior/inferior 4 vezes por semana. Upper A e B alternam foco em força e hipertrofia.',
+    description: { pt: 'Divisão superior/inferior 4 vezes por semana. Upper A e B alternam foco em força e hipertrofia.', en: 'A four-day upper/lower split that alternates strength and muscle-building sessions.' },
     weekdays: [1, 2, 4, 5], // seg, ter, qui, sex
     color: '#60a5fa',
     icon: 'Zap',
     routines: [
       {
         name: 'Upper A',
-        note: 'Foco em força — repetições mais baixas',
+        note: { pt: 'Foco em força — repetições mais baixas', en: 'Strength focus with lower reps.' },
         exercises: [
           {
             canonicalName: 'barbell bench press',
@@ -196,7 +207,7 @@ export const STARTER_PLANS: StarterPlan[] = [
       },
       {
         name: 'Lower A',
-        note: 'Foco em força — agachamento pesado',
+        note: { pt: 'Foco em força — agachamento pesado', en: 'Strength focus with heavier squats.' },
         exercises: [
           {
             canonicalName: 'barbell full squat',
@@ -237,7 +248,7 @@ export const STARTER_PLANS: StarterPlan[] = [
       },
       {
         name: 'Upper B',
-        note: 'Foco em hipertrofia — mais volume',
+        note: { pt: 'Foco em hipertrofia — mais volume', en: 'Muscle-building focus with more volume.' },
         exercises: [
           {
             canonicalName: 'barbell incline bench press',
@@ -285,7 +296,7 @@ export const STARTER_PLANS: StarterPlan[] = [
       },
       {
         name: 'Lower B',
-        note: 'Foco em hipertrofia — volume e isolados',
+        note: { pt: 'Foco em hipertrofia — volume e isolados', en: 'Muscle-building focus with more volume and isolation work.' },
         exercises: [
           {
             canonicalName: 'barbell romanian deadlift',
@@ -333,14 +344,14 @@ export const STARTER_PLANS: StarterPlan[] = [
   {
     id: 'stronglifts-5x5',
     name: '5×5 (StrongLifts)',
-    description: 'Força linear clássica. Segunda e sexta: Treino A. Quarta: Treino B. Adiciona 2,5 kg por sessão nos compostos.',
+    description: { pt: 'Força linear clássica. Segunda e sexta: Treino A. Quarta: Treino B. Adiciona 2,5 kg por sessão nos compostos.', en: 'Classic linear strength plan. Workout A on Monday and Friday, workout B on Wednesday. Adds 2.5 kg per session on compound lifts.' },
     weekdays: [1, 3, 5], // seg, qua, sex
     color: '#f97316',
     icon: 'TrendingUp',
     routines: [
       {
-        name: 'Treino A — 5×5',
-        note: 'Agachamento + Supino + Remada (alternar com Treino B)',
+        name: { pt: 'Treino A — 5×5', en: 'Workout A — 5×5' },
+        note: { pt: 'Agachamento + Supino + Remada (alternar com Treino B)', en: 'Squat, bench press and row. Alternate with workout B.' },
         exercises: [
           {
             canonicalName: 'barbell full squat',
@@ -349,7 +360,7 @@ export const STARTER_PLANS: StarterPlan[] = [
             restSec: 180,
             progression: 'linear',
             incrementKg: 2.5,
-            note: 'Aumentar 2,5 kg a cada sessão bem-sucedida',
+            note: { pt: 'Aumentar 2,5 kg a cada sessão bem-sucedida', en: 'Add 2.5 kg after each successful session.' },
           },
           {
             canonicalName: 'barbell bench press',
@@ -358,7 +369,7 @@ export const STARTER_PLANS: StarterPlan[] = [
             restSec: 180,
             progression: 'linear',
             incrementKg: 2.5,
-            note: 'Supino — alternar com Desenvolvimento no Treino B',
+            note: { pt: 'Supino — alternar com Desenvolvimento no Treino B', en: 'Alternate bench press with the overhead press in workout B.' },
           },
           {
             canonicalName: 'barbell bent over row',
@@ -367,13 +378,13 @@ export const STARTER_PLANS: StarterPlan[] = [
             restSec: 180,
             progression: 'linear',
             incrementKg: 2.5,
-            note: 'Remada curvada com barra',
+            note: { pt: 'Remada curvada com barra', en: 'Barbell bent-over row.' },
           },
         ],
       },
       {
-        name: 'Treino B — 5×5',
-        note: 'Agachamento + Desenvolvimento + Levantamento Terra (alternar com Treino A)',
+        name: { pt: 'Treino B — 5×5', en: 'Workout B — 5×5' },
+        note: { pt: 'Agachamento + Desenvolvimento + Levantamento Terra (alternar com Treino A)', en: 'Squat, overhead press and deadlift. Alternate with workout A.' },
         exercises: [
           {
             canonicalName: 'barbell full squat',
@@ -382,7 +393,7 @@ export const STARTER_PLANS: StarterPlan[] = [
             restSec: 180,
             progression: 'linear',
             incrementKg: 2.5,
-            note: 'Sempre em toda sessão — base do StrongLifts',
+            note: { pt: 'Sempre em toda sessão — base do StrongLifts', en: 'Squat in every session as the foundation of StrongLifts.' },
           },
           {
             canonicalName: 'barbell seated overhead press',
@@ -391,7 +402,7 @@ export const STARTER_PLANS: StarterPlan[] = [
             restSec: 180,
             progression: 'linear',
             incrementKg: 1.25,
-            note: 'Desenvolvimento — alternado com Supino no Treino A',
+            note: { pt: 'Desenvolvimento — alternado com Supino no Treino A', en: 'Alternate overhead press with the bench press in workout A.' },
           },
           {
             canonicalName: 'barbell deadlift',
@@ -400,7 +411,7 @@ export const STARTER_PLANS: StarterPlan[] = [
             restSec: 240,
             progression: 'linear',
             incrementKg: 5,
-            note: 'Terra — 1 série pesada; incremento de 5 kg por sessão',
+            note: { pt: 'Terra — 1 série pesada; incremento de 5 kg por sessão', en: 'One heavy deadlift set. Add 5 kg per session.' },
           },
         ],
       },
@@ -408,13 +419,13 @@ export const STARTER_PLANS: StarterPlan[] = [
   },
   {
     id: 'fullbody-home',
-    name: 'Força em casa · 3×',
-    description: 'Halteres ajustáveis, barra fixa e peso corporal. Sem banco ou máquinas.',
+    name: { pt: 'Força em casa · 3×', en: 'Strength at home · 3×' },
+    description: { pt: 'Halteres ajustáveis, barra fixa e peso corporal. Sem banco ou máquinas.', en: 'Uses adjustable dumbbells, a pull-up bar and bodyweight. No bench or machines required.' },
     weekdays: [1, 3, 5],
     color: '#53bba3',
     icon: 'activity',
     routines: [{
-      name: 'Força em casa',
+      name: { pt: 'Força em casa', en: 'Strength at home' },
       exercises: [
         { canonicalName: 'Afundo com Halter', sets: 3, targetReps: '8–12', restSec: 90, progression: 'double' },
         { canonicalName: 'Flexão (Pompe)', sets: 3, targetReps: '8–12', restSec: 75, progression: 'off' },
@@ -426,12 +437,30 @@ export const STARTER_PLANS: StarterPlan[] = [
   },
 ];
 
-export async function applyStarterPlan(planId: string, replaceDays = false): Promise<ApplyResult> {
-  const plan = STARTER_PLANS.find((item) => item.id === planId);
-  if (plan === undefined) throw new Error('Plano inicial indisponível.');
+const localized = (value: Localized, lang: Lang) => typeof value === 'string' ? value : value[lang];
+const optionalNote = (value: Localized | undefined, lang: Lang) => value === undefined ? undefined : localized(value, lang);
 
-  const bundled = plan.id === 'fullbody-home' ? [] : await loadExerciseDataset();
-  return syncWrite(['categories', 'routines', 'weekPlan', 'exercises'], async () => {
+function localizePlan(plan: SeedPlan, lang: Lang): StarterPlan {
+  return {
+    ...plan, name: localized(plan.name, lang), description: localized(plan.description, lang),
+    routines: plan.routines.map((routine) => ({
+      name: localized(routine.name, lang), note: optionalNote(routine.note, lang),
+      exercises: routine.exercises.map((exercise) => ({ ...exercise, note: optionalNote(exercise.note, lang) })),
+    })),
+  };
+}
+
+export function starterPlans(lang: Lang): StarterPlan[] {
+  return STARTER_PLANS.map((plan) => localizePlan(plan, lang));
+}
+
+export async function applyStarterPlan(planId: string, replaceDays = false): Promise<ApplyResult> {
+  const seed = STARTER_PLANS.find((item) => item.id === planId);
+  if (seed === undefined) throw new UiError('ui.starterUnavailable');
+
+  const bundled = seed.id === 'fullbody-home' ? [] : await loadExerciseDataset();
+  return syncWrite(['categories', 'routines', 'weekPlan', 'exercises', 'settings'], async () => {
+    const plan = localizePlan(seed, (await db.settings.get('app'))?.lang ?? 'pt');
     const catalog = await db.exercises.toArray();
     const byName = new Map(bundled.map((exercise) => [normalizeExName(exercise.name), exercise]));
     for (const exercise of catalog) byName.set(normalizeExName(exercise.name), exercise);
@@ -446,7 +475,7 @@ export async function applyStarterPlan(planId: string, replaceDays = false): Pro
     const unresolved = [...new Set(routines.flatMap((routine) => routine.exercises
       .filter((entry) => entry.exercise === undefined).map((entry) => entry.config.canonicalName)))];
     if (unresolved.length > 0) {
-      throw new Error(`O catálogo ainda não contém: ${unresolved.join(', ')}. Tente novamente após carregar a biblioteca.`);
+      throw new UiError('ui.starterMissingExercises', [unresolved.join(', ')]);
     }
 
     const slug = `starter-${plan.id}`;
@@ -461,7 +490,9 @@ export async function applyStarterPlan(planId: string, replaceDays = false): Pro
     let skipped = 0;
 
     for (const [order, routine] of routines.entries()) {
-      const existing = existingRoutines.find((item) => item.name === routine.name && item.exercises.length > 0);
+      const seedName = seed.routines[order]!.name;
+      const aliases = [localized(seedName, 'pt'), localized(seedName, 'en')];
+      const existing = existingRoutines.find((item) => aliases.includes(item.name) && item.exercises.length > 0);
       if (existing !== undefined) {
         skipped++;
         routineIds.push(existing.id);
@@ -469,7 +500,7 @@ export async function applyStarterPlan(planId: string, replaceDays = false): Pro
       }
       const exercises: RoutineExercise[] = [];
       for (const { config, exercise } of routine.exercises) {
-        if (exercise === undefined) throw new Error('Exercício não encontrado.');
+        if (exercise === undefined) throw new UiError('ui.starterMissingExercises', [config.canonicalName]);
         if (!knownIds.has(exercise.id)) {
           await upsertExercise(exercise);
           knownIds.add(exercise.id);

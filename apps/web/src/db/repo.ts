@@ -13,6 +13,7 @@
 
 import { db, uid } from './db';
 import { syncWrite } from './sync-write';
+import { UiError } from '../lib/ui-error';
 import {
   DEFAULT_SETTINGS,
 } from '@forja/core';
@@ -186,7 +187,7 @@ export async function upsertRoutine(
       }
     }
 
-    if (mustExist) throw new Error('Esta rotina já foi excluída.');
+    if (mustExist) throw new UiError('ui.routineGone');
 
     const routine: Routine = {
       id: data.id ?? uid('rot_'),
@@ -229,11 +230,11 @@ export async function deleteRoutine(id: string): Promise<void> {
 export async function deleteStarterPlan(categoryId: string, confirmedIds: string[]): Promise<void> {
   await syncWrite(['categories', 'routines', 'weekPlan', 'dayOverrides', 'workouts'], async () => {
     const category = await db.categories.get(categoryId);
-    if (!category?.slug.startsWith('starter-')) throw new Error('Plano pronto indisponível.');
+    if (!category?.slug.startsWith('starter-')) throw new UiError('ui.starterUnavailable');
     const routines = await db.routines.where('categoryId').equals(categoryId).toArray();
     const confirmed = new Set(confirmedIds);
     if (routines.some((routine) => !confirmed.has(routine.id))) {
-      throw new Error('O plano recebeu novas rotinas. Revise a lista e confirme novamente.');
+      throw new UiError('ui.planGotNewRoutines');
     }
     await removeRoutines(routines);
     await db.categories.delete(categoryId);
@@ -291,7 +292,7 @@ export async function getWeekPlan(): Promise<WeekPlan> {
  */
 export async function setWeekday(weekday: Weekday, routineId: string | null): Promise<void> {
   await syncWrite(['routines', 'weekPlan'], async () => {
-    if (routineId !== null && !(await db.routines.get(routineId))) throw new Error('Esta rotina já foi excluída.');
+    if (routineId !== null && !(await db.routines.get(routineId))) throw new UiError('ui.routineGone');
     await db.weekPlan.put({ weekday, routineId });
   });
 }
@@ -309,7 +310,7 @@ export async function setWeekday(weekday: Weekday, routineId: string | null): Pr
 export async function setDayOverride(dateISO: string, routine: string | 'rest' | null): Promise<void> {
   await syncWrite(['routines', 'dayOverrides'], async () => {
     if (routine !== null && routine !== 'rest' && !(await db.routines.get(routine))) {
-      throw new Error('Esta rotina já foi excluída.');
+      throw new UiError('ui.routineGone');
     }
     await db.dayOverrides.put({ dateISO, routine });
   });
@@ -341,7 +342,7 @@ export async function addWorkout(log: WorkoutLog): Promise<WorkoutLog> {
 /** Atualiza o realizado e preserva o alvo registrado no início da sessão. */
 export async function updateWorkoutEntries(id: string, entries: WorkoutLog['entries']): Promise<void> {
   const updated = await syncWrite(['workouts'], () => db.workouts.update(id, { entries, prs: undefined }));
-  if (updated === 0) throw new Error('Este treino não está mais no histórico.');
+  if (updated === 0) throw new UiError('ui.workoutGone');
 }
 
 /** Remove um workout pelo id. */

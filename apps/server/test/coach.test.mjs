@@ -1,0 +1,97 @@
+import assert from 'node:assert/strict';
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { test } from 'node:test';
+import { createCoach } from '../src/coach.mjs';
+import { codexCliProvider } from '../src/providers/codex-cli.mjs';
+import { resolveProvider } from '../src/providers/index.mjs';
+
+const example = {
+  model: 'default', goal: 'general', focus: 'full', minutes: 40, lang: 'en', notes: 'private',
+  exercises: ['a', 'b', 'c'].map((id) => ({ id, name: 'Fixture ' + id, muscle: 'quads', note: 'private' })),
+};
+const result = {
+  name: 'Sample workout', summary: 'Three movements',
+  exercises: example.exercises.map(({ id }) => ({ exerciseId: id, sets: 3, reps: 8, restSec: 60 })),
+};
+
+test('select an explicit provider; Ollama remains the default', () => {
+  assert.equal(resolveProvider({}).id, 'ollama');
+  assert.equal(resolveProvider({ FORJA_COACH_PROVIDER: 'codex-cli' }).id, 'codex-cli');
+  assert.throws(() => resolveProvider({ FORJA_COACH_PROVIDER: 'claude-cli' }), /ollama ou codex-cli/);
+});
+
+test('Codex CLI workout uses a private ChatGPT login and a bounded structured invocation', { skip: process.platform !== 'linux' }, async (t) => {
+  const home = await mkdtemp(join(tmpdir(), 'forja-coach-fixture-'));
+  t.after(() => rm(home, { force: true, recursive: true }));
+  const auth = join(home, 'auth.json');
+  let response = JSON.stringify(result);
+  let authenticated = true;
+  const provider = codexCliProvider({
+    binary: process.execPath, home,
+    run: async ({ argv, prompt, schema, signal }) => {
+      assert(argv.includes('forced_login_method="chatgpt"'));
+      if (argv.includes('status')) return authenticated ? 'Logged in using ChatGPT' : 'Logged in using an API key';
+      assert.equal(argv.at(-1), '-');
+      assert(argv.includes('read-only') && argv.includes('shell_tool') && argv.includes('--ephemeral'));
+      assert(!argv.some((arg) => arg.includes('Fixture a')));
+      assert(prompt.includes('English') && prompt.includes('Fixture a'));
+      assert(!prompt.includes('private'));
+      assert.equal(schema.required.includes('exercises'), true);
+      assert(signal instanceof AbortSignal);
+      return response;
+    },
+  });
+  assert.equal((await provider.listModels()).reason, 'CODEX_LOGIN_REQUIRED');
+  await writeFile(auth, '{}', { mode: 0o600 });
+  authenticated = false;
+  assert.equal((await provider.listModels()).reason, 'CODEX_LOGIN_REQUIRED');
+  authenticated = true;
+  const coach = createCoach(provider);
+  const signal = new AbortController().signal;
+  assert.deepEqual(await coach.plan(example, signal), result);
+  response = 'invalid';
+  await assert.rejects(coach.plan(example, signal), { code: 'INVALID_PROVIDER_RESPONSE' });
+  response = JSON.stringify({ ...result, exercises: [{ ...result.exercises[0], exerciseId: 'unknown' }, ...result.exercises.slice(1)] });
+  await assert.rejects(coach.plan(example, signal), { code: 'INVALID_PROVIDER_RESPONSE' });
+  response = JSON.stringify({ ...result, exercises: [result.exercises[0], result.exercises[0], result.exercises[1]] });
+  await assert.rejects(coach.plan(example, signal), { code: 'INVALID_PROVIDER_RESPONSE' });
+  await chmod(auth, 0o644);
+  assert.equal((await provider.listModels()).reason, 'CODEX_LOGIN_REQUIRED');
+});
+
+test('use a bounded previous workout summary and enforce the goal and duration', async () => {
+  const candidates = [
+    { id: 'fly', name: 'Dumbbell fly', muscle: 'chest', family: 'chest-fly', resistance: 'halter' },
+    { id: 'pec', name: 'Pec deck', muscle: 'chest', family: 'chest-fly', resistance: 'maquina' },
+    { id: 'cross', name: 'Cable crossover', muscle: 'chest', family: 'chest-fly', resistance: 'polia' },
+    { id: 'squat', name: 'Goblet squat', muscle: 'quads', family: 'squat', resistance: 'halter' },
+    { id: 'press', name: 'Bench press', muscle: 'chest', family: 'chest-press', resistance: 'barra' },
+  ];
+  const coach = createCoach({
+    id: 'fixture',
+    async listModels() { return { available: true, models: ['default'] }; },
+    async generate(model, system, input) {
+      assert.match(system, /ACSM 2026/);
+      assert.deepEqual(input.reference, { kind: 'logged', exercises: [{ name: 'Goblet squat', sets: 3, reps: '8–10', loadKg: 20 }] });
+      assert(!JSON.stringify(input).includes('private'));
+      return {
+        name: 'Sample', summary: 'Training session',
+        exercises: candidates.slice(0, 3).map(({ id }) => ({ exerciseId: id, sets: 5, reps: 20, restSec: 30 })),
+      };
+    },
+  });
+  const output = await coach.plan({
+    ...example, venue: 'gym', goal: 'strength', minutes: 15, exercises: candidates,
+    reference: { kind: 'logged', filename: 'private.csv', notes: 'private', exercises: [
+      { name: 'Goblet squat', sets: 3, reps: '8–10', loadKg: 20, note: 'private' },
+    ] },
+  });
+  assert(output.estimatedMinutes <= 15);
+  assert(output.exercises.every(({ sets, reps }) => sets <= 3 && reps <= 8));
+  assert.equal(output.exercises.filter(({ exerciseId }) => ['fly', 'pec', 'cross'].includes(exerciseId)).length, 1);
+  assert(output.exercises.some(({ exerciseId }) => exerciseId === 'squat'));
+  assert(output.exercises.some(({ exerciseId }) => exerciseId === 'press'));
+  assert.notEqual(output.exercises[0].exerciseId, 'fly');
+});

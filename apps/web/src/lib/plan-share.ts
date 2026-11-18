@@ -115,12 +115,7 @@ export interface PlanImportCounts {
   preservedDays: number;
 }
 
-/**
- * Importa um arquivo de plano no modo 'merge':
- * - Categorias e rotinas: upsert por id (preserva workouts e peso).
- * - Plano semanal: sobrescreve apenas os dias presentes no arquivo.
- */
-export async function importPlan(json: string, replaceDays = false): Promise<PlanImportCounts> {
+export function parsePlan(json: string) {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json) as unknown;
@@ -154,7 +149,11 @@ export async function importPlan(json: string, replaceDays = false): Promise<Pla
   const routines = file.routines as Routine[];
   const weekPlanRows = file.weekPlan as WeekPlanRow[];
   const exercises = rawExercises as Exercise[];
+  return { categories, routines, weekPlanRows, exercises };
+}
 
+export async function importPlan(json: string, replaceDays = false): Promise<PlanImportCounts> {
+  const { categories, routines, weekPlanRows, exercises } = parsePlan(json);
   return syncWrite(['categories', 'exercises', 'routines', 'weekPlan'], async () => {
     const allExerciseIds = new Set<string>([...await db.exercises.toCollection().primaryKeys(), ...exercises.map((ex) => ex.id)]);
     const categoryIds = new Set<string>([...await db.categories.toCollection().primaryKeys(), ...categories.map((cat) => cat.id)]);
