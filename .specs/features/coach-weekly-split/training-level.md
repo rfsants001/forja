@@ -31,3 +31,13 @@ Não usar família como identidade única: rosca direta, martelo e inversa são 
 `coach-catalog.ts` concentra elegibilidade, papéis diários e seleção. O modo casa prioriza esse repertório antes dos aliases do dataset e aceita até oito candidatos adicionais por músculo, dentro do teto de 60. Posterior de ombro usa a família `rear-delt-fly`, aceita em Puxar no cliente e na API; não liberar todo o grupo ombros nesse dia. Exercícios bilaterais com dois halteres respeitam a quantidade e o peso unitário registrados.
 
 O teste de regressão usa os helpers reais do frontend e o coach comum com halteres, barra W, barra fixa e anilhas. Validado também pelo navegador com o JSON externo e sem arquivo, selecionando explicitamente Em casa: seis dias com oito exercícios, 75 minutos por sessão, salvamento e reabertura; repetido com um único halter. Provedor simulado. Quando a cobertura ainda for insuficiente, a mensagem deve atribuir a limitação ao catálogo, sem afirmar que os equipamentos não permitem outras variações.
+
+
+## Reconhecimento do inventário e qualidade — 19/11/2026
+
+- Aceitar `barra de haltere` com notas entre parênteses como halter montável; habilitar com anilhas cadastradas. `suporte para flexão` é alias de apoio de flexão. Preservar texto, quantidades e pesos no registro.
+- Mostrar na lista de Meus equipamentos qual tipo o Assistente reconhece. Nomes personalizados continuam exigindo exercícios com requisitos compatíveis; não interpretar barra W como barra reta.
+- Não usar preparatórios (controle escapular, remada deitada sem carga ou elbow lift) para completar as metas de exercícios de trabalho. No avançado, excluir regressões simples. Peso corporal não é motivo para excluir barra fixa ou flexões exigentes.
+- Reutilizar o filtro puro na API para a regra não depender somente do prompt. Deduplicar aliases de barra fixa/pull-up independentemente da etiqueta de resistência usada pelo dataset.
+- No Puxar, assegurar remada e puxada vertical quando o inventário permitir, alternando a primeira prioridade A/B. O resumo usa os exercícios finais, pois a ordenação e complementação da Forja podem mudar a resposta do modelo.
+- Testar com a descrição real de handles e todos os pesos de anilhas, não apenas Halteres. A importação fiel e o histórico permanecem fora dessas regras de geração.

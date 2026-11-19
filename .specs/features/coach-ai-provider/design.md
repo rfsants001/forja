@@ -118,3 +118,8 @@ Criar com IA apresenta primeiro o seletor semanal, depois configurações apenas
 ### Cobertura doméstica e identidade de variação
 
 A elegibilidade e o recorte de candidatos são puros em `lib/coach-catalog.ts`, usados pela UI e pelos testes de regressão. A lista explícita `homeMovements` cobre variantes com halteres, barra W, barra fixa e anilhas sem inventar banco ou rack. A quantidade de halteres é conferida na seleção e no salvamento. Famílias de movimento não podem fundir pegadas e variantes distintas; aliases e simples mudança de carga/pausa permanecem equivalentes. Posterior de ombro pode compor Puxar por família específica, sem permitir desenvolvimento nesse dia. [Regressão e regras](../coach-weekly-split/training-level.md#regressão-de-casa--19112026).
+
+
+### Inventário livre e seleção de trabalho
+
+`equipmentKey` aceita handles de haltere com notas entre parênteses e suportes para flexão. A identificação não altera o nome salvo nem presume pesos montados. Handles precisam de anilhas para habilitar halteres. `isCoachWorkingExercise` é compartilhado por catálogo e API; preparatórios não contam como exercícios de trabalho e regressões simples não completam o avançado. Aliases de barra fixa usam uma identidade comum de resistência. Depois da ordenação/complementação, a API produz o resumo a partir da lista final, evitando reapresentar uma justificativa que descreva a ordem original do modelo.

@@ -1,5 +1,6 @@
 // Barrel do @forja/core — a API pública do domínio.
 export * from './types.js';
+export * from './coach-exercises.js';
 export * from './date.js';
 export * from './streak.js';
 export * from './onerm.js';

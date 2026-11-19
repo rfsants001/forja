@@ -7,7 +7,7 @@ Atualizado em 19/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [
 - Abertura durante inicialização local e introdução em quatro slides, com Pular, Voltar, navegação por etapa e checkbox persistente **Não mostrar a introdução novamente**. PT/EN, tema e movimento reduzido; preserva URL, sessão ativa e pareamento. [Aceite/SDD](../features/boas-vindas/spec.md).
 - Dias do Coach foram refeitos: controle comum de seleção com toque/teclado em Por split e Criar com IA; primeiro dias, depois cards apenas dos dias marcados. Upload mantém dias/tipos; Criar treino não herda automaticamente a primeira rotina do JSON.
 - Novo nível global: Iniciante 4, Intermediário 6, Avançado 8 exercícios de musculação por sessão. Presets de produto aplicados no servidor para qualquer provedor, incluindo A/B; cardio dedicado separado. Tempo é por sessão em todas as chamadas diárias. Falta de candidatos e duração incompatível têm erros traduzidos. Importar sem alterações preserva o plano. [PRD/TRD/SDD](../features/coach-weekly-split/training-level.md).
-- Gates: 138 testes core + 38 servidor, typecheck e build de produção. Verificação no navegador cobre a abertura, persistência, PT/EN, tema claro e movimento reduzido, upload e dias, geração por sessão e layout de 320 a 1366 px. Os quatro splits e seis dias personalizados Puxar/Empurrar/Pernas A/B foram gerados e salvos; no avançado, cada sessão teve oito exercícios e recebeu 75 minutos separadamente. Provedores simulados; os testes físicos abaixo continuam pendentes.
+- Gates: 142 testes core + 40 servidor, typecheck e build de produção. Verificação no navegador cobre a abertura, persistência, PT/EN, tema claro e movimento reduzido, upload e dias, geração por sessão e layout de 320 a 1366 px. Os quatro splits e seis dias personalizados Puxar/Empurrar/Pernas A/B foram gerados e salvos; no avançado, cada sessão teve oito exercícios e recebeu 75 minutos separadamente. Provedores simulados; os testes físicos abaixo continuam pendentes.
 
 ## Correção do catálogo de casa — 19/11/2026
 
@@ -16,6 +16,14 @@ A validação anterior dos seis dias avançados tinha usado academia e não cobr
 Verificado no navegador em Em casa, nível avançado, 75 minutos por sessão: seis dias Puxar/Empurrar/Pernas A/B, oito exercícios cada, com e sem JSON externo, salvamento e reabertura. Repetido com um único halter, respeitando a exclusão dos movimentos que pedem um par. Provedor simulado.
 
 A seleção pura agora fica em `lib/coach-catalog.ts`. O teste permanente `apps/server/test/home-coach.test.mjs` executa os mesmos filtros e seleção usados pela UI, com seed e inventário doméstico, e chama o coach comum com provedores simulados. Cobre 8 exercícios por sessão em Puxar/Empurrar/Pernas A/B, variação, aliases, quantidade de halteres e ausência de estruturas. As extensões `.ts` explícitas nesses helpers permitem o teste nativo com Node 24, sem adicionar dependências.
+
+## Inventário montável e exercícios de trabalho — 19/11/2026
+
+O cadastro real usava `barra de haltere (haltere customizado com anilhas)` e `suporte para flexão`. Esses nomes não eram aliases reconhecidos, então as opções com halteres e apoios ficavam fora dos candidatos. A normalização aceita os nomes, retira apenas as notas entre parênteses para identificar o tipo e preserva o nome original. Barras de haltere dependem de anilhas cadastradas para habilitar movimentos com halteres. A lista de equipamentos informa o tipo reconhecido pelo Assistente.
+
+O filtro de exercícios de trabalho é compartilhado entre UI e API em `packages/core/src/coach-exercises.ts`. Preparatórios como remada deitada sem carga, elbow lift e controle escapular não completam a quota; no avançado, regressões simples também não. Barra fixa e pull-up sem assistência são deduplicados mesmo quando o dataset usa peso corporal ou barra fixa como resistência. Puxar inclui remada e puxada vertical quando ambas existem, alternando a prioridade A/B. O resumo é composto a partir da sequência final para não contradizer ajustes do plano.
+
+A regressão usa o cadastro exato: uma barra fixa, uma W, dois handles montáveis, quatro anilhas de cada peso (3, 4 e 5 kg) e duas de 10 kg, e dois apoios. No navegador, esse cadastro gerou e salvou seis sessões de oito exercícios de trabalho, com e sem JSON externo, usando provedor simulado. Não se deve voltar a validar apenas com o nome genérico Halteres. A cópia fiel de arquivos e os registros salvos não passam pelo filtro de geração.
 
 ## Histórico publicado na main
 

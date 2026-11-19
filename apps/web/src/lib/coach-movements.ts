@@ -22,7 +22,7 @@ export function movementFamily(exercise: Exercise): string | undefined {
 
 export function resistance(exercise: Exercise) {
   const keys = exercise.equipment.map(catalogEquipmentKey);
-  return keys.find((key) => ['polia', 'maquina', 'smith machine', 'halter', 'barra reta', 'barra ez', 'barra hexagonal', 'anilha', 'elastica', 'kettlebell'].includes(key)) ?? keys[0] ?? 'peso corporal';
+  return keys.find((key) => ['polia', 'maquina', 'smith machine', 'halter', 'barra reta', 'barra ez', 'barra hexagonal', 'anilha', 'elastica', 'kettlebell', 'barra fixa'].includes(key)) ?? keys[0] ?? 'peso corporal';
 }
 
 export function planAlternatives(exercise: Exercise, eligible: readonly Exercise[]) {

@@ -1,5 +1,6 @@
 export const expansionMessages = {
   pt: {
+    'inventory.recognizedAs': "Reconhecido no Assistente como: {0}",
     'coach.trainingLevel': "Nível geral de treino",
     'coach.level.beginner': "Iniciante · {0} exercícios",
     'coach.level.intermediate': "Intermediário · {0} exercícios",
@@ -426,6 +427,7 @@ export const expansionMessages = {
     'coach.weekUnavailable': "Não foi possível diferenciar as sessões com essas opções. Confira o inventário ou a divisão semanal e gere novamente.",
   },
   en: {
+    'inventory.recognizedAs': "Recognized by the Assistant as: {0}",
     'coach.trainingLevel': "Overall training level",
     'coach.level.beginner': "Beginner · {0} exercises",
     'coach.level.intermediate': "Intermediate · {0} exercises",

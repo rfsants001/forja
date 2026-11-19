@@ -112,14 +112,14 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
   const latestWeight = useLiveQuery(() => weightLoss ? db.bodyweight.orderBy('dateISO').last() : undefined, [weightLoss]);
   const inventory = useMemo(() => equipmentItems(settings), [settings]);
   const names = useMemo(() => inventory.map(({ name }) => name), [inventory]);
-  const eligible = useMemo(() => eligiblePlanExercises(exercises ?? [], inventory, focus, restrictEquipment, venue),
-    [exercises, inventory, focus, restrictEquipment, venue]);
+  const eligible = useMemo(() => eligiblePlanExercises(exercises ?? [], inventory, focus, restrictEquipment, venue, trainingLevel),
+    [exercises, inventory, focus, restrictEquipment, venue, trainingLevel]);
   const options = useMemo(() => planCandidates(eligible, restrictEquipment ? names : [],
     reference?.exercises.map(({ name }) => name) ?? [], undefined, venue === 'home'),
     [eligible, restrictEquipment, names, reference, venue]);
   // Full-library eligible set for multi-day generation (focus forced to 'full')
-  const eligibleFull = useMemo(() => eligiblePlanExercises(exercises ?? [], inventory, 'full', restrictEquipment, venue),
-    [exercises, inventory, restrictEquipment, venue]);
+  const eligibleFull = useMemo(() => eligiblePlanExercises(exercises ?? [], inventory, 'full', restrictEquipment, venue, trainingLevel),
+    [exercises, inventory, restrictEquipment, venue, trainingLevel]);
   const alternativesFor = (exerciseId: string) => {
     const exercise = eligible.find(({ id }) => id === exerciseId);
     return venue === 'gym' && exercise ? planAlternatives(exercise, eligible) : [];
@@ -257,7 +257,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
               estimatedMinutes: cardioMinutes, cardio: { exerciseId: selectedCardioId, seconds: cardioMinutes * 60 } };
           } else {
             const focus = ROLE_FOCUS[role];
-            const available = eligiblePlanExercises(exercises ?? [], inventory, focus, restrictEquipment, venue)
+            const available = eligiblePlanExercises(exercises ?? [], inventory, focus, restrictEquipment, venue, trainingLevel)
               .filter((exercise) => matchesPlanRole(exercise, role));
             const previous = previousByRole.get(role) ?? [];
             const retained = new Set(previous.flatMap(({ exercises }) => exercises.map(({ exerciseId }) => exerciseId)));

@@ -5,7 +5,7 @@ import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { EquipmentItem } from '@forja/core';
 import { db, uid } from '../db/db';
 import { getSettings, updateSettings } from '../db/repo';
-import { equipmentItems, equipmentKey } from '../lib/equipment';
+import { equipmentItems, equipmentKey, EQUIP_FILTERS } from '../lib/equipment';
 import { useT } from '../lib/i18n';
 import '../styles/self-host.css';
 
@@ -95,12 +95,14 @@ export function Equipamentos() {
           : items.length === 0 ? <p className="hint">{t('inventory.empty')}</p>
           : <ul className="self-host-list">
               {items.map((item) => {
+                const recognized = EQUIP_FILTERS.find(({ terms }) => terms[0] === equipmentKey(item.name));
                 const unit = item.unitWeightKg === undefined ? '' : t('inventory.weightEach', [number.format(item.unitWeightKg)]);
                 const description = unit ? item.name + ' · ' + unit : item.name;
                 return <li key={item.id}>
                   <span><strong>{item.name}</strong>
                     <small className="hint">{item.quantity === undefined ? t('inventory.quantityUnknown') : t('inventory.quantityValue', [item.quantity])}
                       {unit && ' · ' + unit}</small>
+                    {recognized && <small className="hint">{t('inventory.recognizedAs', [t(recognized.key)])}</small>}
                     {equipmentKey(item.name) === 'barra' && <small className="hint">{t('inventory.barType')}</small>}</span>
                   <div className="self-host-actions">
                     <button className="btn ghost inventory-icon" type="button" disabled={busy} aria-label={t('inventory.rename', [description])}

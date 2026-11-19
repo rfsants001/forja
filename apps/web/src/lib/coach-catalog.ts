@@ -1,4 +1,5 @@
 import type { EquipmentItem, Exercise, MuscleGroup } from '@forja/core';
+import { isCoachWorkingExercise } from '../../../../packages/core/src/coach-exercises.ts';
 import type { PlanFocus, PlanVenue } from './coach-plan.ts';
 import { equipmentKey, exerciseRequirements, hasDumbbellPair, inventoryKeys, supportsEquipment } from './equipment.ts';
 import { normalizeExName } from './normalize.ts';
@@ -25,13 +26,14 @@ export function matchesPlanRole(exercise: Exercise, role: PlanDayRole): boolean 
 const lower = new Set<MuscleGroup>(['quads', 'hamstrings', 'glutes', 'calves']);
 const upper = new Set<MuscleGroup>(['chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps', 'lats']);
 
-export function eligiblePlanExercises(catalog: readonly Exercise[], equipment: readonly EquipmentItem[], focus: PlanFocus, useInventory: boolean, venue: PlanVenue) {
+export function eligiblePlanExercises(catalog: readonly Exercise[], equipment: readonly EquipmentItem[], focus: PlanFocus, useInventory: boolean, venue: PlanVenue, level?: string) {
   const available = inventoryKeys(equipment.map(({ name }) => name));
   const dumbbellPair = hasDumbbellPair(equipment);
   const list = venue === 'home' ? new Map([...homeMovements, ...catalog.map((exercise) => [exercise.id, exercise] as const)]) : catalog;
   return [...list.values()].filter((exercise) => {
     const muscle = exercise.primaryMuscle;
     if (exercise.mode !== 'reps' || muscle === 'other' || muscle === 'cardio') return false;
+    if (!isCoachWorkingExercise(exercise, level)) return false;
     if (focus === 'lower' && !lower.has(muscle)) return false;
     if (focus === 'upper' && !upper.has(muscle)) return false;
     if (!useInventory) return true;

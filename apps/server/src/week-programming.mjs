@@ -14,7 +14,7 @@ const priorities = {
   legs: [['squat', 'lunge'], ['hinge', 'hip-extension']],
   full: [['squat', 'chest-press', 'row'], ['hinge', 'overhead-press', 'vertical-pull']],
   push: [['chest-press'], ['overhead-press']],
-  pull: [['row'], ['vertical-pull']],
+  pull: [['row', 'vertical-pull'], ['vertical-pull', 'row']],
 };
 const integer = (value, min, max) => Number.isInteger(value) && value >= min && value <= max;
 const text = (value) => typeof value === 'string' && value.length > 0 && value.length <= 160;
@@ -54,7 +54,9 @@ export function exerciseIdentity(exercise) {
       : /\b(walking|andando|caminhando)\b/.test(name) ? 'walking'
       : /\b(reverse|revers[oa])\b/.test(name) ? 'reverse' : 'standard',
   };
-  return [exercise.family, exercise.resistance ?? '', angle, unilateral, grip, width, forms[exercise.family] ?? 'standard'].join(':');
+  const resistance = exercise.family === 'vertical-pull' && ['peso corporal', 'bodyweight', 'body weight', 'barra fixa', 'pullup bar'].includes(normalize(exercise.resistance ?? ''))
+    ? 'bodyweight-pullup' : exercise.resistance ?? '';
+  return [exercise.family, resistance, angle, unilateral, grip, width, forms[exercise.family] ?? 'standard'].join(':');
 }
 
 export function weekInput(value, focus, exercises) {

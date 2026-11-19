@@ -1,5 +1,6 @@
 import { ApiError, assert } from './storage.mjs';
 import { distinguishPrescription, exerciseIdentity, programWeek, weekInput } from './week-programming.mjs';
+import { isCoachWorkingExercise } from '../../../packages/core/src/coach-exercises.ts';
 
 const reviewSchema = {
   type: 'object', additionalProperties: false, required: ['summary', 'suggestions'],
@@ -119,7 +120,8 @@ function planInput(body) {
     assert(family === undefined || families.has(family));
     assert(resistance === undefined || text(resistance, 80));
     return { id, name, muscle, family, resistance };
-  });
+  }).filter(exercise => isCoachWorkingExercise(exercise, body.trainingLevel));
+  assert(exercises.length >= 3, 'PLAN_EXERCISE_COUNT_UNAVAILABLE', 422);
   assert(new Set(exercises.map((exercise) => exercise.id)).size === exercises.length);
   assert(body.venue === undefined || ['home', 'gym'].includes(body.venue));
   assert(body.week === undefined || body.venue);
@@ -166,6 +168,19 @@ function completeLevel(exercises, candidates, count, baseline) {
 }
 
 const language = (body) => body.lang === 'en' ? 'English' : 'Português brasileiro';
+
+function finalPlanSummary(input, exercises, week, english) {
+  const first = input.exercises.find(({ id }) => id === exercises[0].exerciseId).name;
+  const base = english
+    ? `Start with ${first}. The list below is the final working-exercise sequence, with prescribed sets, reps and rest. Preparation drills are kept out of the exercise count.`
+    : `Comece por ${first}. A lista abaixo mostra a sequência final de exercícios de trabalho, com metas de séries, repetições e descanso. Exercícios preparatórios ficam fora dessa contagem.`;
+  if (!week || !week.variant) return base;
+  return base + (week.variation === 'exercises'
+    ? english ? ' This variant changes the exercise selection while keeping the same daily focus.'
+      : ' Esta variante muda a seleção de exercícios e mantém o foco do dia.'
+    : english ? ' With the available repertoire, this variant keeps the movements and changes the prescription.'
+      : ' Com o repertório disponível, esta variante mantém os movimentos e ajusta a prescrição.');
+}
 
 export function createCoach(provider) {
   let running = false;
@@ -226,11 +241,13 @@ export function createCoach(provider) {
       'A duração informada vale para esta sessão individual, incluindo descansos e aquecimento. ' +
       'Para corpo inteiro, inclua membros superiores e inferiores se a lista permitir. Para força, coloque primeiro o exercício prioritário. ' +
       'Em casa, aproveite as formas de resistência já compatíveis sem repetir movimentos só para usar todos os itens. ' +
+      'Não conte mobilidade, ativação escapular ou remada deitada sem carga como exercícios principais. ' +
+      'Para nível avançado, use os movimentos de trabalho compatíveis em vez de regressões de iniciante. ' +
       'Respeite as quantidades e os pesos por unidade informados no inventário. Sem quantidade ou peso conhecido, não presuma valores. ' +
       'Na academia, escolha um exercício de cada família quando houver outras opções. Substituições de equipamento são alternativas. ' +
       'Proponha ' + (exerciseCount ? 2 : 1) + ' a 4 séries, ' + minReps + ' a ' + maxReps + ' repetições e 60 a 240 segundos de descanso. ' +
       'Reserve mais descanso para movimentos compostos e séries exigentes. Priorize qualidade técnica, sem carga absoluta e sem recomendar falha. ' +
-      'O resumo deve explicar as escolhas sem repetir números, pois a Forja ajusta o volume à duração. ' +
+      'Escreva um resumo curto, sem afirmar ordem ou números antes da validação final. ' +
       'Se houver week, compare com previous do mesmo papel. Em upper, alterne ênfase horizontal e vertical. ' +
       'Em lower ou legs, alterne prioridade de joelho e quadril. Mantenha movimentos úteis como referência, ' +
       'varie os complementos compatíveis e evite repetir a composição inteira, inclusive com IDs equivalentes. ' +
@@ -305,9 +322,10 @@ export function createCoach(provider) {
     const estimatedMinutes = distinguishPrescription(exercises, input, minReps, maxReps,
       (entries) => fitSession(entries, input.minutes - cardioSlot, exerciseCount ? 2 : 1)) + cardioSlot;
     const week = programmed.week ? { week: programmed.week } : {};
-    if (!withCardio) return { name, summary: result.summary, exercises, estimatedMinutes, ...week };
+    const summary = finalPlanSummary(input, exercises, programmed.week, body.lang === 'en');
+    if (!withCardio) return { name, summary, exercises, estimatedMinutes, ...week };
     const cardio = input.cardioCandidates.find(({ id }) => id === result.cardioExerciseId) ?? input.cardioCandidates[0];
-    return { name, summary: result.summary, exercises, estimatedMinutes, cardio: { exerciseId: cardio.id, seconds: cardioMinutes * 60 }, ...week };
+    return { name, summary, exercises, estimatedMinutes, cardio: { exerciseId: cardio.id, seconds: cardioMinutes * 60 }, ...week };
   }
 
   async function test(body, signal) {
