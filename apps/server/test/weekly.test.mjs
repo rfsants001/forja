@@ -85,3 +85,50 @@ test('a weekly role cannot include muscles from another role or an inconsistent 
   await assert.rejects(coach.plan({ ...inputFor(upper, 'upper'), week: { role: 'upper', variant: 1, previous: [] } }));
   await assert.rejects(coach.plan({ ...inputFor(upper, 'upper'), focus: 'lower' }));
 });
+
+const allMovements = [...upper, ...lower,
+  { id: 'triceps', name: 'Triceps extension', muscle: 'triceps', family: 'triceps-extension', resistance: 'halter' },
+  { id: 'fly', name: 'Chest fly', muscle: 'chest', family: 'chest-fly', resistance: 'halter' },
+  { id: 'cable-row', name: 'Cable row', muscle: 'back', family: 'row', resistance: 'polia' },
+];
+const roleMuscles = {
+  upper: ['chest', 'back', 'lats', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps'],
+  lower: ['quads', 'hamstrings', 'glutes', 'calves'],
+  full: [...new Set(allMovements.map(({ muscle }) => muscle))],
+  push: ['chest', 'shoulders', 'triceps'],
+  pull: ['back', 'lats', 'biceps', 'forearms', 'traps'],
+  legs: ['quads', 'hamstrings', 'glutes', 'calves'],
+};
+const splits = {
+  'upper-lower': ['upper', 'lower', 'upper', 'lower', 'upper'],
+  'upper-lower-cardio': ['upper', 'lower', 'cardio', 'upper', 'lower'],
+  'full-body': ['full', 'full', 'full', 'full', 'full'],
+  'push-pull-legs': ['push', 'pull', 'legs', 'push', 'pull', 'legs'],
+};
+
+for (const [split, sequence] of Object.entries(splits)) {
+  test(split + ' varies every repeated role while the model keeps the same choices', async () => {
+    const previous = new Map();
+    let calls = 0;
+    for (const role of sequence) {
+      if (role === 'cardio') continue;
+      const catalog = allMovements.filter(({ muscle }) => roleMuscles[role].includes(muscle));
+      const coach = constantProvider(catalog);
+      const prior = previous.get(role) ?? [];
+      const focus = ['lower', 'legs'].includes(role) ? 'lower' : role === 'full' ? 'full' : 'upper';
+      const result = await coach.plan({ ...inputFor(catalog, role, prior), focus });
+      calls++;
+      assert.equal(result.week.variant, prior.length);
+      assert(result.exercises.every(({ exerciseId }) => roleMuscles[role].includes(catalog.find(({ id }) => id === exerciseId).muscle)));
+      assert(result.estimatedMinutes <= 40);
+      for (const session of prior) assert.notDeepEqual(keys(result, catalog), keys(session, catalog), role);
+      if (prior.length) assert.equal(result.week.variation, 'exercises');
+      if (role === 'full') {
+        assert(result.exercises.some(({ exerciseId }) => lower.some(({ id }) => id === exerciseId)));
+        assert(result.exercises.some(({ exerciseId }) => upper.some(({ id }) => id === exerciseId)));
+      }
+      previous.set(role, [...prior, result]);
+    }
+    assert.equal(calls, sequence.filter((role) => role !== 'cardio').length);
+  });
+}

@@ -87,3 +87,10 @@ Cada composição é comparada com todas as sessões anteriores do mesmo papel. 
 O programa salvo mantém suas rotinas nas semanas seguintes. A/B descreve a distribuição dentro da semana. A evolução automática de ciclos e deloads exige a fase de progressão.
 
 A escolha desse comportamento A/B é uma decisão de produto e programação. A revisão sobre variação de exercícios apoia uma abordagem sistemática e aponta limites para mudanças aleatórias e excessivas. A posição ACSM 2026 enfatiza regularidade e individualização e relata que periodização complexa não mostrou benefício consistente para todo adulto saudável. [Revisão de Kassiano et al. (2022)](https://pubmed.ncbi.nlm.nih.gov/35438660/) · [ACSM 2026](https://acsm.org/resistance-training-guidelines-update-2026/).
+
+
+## Cobertura das quatro divisões
+
+A validação comum é usada em `upper-lower`, `upper-lower-cardio`, `full-body` e `push-pull-legs`. Cada papel de força mantém seu próprio contexto de sessões anteriores. A contagem A/B/C se aplica às repetições daquele papel.
+
+Os testes do servidor exercitam todas as divisões com um provedor que repete a mesma seleção, conferindo a variação e a adequação dos músculos. A validação no Chromium cobre prévia, geração e salvamento de cinco dias em superior/inferior, cinco dias em superior/inferior/cardio, cinco dias de corpo inteiro e seis dias em push/pull/legs.

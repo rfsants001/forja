@@ -195,6 +195,15 @@ Em **Montar treino com IA → Criar com IA**, o arquivo é opcional. Para começ
 
 Em **Importar sem alterações**, carregue um JSON da Forja, do OpenGym ou no formato portátil acima. Atribua as rotinas aos dias que escolher e confirme. A importação é local e mantém as prescrições do arquivo nos campos suportados. Rotinas sem dia também aparecem em **Treinos**. A agenda tem uma rotina por dia e a substituição de um dia ocupado exige confirmação.
 
+A comparação entre sessões repetidas vale para todas as divisões disponíveis.
+
+| Divisão | Exemplo de distribuição |
+| --- | --- |
+| Superior / Inferior | Superior A, Inferior A, Superior B, Inferior B |
+| Superior / Inferior + Cardio | Superior A, Inferior A, Cardio, Superior B, Inferior B |
+| Corpo inteiro | Corpo inteiro A, Corpo inteiro B, Corpo inteiro C |
+| Push / Pull / Legs | Empurrar A, Puxar A, Pernas A, Empurrar B, Puxar B, Pernas B |
+
 O [app desktop com servidor PWA integrado e QR para o celular](.specs/features/desktop-pwa/spec.md) está em planejamento.
 
 
