@@ -22,3 +22,12 @@ Dias exclusivamente de cardio continuam com um bloco cronometrado. Emagrecimento
 ## Validação
 
 Testes de servidor cobrem os três níveis nos três provedores simulados, respostas curtas/excessivas, aliases, quantidade em A/B, enum inválido e duração inviável. Verificado no navegador: dropdown global único, geração sem/com JSON e seis dias Puxar/Empurrar/Pernas A/B com oito exercícios por dia, nível avançado e 75 minutos enviados separadamente em cada sessão; salvamento das seis rotinas e agenda. Os quatro splits também passaram pela geração e salvamento. Uma duração inviável exibiu o erro traduzido na UI e manteve o salvamento bloqueado. A autenticação real dos provedores não faz parte deste ajuste de quantidade.
+
+
+## Regressão de casa — 19/11/2026
+
+Não usar família como identidade única: rosca direta, martelo e inversa são variações reais, assim como pegadas distintas de puxada e posições de remada. Aliases PT/EN reconhecidos e alterações de carga, pausa ou tempo não contam como novo movimento. O repertório de casa tem variantes explícitas com requisitos conferidos; não derivar exercícios arbitrários de nomes em arquivos externos nem assumir mobiliário ou barra reta a partir de barra W.
+
+`coach-catalog.ts` concentra elegibilidade, papéis diários e seleção. O modo casa prioriza esse repertório antes dos aliases do dataset e aceita até oito candidatos adicionais por músculo, dentro do teto de 60. Posterior de ombro usa a família `rear-delt-fly`, aceita em Puxar no cliente e na API; não liberar todo o grupo ombros nesse dia. Exercícios bilaterais com dois halteres respeitam a quantidade e o peso unitário registrados.
+
+O teste de regressão usa os helpers reais do frontend e o coach comum com halteres, barra W, barra fixa e anilhas. Validado também pelo navegador com o JSON externo e sem arquivo, selecionando explicitamente Em casa: seis dias com oito exercícios, 75 minutos por sessão, salvamento e reabertura; repetido com um único halter. Provedor simulado. Quando a cobertura ainda for insuficiente, a mensagem deve atribuir a limitação ao catálogo, sem afirmar que os equipamentos não permitem outras variações.

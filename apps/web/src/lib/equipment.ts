@@ -1,5 +1,5 @@
 import type { EquipmentItem, Exercise, Settings } from '@forja/core';
-import { normalizeExName } from './normalize';
+import { normalizeExName } from './normalize.ts';
 
 export const EQUIP_FILTERS = [
   { key: 'equip.bar', terms: ['barra reta', 'barras retas', 'barra olimpica', 'barra olimpica reta', 'barbell', 'straight barbell'] },

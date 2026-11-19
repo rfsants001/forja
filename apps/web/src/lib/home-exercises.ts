@@ -39,9 +39,42 @@ export const homeMovements = new Map([
   movement('sliding-leg-curl', 'Flexão de pernas no chão com discos deslizantes', 'hamstrings', ['disco deslizante'], ['glutes']),
   movement('pushup-handles', 'Flexão com apoios de flexão', 'chest', ['apoio de flexao'], ['triceps', 'shoulders']),
   movement('backpack-squat', 'Agachamento segurando mochila com peso', 'quads', ['mochila'], ['glutes']),
+  // Home setups with no bench, rack, cable station or improvised furniture.
+  movement('dumbbell-row', 'Remada curvada com halteres', 'back', ['halter'], ['biceps', 'lats']),
+  movement('single-arm-row', 'Remada unilateral com halter em pé', 'back', ['halter'], ['biceps', 'lats']),
+  movement('ez-row', 'Remada curvada com barra W', 'back', ['barra ez'], ['biceps', 'lats']),
+  movement('wide-pullup', 'Pull-up com pegada larga', 'lats', ['barra fixa'], ['back', 'biceps']),
+  movement('chinup', 'Chin-up com pegada supinada', 'lats', ['barra fixa'], ['back', 'biceps']),
+  movement('dumbbell-curl', 'Rosca direta com halter', 'biceps', ['halter'], ['forearms']),
+  movement('hammer-curl', 'Rosca martelo com halter', 'biceps', ['halter'], ['forearms']),
+  movement('reverse-curl', 'Rosca inversa com halter', 'biceps', ['halter'], ['forearms']),
+  movement('ez-curl', 'Rosca direta com barra W', 'biceps', ['barra ez'], ['forearms']),
+  movement('dumbbell-shrug', 'Encolhimento com halteres', 'traps', ['halter'], ['forearms']),
+  movement('rear-delt-fly', 'Crucifixo inverso com halteres', 'shoulders', ['halter'], ['back']),
+  movement('floor-pullover', 'Pullover no chão com halter', 'lats', ['halter'], ['chest', 'triceps']),
+  movement('wrist-curl', 'Flexão de punho com halter', 'forearms', ['halter'], []),
+  movement('wrist-extension', 'Extensão de punho com halter', 'forearms', ['halter'], []),
+  movement('dumbbell-press', 'Desenvolvimento com halteres em pé', 'shoulders', ['halter'], ['triceps']),
+  movement('arnold-press', 'Desenvolvimento Arnold com halteres em pé', 'shoulders', ['halter'], ['triceps']),
+  movement('lateral-raise', 'Elevação lateral com halter em pé', 'shoulders', ['halter'], []),
+  movement('overhead-triceps', 'Extensão de tríceps acima da cabeça com halter em pé', 'triceps', ['halter'], []),
+  movement('floor-triceps', 'Tríceps testa no chão com halteres', 'triceps', ['halter'], []),
+  movement('ez-floor-triceps', 'Tríceps testa no chão com barra W', 'triceps', ['barra ez'], []),
+  movement('diamond-pushup', 'Flexão diamante no chão', 'chest', ['peso corporal'], ['triceps', 'shoulders']),
+  movement('goblet-squat', 'Agachamento goblet com halter', 'quads', ['halter'], ['glutes']),
+  movement('sumo-squat', 'Agachamento sumô com halter', 'quads', ['halter'], ['glutes']),
+  movement('dumbbell-rdl', 'Terra romeno com halteres', 'hamstrings', ['halter'], ['glutes', 'back']),
+  movement('single-leg-rdl', 'Terra romeno unilateral com halter', 'hamstrings', ['halter'], ['glutes']),
+  movement('dumbbell-reverse-lunge', 'Afundo reverso com halter', 'quads', ['halter'], ['glutes']),
+  movement('dumbbell-side-lunge', 'Afundo lateral com halter', 'quads', ['halter'], ['glutes']),
+  movement('weighted-glute-bridge', 'Ponte de glúteo no chão com anilha', 'glutes', ['anilha'], ['hamstrings']),
+  movement('standing-calf', 'Panturrilha em pé com halter', 'calves', ['halter'], []),
+  movement('single-leg-calf', 'Panturrilha unilateral com halter', 'calves', ['halter'], []),
 ].map((exercise) => [exercise.id, exercise]));
 
-export const pairedDumbbellExercises = new Set(['ds-0289', 'ds-0308', 'home-supine-floor-press', 'home-floor-fly']);
+export const pairedDumbbellExercises = new Set(['ds-0289', 'ds-0308', 'home-supine-floor-press', 'home-floor-fly',
+  'home-dumbbell-row', 'home-dumbbell-shrug', 'home-rear-delt-fly', 'home-dumbbell-press', 'home-arnold-press',
+  'home-floor-triceps', 'home-dumbbell-rdl']);
 
 export function canPlanAtHome(exercise: Exercise, requirements: readonly string[]): boolean {
   return (exercise.custom === true && requirements.length > 0) || verified.has(exercise.id) || homeMovements.has(exercise.id);

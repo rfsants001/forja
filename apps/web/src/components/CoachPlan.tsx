@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import type { Exercise, MuscleGroup, Settings, Weekday, WorkoutLog } from '@forja/core';
+import type { Exercise, Settings, Weekday, WorkoutLog } from '@forja/core';
 import { db } from '../db/db';
 import { setWeekday } from '../db/repo';
 import { syncWrite } from '../db/sync-write';
@@ -11,6 +11,7 @@ import { planAlternatives } from '../lib/coach-movements';
 import { cardioExercises } from '../lib/coach-cardio';
 import { equipmentItems, inventoryKeys, supportsEquipment } from '../lib/equipment';
 import type { CoachReference } from '../lib/coach-reference';
+import { matchesPlanRole, type PlanDayRole } from '../lib/coach-catalog';
 import { CoachReferencePicker } from './CoachReferencePicker';
 import { WeekdayPicker } from './WeekdayPicker';
 import { useT } from '../lib/i18n';
@@ -39,7 +40,7 @@ interface PlanDayEntry {
 
 type PlanMode = 'reference' | 'split' | 'port';
 type SplitKind = 'upper-lower' | 'upper-lower-cardio' | 'full-body' | 'push-pull-legs';
-type DayRole = 'upper' | 'lower' | 'full' | 'push' | 'pull' | 'legs' | 'cardio';
+type DayRole = PlanDayRole;
 
 const SPLIT_ROLES: Record<SplitKind, DayRole[]> = {
   'upper-lower': ['upper', 'lower'],
@@ -49,18 +50,6 @@ const SPLIT_ROLES: Record<SplitKind, DayRole[]> = {
 };
 
 const dayRoles: DayRole[] = ['full', 'upper', 'lower', 'push', 'pull', 'legs', 'cardio'];
-
-// Muscle groups per role (used to filter eligible exercises client-side).
-const ROLE_MUSCLES: Record<DayRole, Set<MuscleGroup>> = {
-  upper:  new Set(['chest', 'back', 'lats', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps']),
-  lower:  new Set(['quads', 'hamstrings', 'glutes', 'calves']),
-  full:   new Set(['chest', 'back', 'lats', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps',
-                   'quads', 'hamstrings', 'glutes', 'calves', 'abs', 'obliques', 'fullbody']),
-  push:   new Set(['chest', 'shoulders', 'triceps']),
-  pull:   new Set(['back', 'lats', 'biceps', 'traps', 'forearms']),
-  legs:   new Set(['quads', 'hamstrings', 'glutes', 'calves']),
-  cardio: new Set(),
-};
 
 // Which backend focus to send per role.
 const ROLE_FOCUS: Record<DayRole, PlanFocus> = {
@@ -126,8 +115,8 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
   const eligible = useMemo(() => eligiblePlanExercises(exercises ?? [], inventory, focus, restrictEquipment, venue),
     [exercises, inventory, focus, restrictEquipment, venue]);
   const options = useMemo(() => planCandidates(eligible, restrictEquipment ? names : [],
-    reference?.exercises.map(({ name }) => name) ?? []),
-    [eligible, restrictEquipment, names, reference]);
+    reference?.exercises.map(({ name }) => name) ?? [], undefined, venue === 'home'),
+    [eligible, restrictEquipment, names, reference, venue]);
   // Full-library eligible set for multi-day generation (focus forced to 'full')
   const eligibleFull = useMemo(() => eligiblePlanExercises(exercises ?? [], inventory, 'full', restrictEquipment, venue),
     [exercises, inventory, restrictEquipment, venue]);
@@ -269,10 +258,10 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
           } else {
             const focus = ROLE_FOCUS[role];
             const available = eligiblePlanExercises(exercises ?? [], inventory, focus, restrictEquipment, venue)
-              .filter(({ primaryMuscle }) => ROLE_MUSCLES[role].has(primaryMuscle));
+              .filter((exercise) => matchesPlanRole(exercise, role));
             const previous = previousByRole.get(role) ?? [];
             const retained = new Set(previous.flatMap(({ exercises }) => exercises.map(({ exerciseId }) => exerciseId)));
-            const candidates = planCandidates(available, restrictEquipment ? names : [], source?.exercises.map(({ name }) => name) ?? [], retained);
+            const candidates = planCandidates(available, restrictEquipment ? names : [], source?.exercises.map(({ name }) => name) ?? [], retained, venue === 'home');
             if (candidates.length < exerciseCount) throw new SyncError('PLAN_EXERCISE_COUNT_UNAVAILABLE');
             draft = await post<CoachPlanResult>('/coach/plans', {
               model, provider, goal, focus, minutes, venue, trainingLevel, lang: english ? 'en' : 'pt', exercises: candidates,

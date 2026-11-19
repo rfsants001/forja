@@ -4,6 +4,7 @@
     "jsx": "react-jsx",
     "types": ["vite/client", "node"],
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@forja/core": ["../../packages/core/src/index.ts"]
     }

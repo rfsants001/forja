@@ -17,3 +17,5 @@
 
 - The startup gate and four-step introduction live in `AppStartup`, with local optional `Settings.hideIntro`. Keep initialization outside StrictMode and preserve deep links, active sessions and pairing. See [acceptance and design](.specs/features/boas-vindas/spec.md).
 - Coach day selection is progressive: `WeekdayPicker` selects days, then cards configure their role/reference. Uploads preserve selections. A single global training level imposes 4/6/8 strength exercises per session through the shared server logic, including A/B. Duration is per session. See [training-level PRD/SDD](.specs/features/coach-weekly-split/training-level.md); preserve error feedback and faithful imports.
+
+- Home coach regressions must exercise `lib/coach-catalog.ts` and actual home inventory, not gym-only fixtures. `apps/server/test/home-coach.test.mjs` covers the UI's real eligibility/candidate helpers plus common provider programming. Keep legitimate grip/setup variants distinct, preserve aliases/tempo equivalence, and never assume a bench, rack or straight bar. Rear delts may enter Pull via `rear-delt-fly`; shoulder presses may not.

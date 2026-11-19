@@ -28,7 +28,33 @@ export function exerciseIdentity(exercise) {
     : /\b(decline|declinado)\b/.test(name) ? 'decline'
     : /\b(floor|chao|solo)\b/.test(name) ? 'floor' : 'standard';
   const unilateral = /\b(unilateral|one arm|single arm|one leg|single leg)\b/.test(name);
-  return [exercise.family, exercise.resistance ?? '', angle, unilateral].join(':');
+  // A family is a programming group, not an exercise identity. Preserve meaningful
+  // grip/setup variants; ignore load, tempo, pauses and catalog aliases.
+  const grip = /\b(hammer|martelo|neutral|neutr[oa])\b/.test(name) ? 'neutral'
+    : /\b(chinups?|chin ups?|supinated|supinad[oa]|underhand)\b/.test(name) ? 'supinated'
+    : exercise.family === 'biceps-curl' && /\b(reverse|revers[oa]|invers[oa]|pronated|pronad[oa])\b/.test(name) ? 'pronated'
+    : exercise.family === 'biceps-curl' ? 'supinated' : 'standard';
+  const width = /\b(wide|larg[oa]|aberta)\b/.test(name) ? 'wide'
+    : /\b(close|narrow|fechad[oa]|diamond|diamante)\b/.test(name) ? 'close' : 'standard';
+  const forms = {
+    'biceps-curl': /\b(concentration|concentrad[oa])\b/.test(name) ? 'concentration'
+      : /\b(preacher|scott)\b/.test(name) ? 'preacher' : /\b(spider|aranha)\b/.test(name) ? 'spider' : 'standard',
+    row: /\b(inverted|invers[oa]|australian)\b/.test(name) ? 'inverted'
+      : /\b(chest supported|peito apoiado)\b/.test(name) ? 'supported'
+      : /\b(seated|sentad[oa])\b/.test(name) ? 'seated' : 'standard',
+    'overhead-press': /\barnold\b/.test(name) ? 'arnold' : 'standard',
+    'triceps-extension': /\b(overhead|acima da cabeca|frances)\b/.test(name) ? 'overhead'
+      : /\b(lying|deitad[oa]|testa|skull crusher)\b/.test(name) ? 'lying' : 'standard',
+    hinge: /\b(romanian|romeno)\b/.test(name) ? 'romanian' : /\bstiff\b/.test(name) ? 'stiff' : 'standard',
+    'chest-press': /\b(wall|parede)\b/.test(name) ? 'wall'
+      : /\b(scapular|escapular)\b/.test(name) ? 'scapular' : /\b(kneeling|joelhos)\b/.test(name) ? 'kneeling' : 'standard',
+    squat: /\b(sumo)\b/.test(name) ? 'sumo' : /\b(goblet|calice)\b/.test(name) ? 'goblet' : 'standard',
+    lunge: /\b(bulgarian|bulgar[oa])\b/.test(name) ? 'bulgarian'
+      : /\b(lateral|side)\b/.test(name) ? 'lateral'
+      : /\b(walking|andando|caminhando)\b/.test(name) ? 'walking'
+      : /\b(reverse|revers[oa])\b/.test(name) ? 'reverse' : 'standard',
+  };
+  return [exercise.family, exercise.resistance ?? '', angle, unilateral, grip, width, forms[exercise.family] ?? 'standard'].join(':');
 }
 
 export function weekInput(value, focus, exercises) {
@@ -36,7 +62,8 @@ export function weekInput(value, focus, exercises) {
   assert(value && Object.hasOwn(roles, value.role) && integer(value.variant, 0, 6)
     && Array.isArray(value.previous) && value.previous.length === value.variant);
   const expectedFocus = value.role === 'full' ? 'full' : ['lower', 'legs'].includes(value.role) ? 'lower' : 'upper';
-  assert(focus === expectedFocus && exercises.every(({ muscle }) => roles[value.role].includes(muscle)));
+  assert(focus === expectedFocus && exercises.every(({ muscle, family }) => roles[value.role].includes(muscle)
+    || (value.role === 'pull' && muscle === 'shoulders' && family === 'rear-delt-fly')));
   const previous = value.previous.map((session) => {
     assert(session && Array.isArray(session.exercises) && integer(session.exercises.length, 3, 8));
     const seen = new Set();

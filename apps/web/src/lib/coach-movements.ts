@@ -1,10 +1,11 @@
 import type { Exercise } from '@forja/core';
-import { catalogEquipmentKey } from './equipment';
-import { normalizeExName } from './normalize';
+import { catalogEquipmentKey } from './equipment.ts';
+import { normalizeExName } from './normalize.ts';
 
 export function movementFamily(exercise: Exercise): string | undefined {
   const name = normalizeExName(exercise.name);
   const muscle = exercise.primaryMuscle;
+  if (['shoulders', 'back'].includes(muscle) && /\b(reverse fly|rear delt|crucifixo inverso|bent over lateral raise)\b/.test(name)) return 'rear-delt-fly';
   if (muscle === 'chest' && /\b(fly|flyes|crossovers?|pec deck|peck deck|crucifixo|butterfly)\b/.test(name)) return 'chest-fly';
   if (muscle === 'chest' && /\b(bench press|chest press|supino|pushup|push up|flexao)\b/.test(name)) return 'chest-press';
   if (muscle === 'shoulders' && /\b(overhead press|shoulder press|military press|desenvolvimento)\b/.test(name)) return 'overhead-press';

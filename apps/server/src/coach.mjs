@@ -58,7 +58,7 @@ const integer = (value, min, max) => Number.isInteger(value) && value >= min && 
 const goals = new Set(['strength', 'muscle', 'general', 'weight-loss']);
 const focuses = new Set(['full', 'upper', 'lower']);
 const compound = new Set(['chest-press', 'overhead-press', 'row', 'vertical-pull', 'squat', 'lunge', 'leg-press', 'hinge', 'hip-extension']);
-const families = new Set([...compound, 'chest-fly', 'biceps-curl', 'triceps-extension']);
+const families = new Set([...compound, 'chest-fly', 'biceps-curl', 'triceps-extension', 'rear-delt-fly']);
 const upper = new Set(['chest', 'back', 'lats', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps']);
 const lower = new Set(['quads', 'hamstrings', 'glutes', 'calves']);
 const ranges = { strength: [4, 8], muscle: [6, 20], general: [6, 15], 'weight-loss': [6, 15] };
