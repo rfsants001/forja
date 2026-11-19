@@ -85,6 +85,7 @@ const settings = fields({
     unitWeightKg: optional((value) => number(value) && value > 0 && value <= 1000),
   }))),
   muscleFigure: optional(oneOf('male', 'female')), accent: optString, lang: optional(oneOf('pt', 'en')),
+  hideIntro: optional(boolean),
 });
 const validRow: Record<TableName, (value: unknown) => boolean> = {
   categories: fields({ id, name: id, slug: id, color: string, order: number, createdAt: number, updatedAt: number }),

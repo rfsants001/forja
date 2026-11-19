@@ -69,9 +69,25 @@
   </table>
 </details>
 
+<details>
+  <summary><strong>Ver a introdução e a montagem semanal com IA</strong></summary>
+  <br />
+  <table>
+    <tr><th scope="col">Introdução no desktop</th><th scope="col">Introdução no celular</th></tr>
+    <tr>
+      <td><a href="assets/screenshots/boas-vindas-desktop.png"><img src="assets/screenshots/boas-vindas-desktop.png" width="560" alt="Introdução da Forja com navegação por slides, opção de pular e preferência para não repetir"></a></td>
+      <td><a href="assets/screenshots/boas-vindas-mobile.png"><img src="assets/screenshots/boas-vindas-mobile.png" width="240" alt="Introdução adaptada ao celular, com exemplo da agenda e controles acessíveis"></a></td>
+    </tr>
+  </table>
+
+  [![Montagem semanal com nível geral, seleção de dias e cards para definir Puxar, Empurrar e Pernas em seis dias.](assets/screenshots/coach-dias-desktop.png)](assets/screenshots/coach-dias-desktop.png)
+</details>
+
 <sub>Capturas da aplicação com dados de demonstração. A tela do Assistente usa um provedor simulado.</sub>
 
 ## Do primeiro treino ao próximo
+
+A abertura prepara seus dados locais e apresenta quatro slides sobre a Forja. Você pode pular a introdução ou marcar **Não mostrar a introdução novamente**. Essa preferência fica salva neste aparelho.
 
 | Etapa | O que você faz na Forja |
 | --- | --- |
@@ -163,7 +179,11 @@ Com a Forja aberta por `npm start` ou `npm run dev`, vá a **Perfil → Conexõe
 
 ### Montar um treino
 
-Abra **Treinos → Montar treino com IA**. Informe o local, o objetivo, o foco e a duração total da sessão. O coach propõe séries, repetições e descanso. A Forja confere a duração estimada, a ordem dos exercícios e a adequação ao objetivo antes de mostrar o resultado. A seção **Como a Forja montou este treino** explica a progressão e a base das escolhas. [Posição da ACSM sobre treino resistido](https://acsm.org/resistance-training-guidelines-update-2026/).
+Abra **Treinos → Montar treino com IA**. Informe o local, o objetivo, o **nível geral de treino** e a **duração por sessão**. O nível define a quantidade de exercícios de musculação de todos os dias: **Iniciante: 4**, **Intermediário: 6**, **Avançado: 8**. Essas quantidades são configurações da Forja; a IA ainda adapta séries, repetições e descanso. Dias exclusivos de cardio mantêm seu bloco cronometrado. O coach propõe séries, repetições e descanso. A Forja confere a duração estimada, a ordem dos exercícios e a adequação ao objetivo antes de mostrar o resultado. A seção **Como a Forja montou este treino** explica a progressão e a base das escolhas. [Posição da ACSM sobre treino resistido](https://acsm.org/resistance-training-guidelines-update-2026/).
+
+Em **Criar com IA**, marque primeiro os dias de treino. Depois, escolha o tipo de treino no card de cada dia. Anexar um JSON é opcional e preserva os dias e tipos já escolhidos. Com um plano anexado, cada card também permite escolher sua referência. Em **Por split**, selecione a divisão e marque os dias; a prévia mostra a distribuição antes de gerar.
+
+O tempo escolhido vale para **cada sessão individual**: 60 minutos em seis dias significam até 60 minutos em cada dia. Se os exercícios e os descansos do nível não couberem no tempo, ou faltarem exercícios compatíveis com seu equipamento, a Forja informa o impedimento. Você pode ajustar a duração, o nível ou o inventário. **Importar sem alterações** mantém o conteúdo original do arquivo e permite distribuir suas rotinas nos dias desejados.
 
 Em **Usar treino anterior como referência**, escolha uma sessão do Histórico, um CSV de Hevy, Strong ou FitNotes, um JSON da Forja ou **Plano externo (CSV ou JSON)**. A prévia mostra até 40 sessões ou rotinas. O arquivo é lido no navegador. Ao gerar, a IA recebe somente o resumo escolhido, com exercícios, séries, repetições, tempo e carga quando disponíveis. Para gravar sessões no Histórico, use **Perfil → Importar de outro app**.
 

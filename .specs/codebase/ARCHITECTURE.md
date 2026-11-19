@@ -1,6 +1,6 @@
 # Forja · SDD / arquitetura
 
-Atualizado em 14/11/2026. O [PRD](../project/PRD.md) define a jornada e os critérios de produto.
+Atualizado em 19/11/2026. O [PRD](../project/PRD.md) define a jornada e os critérios de produto.
 
 ## Camadas
 
@@ -41,3 +41,9 @@ Os controles compartilham `styles/forms.css` e usam semântica HTML para valida�
 Referências usadas na revisão: [heurísticas Nielsen](https://www.nngroup.com/articles/ten-usability-heuristics/), [WCAG 2.2 · tamanho de alvo](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html), [GOV.UK · campos](https://design-system.service.gov.uk/components/text-input/), [Sportfit · Behance](https://www.behance.net/gallery/212784493/PROGRESS-TRACKING-APP-FITNESS-APP-SPORT-UIUX) e [Linear](https://linear.app/).
 
 O service worker pré-cacheia o app, o catálogo, as fontes e as demonstrações WebP locais. SVG de dados é renderizado como imagem, isolado do HTML. A distribuição estática atual depende apenas do navegador para os dados de treino. O [SDD da expansão self-hosted](../features/self-hosted-assistant/SDD.md) descreve o servidor opcional de sync implementado em Node.js 24 e SQLite e o Assistente com Ollama.
+
+## Inicialização e configuração semanal — 19/11/2026
+
+A raiz monta `AppStartup` enquanto uma promise única executa `ensureSeed` e carrega aparência/idioma. A introdução é uma etapa anterior ao app, não uma rota. `Settings.hideIntro` é opcional e local; a validação de backup o aceita sem exigir migração dos registros existentes. Links e sessão em andamento são preservados. [SDD da entrada](../features/boas-vindas/spec.md).
+
+`WeekdayPicker` compartilha seleção e acessibilidade entre Criar com IA e Por split. `CoachPlan.trainingLevel` vale para a geração inteira: beginner=4, intermediate=6, advanced=8. A API valida a escolha, completa a seleção distinta e preserva a quantidade no A/B; tempo por sessão é validado com os descansos e ao menos duas séries por exercício. Erros específicos impedem salvar uma proposta inviável. A API sem nível preserva o contrato legado 3–6. Não aplicar essa regra à cópia fiel de planos. [TRD/SDD](../features/coach-weekly-split/training-level.md).

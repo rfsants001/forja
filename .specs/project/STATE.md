@@ -1,8 +1,15 @@
 # Forja · Estado e retomada
 
-Atualizado em 15/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [ROADMAP](ROADMAP.md).
+Atualizado em 19/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [ROADMAP](ROADMAP.md).
 
-## Publicado na main
+## Retomada — 19/11/2026
+
+- Abertura durante inicialização local e introdução em quatro slides, com Pular, Voltar, navegação por etapa e checkbox persistente **Não mostrar a introdução novamente**. PT/EN, tema e movimento reduzido; preserva URL, sessão ativa e pareamento. [Aceite/SDD](../features/boas-vindas/spec.md).
+- Dias do Coach foram refeitos: controle comum de seleção com toque/teclado em Por split e Criar com IA; primeiro dias, depois cards apenas dos dias marcados. Upload mantém dias/tipos; Criar treino não herda automaticamente a primeira rotina do JSON.
+- Novo nível global: Iniciante 4, Intermediário 6, Avançado 8 exercícios de musculação por sessão. Presets de produto aplicados no servidor para qualquer provedor, incluindo A/B; cardio dedicado separado. Tempo é por sessão em todas as chamadas diárias. Falta de candidatos e duração incompatível têm erros traduzidos. Importar sem alterações preserva o plano. [PRD/TRD/SDD](../features/coach-weekly-split/training-level.md).
+- Gates: 138 testes core + 32 servidor, typecheck e build de produção. Verificação no navegador cobre a abertura, persistência, PT/EN, tema claro e movimento reduzido, upload e dias, geração por sessão e layout de 320 a 1366 px. Os quatro splits e seis dias personalizados Puxar/Empurrar/Pernas A/B foram gerados e salvos; no avançado, cada sessão teve oito exercícios e recebeu 75 minutos separadamente. Provedores simulados; os testes físicos abaixo continuam pendentes.
+
+## Histórico publicado na main
 
 - `e93c859` — correções de treino, dados e UX listadas abaixo.
 - `7f99a38` — PRD, SDD, roadmap, specs e handoff em `CLAUDE.md`.

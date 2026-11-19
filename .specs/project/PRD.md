@@ -1,6 +1,6 @@
 # Forja · PRD
 
-Atualizado em 14/11/2026.
+Atualizado em 19/11/2026.
 
 ## Problema e proposta
 
@@ -37,3 +37,9 @@ Piloto PT-BR de duas semanas com Rafael e um grupo pequeno. Observar conclusão 
 ## Expansão
 
 P5-003 é o próximo trabalho retomável. Fechar o seletor PT/EN, tradução das telas e persistência. Avaliar Capacitor se lembretes com o app fechado forem necessários. O [PRD da expansão self-hosted](../features/self-hosted-assistant/PRD.md) detalha o pareamento, a sincronização de um único perfil e a revisão semanal no Assistente de treino. Validar a revisão determinística antes de conectar Ollama. O [guia UX/UI](../features/self-hosted-assistant/UX-UI.md) registra a direção visual proposta para desktop e celular. A próxima revisão local detalha Como executar no treino, filtros de semana no Histórico e leitura da sessão com séries e mapa muscular.
+
+## Entrada e montagem com IA — revisão de 19/11/2026
+
+A abertura acompanha a inicialização real dos dados e conduz a quatro slides com navegação, Pular e preferência explícita de não repetir. Nenhum exemplo visual vira registro real. [Aceite e SDD](../features/boas-vindas/spec.md).
+
+Na montagem semanal, selecionar dias antes de configurar os cards. Cada dia marcado exige tipo; referência de arquivo é opcional. Uploads preservam a seleção. Por split compartilha o mesmo controle de dias acessível. Um dropdown de nível geral define 4/6/8 exercícios por sessão de musculação para iniciante/intermediário/avançado. A duração informada vale integralmente para cada sessão. O servidor aplica essas quantidades independentemente do provedor, sem ignorar inventário, papel diário ou descansos. Limites inviáveis têm feedback explícito. A importação sem alterações preserva o conteúdo original. [Regras e validação](../features/coach-weekly-split/training-level.md).

@@ -6,12 +6,13 @@ import { db } from '../db/db';
 import { setWeekday } from '../db/repo';
 import { syncWrite } from '../db/sync-write';
 import { PortablePlanImport, weekdayOrder as WEEKDAY_ORDER } from './PortablePlanImport';
-import { eligiblePlanExercises, planCandidates, saveCoachPlan, type CoachPlanResult, type PlanFocus, type PlanGoal, type PlanVenue } from '../lib/coach-plan';
+import { eligiblePlanExercises, planCandidates, saveCoachPlan, trainingLevelCounts, type TrainingLevel, type CoachPlanResult, type PlanFocus, type PlanGoal, type PlanVenue } from '../lib/coach-plan';
 import { planAlternatives } from '../lib/coach-movements';
 import { cardioExercises } from '../lib/coach-cardio';
 import { equipmentItems, inventoryKeys, supportsEquipment } from '../lib/equipment';
 import type { CoachReference } from '../lib/coach-reference';
 import { CoachReferencePicker } from './CoachReferencePicker';
+import { WeekdayPicker } from './WeekdayPicker';
 import { useT } from '../lib/i18n';
 import { post, SyncError } from '../lib/sync-client';
 import { syncMessage } from '../pages/Dispositivos';
@@ -81,6 +82,8 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
   const [focus, setFocus] = useState<PlanFocus>('full');
   const [minutes, setMinutes] = useState(40);
   const [venue, setVenue] = useState<PlanVenue>('home');
+  const [trainingLevel, setTrainingLevel] = useState<TrainingLevel>('beginner');
+  const exerciseCount = trainingLevelCounts[trainingLevel];
   const [useInventory, setUseInventory] = useState(false);
 
   // Reference / import mode
@@ -172,12 +175,14 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
 
   const onFileItems = useCallback((items: CoachReference[]) => {
     setDayItems(items);
-    setSourceDays({});
+    // Attaching/replacing a reference must not erase the user's selected days and types.
+    setSourceDays((previous) => Object.fromEntries(Object.entries(previous).map(([day, choice]) =>
+      [day, choice && { ...choice, key: items.some(({ key }) => key === choice.key) ? choice.key : 'new' }])));
     resetMultiPreview();
   }, [resetMultiPreview]);
 
   async function generate() {
-    if (request.current || readingReference || !model || options.length < 3 || !validMinutes || multiMode) return;
+    if (request.current || readingReference || !model || options.length < exerciseCount || !validMinutes || multiMode) return;
     resetPreview();
     resetMultiPreview();
     const controller = new AbortController();
@@ -185,7 +190,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
     setBusy(true);
     try {
       const draft = await post<CoachPlanResult>('/coach/plans', {
-        model, provider, goal, focus, minutes, venue, lang: english ? 'en' : 'pt', exercises: options,
+        model, provider, goal, focus, minutes, venue, trainingLevel, lang: english ? 'en' : 'pt', exercises: options,
         reference: reference && { kind: reference.kind, exercises: reference.exercises },
         inventory: restrictEquipment ? inventory.slice(0, 100).map(({ name, quantity, unitWeightKg }) => ({
           name: name.trim().slice(0, 80), quantity, unitWeightKg,
@@ -204,12 +209,13 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
 
   const forSource = WEEKDAY_ORDER.flatMap((weekday) => {
     const choice = sourceDays[weekday];
-    const day = choice?.key === 'new' ? reference : dayItems.find(({ key }) => key === choice?.key);
+    const day = choice?.key === 'new' ? (dayItems.length ? undefined : reference) : dayItems.find(({ key }) => key === choice?.key);
     if (!choice?.role || (choice.key !== 'new' && !day)) return [];
     return [{ weekday, role: choice.role, label: day?.label ?? t('coach.role.' + choice.role) + ' · ' + t('wd.full.' + weekday),
       reference: day }];
   });
   const multiMode = mode === 'reference' && (dayItems.length > 0 || Object.values(sourceDays).some(Boolean));
+  const sourceWeekdays = new Set(WEEKDAY_ORDER.filter((day) => sourceDays[day]));
   const allSourceRowsComplete = Object.values(sourceDays).every((choice) => !choice || choice.role);
   const splitHasCardio = split === 'upper-lower-cardio';
   const usesDedicatedCardio = mode === 'split' ? splitHasCardio : forSource.some(({ role }) => role === 'cardio');
@@ -267,9 +273,9 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
             const previous = previousByRole.get(role) ?? [];
             const retained = new Set(previous.flatMap(({ exercises }) => exercises.map(({ exerciseId }) => exerciseId)));
             const candidates = planCandidates(available, restrictEquipment ? names : [], source?.exercises.map(({ name }) => name) ?? [], retained);
-            if (candidates.length < 3) throw new Error('FEW_EXERCISES');
+            if (candidates.length < exerciseCount) throw new SyncError('PLAN_EXERCISE_COUNT_UNAVAILABLE');
             draft = await post<CoachPlanResult>('/coach/plans', {
-              model, provider, goal, focus, minutes, venue, lang: english ? 'en' : 'pt', exercises: candidates,
+              model, provider, goal, focus, minutes, venue, trainingLevel, lang: english ? 'en' : 'pt', exercises: candidates,
               week: { role, variant, previous: previous.map(({ exercises }) => ({ exercises })) },
               reference: source && { kind: source.kind, exercises: source.exercises },
               inventory: restrictEquipment ? inventory.slice(0, 100).map(({ name, quantity, unitWeightKg }) => ({
@@ -403,7 +409,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
               name="coach-plan-mode"
               value={m}
               checked={mode === m} disabled={busy || readingReference}
-              onChange={() => { setMode(m); setReference(undefined); onFileItems([]); resetPreview(); }}
+              onChange={() => { setMode(m); setReference(undefined); onFileItems([]); setSourceDays({}); resetPreview(); }}
             />
             {t(m === 'reference' ? 'coach.planModeReference' : m === 'split' ? 'coach.planModeSplit' : 'coach.portTitle')}
           </label>
@@ -423,14 +429,25 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
               onChange={(event) => { setGoal(event.target.value as PlanGoal); resetPreview(); resetMultiPreview(); }}>
               {(['general', 'strength', 'muscle', 'weight-loss'] as const).map((value) => <option key={value} value={value}>{t('coach.goal.' + value)}</option>)}
             </select></label>
+            <label><span id="coach-level-label">{t('coach.trainingLevel')}</span>
+              <select aria-labelledby="coach-level-label" aria-describedby="coach-level-help" value={trainingLevel}
+                onChange={(event) => { setTrainingLevel(event.target.value as TrainingLevel); resetPreview(); resetMultiPreview(); }}>
+                {(['beginner', 'intermediate', 'advanced'] as const).map((value) => <option key={value} value={value}>
+                  {t('coach.level.' + value, [trainingLevelCounts[value]])}
+                </option>)}
+              </select>
+              <span className="hint" id="coach-level-help">{t('coach.levelHelp')}</span>
+            </label>
             {mode === 'reference' && !multiMode && (
               <label><span id="coach-focus-label">{t('coach.focus')}</span><select aria-labelledby="coach-focus-label" value={focus}
                 onChange={(event) => { setFocus(event.target.value as PlanFocus); resetPreview(); resetMultiPreview(); }}>
                 {(['full', 'upper', 'lower'] as const).map((value) => <option key={value} value={value}>{t('coach.focus.' + value)}</option>)}
               </select></label>
             )}
-            <label>{t('coach.minutes')}<input type="number" required min={15} max={90} value={minutes || ''}
-              onChange={(event) => { setMinutes(Number(event.target.value)); resetPreview(); resetMultiPreview(); }} /></label>
+            <label><span id="coach-duration-label">{t('coach.minutes')}</span><input type="number" required min={15} max={90} value={minutes || ''}
+              aria-labelledby="coach-duration-label" aria-describedby="coach-duration-help"
+              onChange={(event) => { setMinutes(Number(event.target.value)); resetPreview(); resetMultiPreview(); }} />
+              <span className="hint" id="coach-duration-help">{t('coach.sessionDurationHelp')}</span></label>
           </div>
           <div className="coach-inventory-choice">
             {venue === 'home' ? <span className="hint">{inventory.length
@@ -454,41 +471,60 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
 
         {mode === 'reference' && (
           <>
+            <fieldset className="coach-plan-inputs coach-schedule-card" disabled={busy}>
+              <legend className="sr-only">{t('coach.sourceSchedule')}</legend>
+              <div className="coach-schedule-heading">
+                <div><span className="coach-step">01</span><h3 id="coach-source-days-title">{t('coach.trainingDays')}</h3></div>
+                <span className="coach-day-count">{t(sourceWeekdays.size === 1 ? 'coach.oneDaySelected' : 'coach.daysSelected', [sourceWeekdays.size])}</span>
+              </div>
+              <p className="hint">{t('coach.chooseDaysHelp')}</p>
+              <WeekdayPicker labelledBy="coach-source-days-title" selected={sourceWeekdays} onToggle={(day) => {
+                setSourceDays((previous) => ({ ...previous, [day]: previous[day] ? undefined : { key: 'new' } }));
+                resetPreview(); resetMultiPreview();
+              }} />
+              {sourceWeekdays.size === 0 && <p className="coach-schedule-empty">{t(dayItems.length ? 'coach.selectOneDay' : 'coach.noDaysHelp')}</p>}
+            </fieldset>
             <CoachReferencePicker catalog={exercises ?? []} workouts={workouts ?? []} disabled={busy}
               reference={reference} onReading={setReadingReference}
               onChange={(value) => { setReference(value); resetPreview(); resetMultiPreview(); }}
               onItems={onFileItems} />
-            <fieldset className="coach-plan-inputs" disabled={busy}>
-              <legend>{t('coach.sourceSchedule')}</legend>
-              <p className="hint">{t('coach.sourceScheduleHelp')}</p>
-              <div className="coach-week-rows">
-                {WEEKDAY_ORDER.map((weekday) => <div key={weekday} className="coach-week-choice">
-                  <label><span id={'coach-source-day-' + weekday}>{t('wd.full.' + weekday)}</span>
-                    <select aria-labelledby={'coach-source-day-' + weekday} value={sourceDays[weekday]?.key ?? ''}
-                      onChange={(event) => {
-                        setSourceDays({ ...sourceDays, [weekday]: event.target.value
-                          ? { key: event.target.value, role: sourceDays[weekday]?.role } : undefined });
-                        resetMultiPreview();
-                      }}>
-                      <option value="">{t('coach.leaveDay')}</option>
-                      <option value="new">{t('coach.newDay')}</option>
-                      {dayItems.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
-                    </select>
-                  </label>
-                  {sourceDays[weekday] && <label><span id={'coach-source-role-' + weekday}>{t('coach.dayRole')}</span>
-                    <select aria-labelledby={'coach-source-role-' + weekday} value={sourceDays[weekday]?.role ?? ''}
-                      onChange={(event) => {
-                        const item = sourceDays[weekday];
-                        if (item) setSourceDays({ ...sourceDays, [weekday]: { ...item, role: (event.target.value || undefined) as DayRole | undefined } });
-                        resetMultiPreview();
-                      }}>
-                      <option value="">{t('coach.pickDayRole')}</option>
-                      {dayRoles.map((role) => <option key={role} value={role}>{t('coach.role.' + role)}</option>)}
-                    </select>
-                  </label>}
-                </div>)}
+            {sourceWeekdays.size > 0 && <fieldset className="coach-plan-inputs coach-schedule-card" disabled={busy}>
+              <legend className="sr-only">{t('coach.sourceSchedule')}</legend>
+              <div className="coach-schedule-heading"><div><span className="coach-step">02</span>
+                <h3>{t('coach.configureDays')}</h3></div></div>
+              <p className="hint">{t('coach.configureDaysHelp')}</p>
+              <div className="coach-day-cards">
+                {WEEKDAY_ORDER.filter((day) => sourceDays[day]).map((weekday) => (
+                  <div key={weekday} className="coach-day-card">
+                    <h4>{t('wd.full.' + weekday)}</h4>
+                    <label htmlFor={'coach-source-role-' + weekday}>{t('coach.dayRole')}
+                      <select id={'coach-source-role-' + weekday} aria-label={t('coach.typeForDay', [t('wd.full.' + weekday)])}
+                        value={sourceDays[weekday]?.role ?? ''} required
+                        onChange={(event) => {
+                          const role = (event.target.value || undefined) as DayRole | undefined;
+                          setSourceDays((previous) => ({ ...previous, [weekday]: { ...previous[weekday]!, role } }));
+                          resetMultiPreview();
+                        }}>
+                        <option value="">{t('coach.pickDayRole')}</option>
+                        {dayRoles.map((role) => <option key={role} value={role}>{t('coach.role.' + role)}</option>)}
+                      </select>
+                    </label>
+                    {dayItems.length > 0 && <label htmlFor={'coach-source-day-' + weekday}>{t('coach.dayReference')}
+                      <select id={'coach-source-day-' + weekday} aria-label={t('coach.referenceForDay', [t('wd.full.' + weekday)])}
+                        value={sourceDays[weekday]?.key ?? 'new'} onChange={(event) => {
+                          const key = event.target.value;
+                          setSourceDays((previous) => ({ ...previous, [weekday]: { ...previous[weekday]!, key } }));
+                          resetMultiPreview();
+                        }}>
+                        <option value="new">{t('coach.newDay')}</option>
+                        {dayItems.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
+                      </select>
+                    </label>}
+                  </div>
+                ))}
               </div>
-            </fieldset>
+              {!allSourceRowsComplete && <p className="hint" role="status">{t('coach.completeDayTypes')}</p>}
+            </fieldset>}
             {cardioControls}
             {!multiMode && <details>
               <summary>{t('coach.planInput', [options.length])}</summary>
@@ -498,9 +534,9 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
               </ul>
             </details>}
             {destination && <p className="hint">{t('coach.destination', [destination])}</p>}
-            {!multiMode && exercises && options.length < 3 && <p className="hint">{t('coach.planEquipment')}</p>}
+            {!multiMode && exercises && options.length < exerciseCount && <p className="hint">{t('coach.levelNeeds', [exerciseCount])}</p>}
             <div className="self-host-actions">
-              {!multiMode && <button className="btn" disabled={!model || busy || readingReference || options.length < 3} type="submit">
+              {!multiMode && <button className="btn" disabled={!model || busy || readingReference || options.length < exerciseCount} type="submit">
                 {t(external ? 'coach.sendPlan' : 'coach.generatePlan')}
               </button>}
               {multiMode && (
@@ -528,22 +564,14 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
                 </select>
               </label>
             </div>
-            <div className="coach-plan-fields">
-              <fieldset>
-                <legend>{t('coach.trainingDays')}</legend>
-                <div className="coach-weekday-checks">
-                  {WEEKDAY_ORDER.map((wd) => (
-                    <label key={wd} className="coach-weekday-check">
-                      <input
-                        type="checkbox"
-                        checked={trainingDays.has(wd)}
-                        onChange={() => toggleDay(wd)}
-                      />
-                      {t('wd.short.' + wd)}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+            <div className="coach-schedule-card">
+              <div className="coach-schedule-heading">
+                <h3 id="coach-split-days-title">{t('coach.trainingDays')}</h3>
+                <span className="coach-day-count">{t(trainingDays.size === 1 ? 'coach.oneDaySelected' : 'coach.daysSelected', [trainingDays.size])}</span>
+              </div>
+              <p className="hint">{t('coach.splitDaysHelp')}</p>
+              <WeekdayPicker labelledBy="coach-split-days-title" selected={trainingDays} onToggle={toggleDay} />
+              {trainingDays.size === 0 && <p className="coach-schedule-empty" role="status">{t('coach.selectOneDay')}</p>}
             </div>
             <ol className="self-host-list coach-split-preview" aria-label={t('coach.weekPreview')}>
               {splitPreview.map(({ weekday, label }) => <li key={weekday}>
@@ -619,7 +647,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
             <div key={entry.label + '-' + index} className="self-host-card">
               <h3>{entry.weekday === undefined ? '' : t('wd.full.' + entry.weekday) + ' · '}{entry.label}</h3>
               {entry.error && !entry.result && (
-                <p className="feedback error">{entry.error}</p>
+                <p className="feedback error" role="alert">{entry.error}</p>
               )}
               {entry.result && (
                 <>

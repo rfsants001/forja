@@ -13,7 +13,7 @@ A montagem semanal inclui variantes A/B e comparação entre as sessões do mesm
 Nova aba/modo em "Montar treino": **Por split** (ao lado do fluxo atual de importar plano).
 Campos:
 - **Split**: `upper-lower` · `upper-lower-cardio` · `full-body` · `push-pull-legs`.
-- **Dias da semana**: checkboxes Seg–Dom (`weekday` 1..6,0). O app distribui os papéis
+- **Dias da semana**: botões de seleção com `aria-pressed`, Seg–Dom (`weekday` 1..6,0). O app distribui os papéis
   nos dias marcados, em ordem de dia.
 - Reaproveita os campos existentes: `goal`, `venue`, `useInventory`/inventário, `minutes`.
 - **Cardio** (só nos splits com cardio): duração em minutos + exercício de cardio disponível.
@@ -59,19 +59,19 @@ Como o usuário escolheu os dias, o agendamento é parte do fluxo (não um check
 - **Enriquecer o dataset de exercícios de casa** (teto de variedade) — trabalho de conteúdo.
 
 ## Aceite (Fase 1)
-- [ ] Escolher split + dias gera uma rotina por dia marcado, com papel coerente
+- [x] Escolher split + dias gera uma rotina por dia marcado, com papel coerente
       (dia upper não traz agachamento; dia cardio é só esteira).
-- [ ] Preview mostra todos os dias; salvar cria as rotinas e preenche a agenda semanal
+- [x] Preview mostra todos os dias; salvar cria as rotinas e preenche a agenda semanal
       nos dias escolhidos (`setWeekday`).
-- [ ] PPL funciona sem alterar o backend (candidatos filtrados no cliente).
-- [ ] `upper-lower-cardio` com Seg–Sáb reproduz a estrutura U/L/C/U/L/C.
-- [ ] Fluxo atual (importar plano / dia único) continua intacto.
-- [ ] `pnpm typecheck` e `pnpm build` limpos; rótulos novos em PT e EN.
+- [x] PPL funciona sem alterar o backend (candidatos filtrados no cliente).
+- [x] `upper-lower-cardio` com Seg–Sáb reproduz a estrutura U/L/C/U/L/C.
+- [x] Fluxo atual (importar plano / dia único) continua intacto.
+- [x] `pnpm typecheck` e `pnpm build` limpos; rótulos novos em PT e EN.
 
 
 ## Revisão após a implementação
 
-Arquivos JSON usados como referência exibem uma linha por dia. A pessoa escolhe uma rotina do arquivo e o papel que a IA deve respeitar. O modo Importar sem alterações lê JSON portátil, OpenGym e export de plano Forja, salva todas as rotinas localmente e agenda apenas as atribuições explícitas. Dias ocupados exigem confirmação. A importação e a gravação do plano semanal usam uma transação de rotinas e agenda. Em dias dedicados ao cardio, o app salva o bloco cronometrado sem chamar a IA.
+O formulário usa seleção progressiva: primeiro os dias em um card, depois um card por dia marcado com o tipo obrigatório e uma referência opcional. Anexar ou trocar o JSON preserva os dias e tipos já escolhidos. Criar treino em um dia de um plano JSON não aplica automaticamente a primeira rotina do arquivo. O modo Importar sem alterações lê JSON portátil, OpenGym e export de plano Forja, salva todas as rotinas localmente e agenda apenas as atribuições explícitas. Dias ocupados exigem confirmação. A importação e a gravação do plano semanal usam uma transação de rotinas e agenda. Em dias dedicados ao cardio, o app salva o bloco cronometrado sem chamar a IA.
 
 Em Criar com IA, o seletor de dias aparece também sem arquivo. Cada dia pode usar Criar treino ou uma rotina carregada. O tipo é obrigatório para os dias escolhidos. O JSON permanece opcional.
 
@@ -94,3 +94,7 @@ A escolha desse comportamento A/B é uma decisão de produto e programação. A 
 A validação comum é usada em `upper-lower`, `upper-lower-cardio`, `full-body` e `push-pull-legs`. Cada papel de força mantém seu próprio contexto de sessões anteriores. A contagem A/B/C se aplica às repetições daquele papel.
 
 Os testes do servidor exercitam todas as divisões com um provedor que repete a mesma seleção, conferindo a variação e a adequação dos músculos. A validação no Chromium cobre prévia, geração e salvamento de cinco dias em superior/inferior, cinco dias em superior/inferior/cardio, cinco dias de corpo inteiro e seis dias em push/pull/legs.
+
+## Nível geral e duração — 19/11/2026
+
+O dropdown global oferece Iniciante (4), Intermediário (6) e Avançado (8 exercícios de musculação por sessão). Vale para Criar com IA e Por split, sem níveis por dia. A quantidade é imposta na camada comum a todos os provedores; o cardio dedicado permanece um bloco. A duração é enviada por sessão, em cada dia. Ver [PRD, regras e SDD do nível geral](training-level.md).

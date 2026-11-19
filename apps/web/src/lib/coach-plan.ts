@@ -12,6 +12,8 @@ import { cardioExercises } from './coach-cardio';
 export type PlanGoal = 'strength' | 'muscle' | 'general' | 'weight-loss';
 export type PlanFocus = 'full' | 'upper' | 'lower';
 export type PlanVenue = 'home' | 'gym';
+export type TrainingLevel = 'beginner' | 'intermediate' | 'advanced';
+export const trainingLevelCounts: Record<TrainingLevel, number> = { beginner: 4, intermediate: 6, advanced: 8 };
 
 export interface PlanExercise {
   exerciseId: string;

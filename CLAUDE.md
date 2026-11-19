@@ -14,3 +14,6 @@
 - P11–P13 are implemented. Guided Workout has an exercise guide with licensed demos, the atlas and a YouTube name search while the rest countdown runs inline. History includes date ranges, per-session details and the atlas for completed working sets. See [verification](.specs/features/self-hosted-assistant/IMPLEMENTACAO.md#treino-e-histórico-aprovados) and [app screenshots](README.md#telas).
 - Validate with `pnpm test`, `pnpm typecheck` and `pnpm build`. Record remaining real-device checks in STATE when updating implementation.
 - Product planning in the vault is under `~/Documentos/planning-vault/projetos/forja/`.
+
+- The startup gate and four-step introduction live in `AppStartup`, with local optional `Settings.hideIntro`. Keep initialization outside StrictMode and preserve deep links, active sessions and pairing. See [acceptance and design](.specs/features/boas-vindas/spec.md).
+- Coach day selection is progressive: `WeekdayPicker` selects days, then cards configure their role/reference. Uploads preserve selections. A single global training level imposes 4/6/8 strength exercises per session through the shared server logic, including A/B. Duration is per session. See [training-level PRD/SDD](.specs/features/coach-weekly-split/training-level.md); preserve error feedback and faithful imports.

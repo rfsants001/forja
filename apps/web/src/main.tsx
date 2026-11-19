@@ -3,27 +3,25 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './styles/global.css';
 import { App } from './App';
+import { AppStartup } from './components/AppStartup';
 import { ensureSeed } from './db/seed';
 import { getSettings } from './db/repo';
 import { applyAppearance } from './lib/appearance';
 
-// Aplica tema e acento no <html> antes do primeiro render, evitando flash.
-async function applyInitialAppearance() {
-  try {
-    const s = await getSettings();
-    applyAppearance(s.theme, s.accent, window.matchMedia('(prefers-color-scheme: light)').matches);
-  } catch {
-    // Atributos do HTML mantêm a aparência inicial se a leitura falhar.
-  }
+async function initialize() {
+  await ensureSeed();
+  const settings = await getSettings();
+  applyAppearance(settings.theme, settings.accent, window.matchMedia('(prefers-color-scheme: light)').matches);
+  document.documentElement.lang = settings.lang === 'en' ? 'en' : 'pt-BR';
+  return settings;
 }
 
-// Semeia o banco local (idempotente) + aplica aparência antes de montar.
-Promise.all([ensureSeed(), applyInitialAppearance()]).finally(() => {
-  createRoot(document.getElementById('root')!).render(
+// Start exactly once, outside StrictMode; show the welcome while IndexedDB opens.
+const initialization = initialize();
+createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <BrowserRouter>
-        <App />
+        <AppStartup initialization={initialization}><App /></AppStartup>
       </BrowserRouter>
     </StrictMode>,
-  );
-});
+);

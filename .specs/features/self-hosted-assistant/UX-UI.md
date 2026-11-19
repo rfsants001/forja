@@ -114,3 +114,15 @@ As [capturas do protótipo](prototipo/README.md#capturas) mostram as duas jornad
 - Permitir percorrer e concluir os fluxos com teclado, incluindo trocar o período, percorrer pontos e abrir a tabela de valores. Foco visível de pelo menos 2 px como padrão do projeto, restauração de foco ao fechar diálogos, Escape para cancelar o diálogo e foco inicial coerente com a ação. Evitar obstrução do foco pela barra da PWA ou pelo teclado. Refluxo a 320 px e zoom de 200%.
 - Anunciar conectividade, cópia, aprovação, fim de geração e erro com região de status ou alerta apropriada. Evitar anúncio a cada segundo do cronômetro. Tornar a alternativa manual do QR reconhecível pelo leitor de tela.
 - Aplicar as heurísticas de Nielsen com estados de sistema visíveis, linguagem de treino e de dispositivos, cancelamento com retorno ao passo certo, confirmação de exclusão/revogação e recuperação junto ao erro. Testar cada jornada com câmera negada, reconexão, e teclado/navegação na PWA. [Nielsen Norman Group](https://www.nngroup.com/articles/ten-usability-heuristics/)
+
+
+## Formulário semanal — 19/11/2026
+
+1. Campos comuns incluem nível geral com a quantidade visível (4/6/8) e duração por sessão com ajuda persistente. Evitar a palavra difícil como sinônimo de intensidade: a opção de experiência é Avançado.
+2. Card Dias de treino: seleção Seg–Dom com alvos de toque de pelo menos 44 px, foco visível, `aria-pressed` e ícone de confirmação além da cor. Contador usa singular/plural.
+3. Referência opcional fica recolhida entre a seleção e a configuração; anexar ou substituir arquivo não apaga os dias.
+4. Card Configure cada dia: apenas dias marcados, em duas colunas no desktop e uma no celular. Tipo obrigatório; referência individual aparece quando há rotinas de um JSON.
+5. Mudanças de dia, tipo, referência ou nível invalidam a prévia anterior. Não mover o foco ao selecionar um dia. Campos bloqueiam durante geração.
+6. Por split reutiliza o seletor e mostra a semana resultante. Falta de exercícios ou duração insuficiente deve explicar qual configuração revisar; nunca exibir um plano reduzido como se atendesse ao nível.
+
+A abertura e os slides usam a mesma marca, tokens e tipografia. Transições discretas, sem avanço automático; movimento reduzido elimina animações. [Especificação](../boas-vindas/spec.md).

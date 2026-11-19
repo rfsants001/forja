@@ -273,6 +273,8 @@ export interface Settings {
   accent?: string;
   /** Idioma da interface. Desacoplado do web via union inline. */
   lang?: 'pt' | 'en';
+  /** Opção explícita de não repetir a introdução neste aparelho. */
+  hideIntro?: boolean;
 }
 
 /** Estado derivado de streak (nunca persistido como contador — calculado do histórico). */

@@ -38,7 +38,7 @@ export function weekInput(value, focus, exercises) {
   const expectedFocus = value.role === 'full' ? 'full' : ['lower', 'legs'].includes(value.role) ? 'lower' : 'upper';
   assert(focus === expectedFocus && exercises.every(({ muscle }) => roles[value.role].includes(muscle)));
   const previous = value.previous.map((session) => {
-    assert(session && Array.isArray(session.exercises) && integer(session.exercises.length, 3, 6));
+    assert(session && Array.isArray(session.exercises) && integer(session.exercises.length, 3, 8));
     const seen = new Set();
     return { exercises: session.exercises.map((entry) => {
       assert(entry && text(entry.exerciseId) && !seen.has(entry.exerciseId) && integer(entry.sets, 1, 5)
@@ -67,6 +67,7 @@ export function programWeek(exercises, input, baseline) {
   const sorted = [...input.exercises].sort((a, b) => (used.get(identity(a.id)) ?? 0) - (used.get(identity(b.id)) ?? 0));
   const preferred = priorities[role][variant % 2];
   const selected = [];
+  const minimumCount = input.trainingLevel ? exercises.length : Math.min(3, exercises.length);
   const keys = new Set();
   const families = new Set();
 
@@ -89,12 +90,12 @@ export function programWeek(exercises, input, baseline) {
     if (!candidate.family || !families.has(candidate.family)) add(candidate);
   }
   for (const candidate of sorted) {
-    if (selected.length >= Math.min(3, exercises.length)) break;
+    if (selected.length >= minimumCount) break;
     add(candidate);
   }
   // The catalog can contain fewer than three distinct known movement variants.
   for (const entry of exercises) {
-    if (selected.length >= Math.min(3, exercises.length)) break;
+    if (selected.length >= minimumCount) break;
     if (!selected.some(({ exerciseId }) => exerciseId === entry.exerciseId)) selected.push(entry);
   }
 
@@ -142,7 +143,12 @@ export function distinguishPrescription(exercises, input, minReps, maxReps, fit)
       for (const reps of [entry.reps + delta, entry.reps - delta]) {
         if (reps < minReps || reps > maxReps) continue;
         const candidate = exercises.map((item, position) => position === index ? { ...item, reps } : { ...item });
-        const estimate = fit(candidate);
+        let estimate;
+        try { estimate = fit(candidate); }
+        catch (error) {
+          if (error.code === 'SESSION_DURATION_TOO_SHORT') continue;
+          throw error;
+        }
         if (previous.has(signature(candidate))) continue;
         exercises.splice(0, exercises.length, ...candidate);
         return estimate;

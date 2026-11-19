@@ -106,3 +106,10 @@ O Codex usa Bubblewrap no Linux e executável nativo no Windows e macOS. A insta
 A rota `/coach/plans` aplica as regras de `week-programming.mjs` após validar a resposta de qualquer provedor. O contexto carrega o papel, o índice da variante e as prescrições anteriores do mesmo papel. A resposta traz `week.variation` e o número de exercícios diferentes em relação à sessão anterior. A API alterna prioridades disponíveis, detecta composições equivalentes e confere duplicatas de prescrição após ajustar o tempo. Com opções limitadas, sinaliza a repetição de exercícios e a alteração da prescrição. O cliente envia somente as sessões já geradas na operação atual. Importar sem alterações mantém o fluxo de cópia local.
 
 O plano semanal exibe as letras A/B desde a primeira ocorrência e salva as rotinas e a agenda em transação. A progressão automática ao longo de várias semanas permanece no planejamento. [Requisitos semanais](../coach-weekly-split/spec.md).
+
+
+## Formulário progressivo e nível geral — 19/11/2026
+
+Criar com IA apresenta primeiro o seletor semanal, depois configurações apenas dos dias marcados. Por split compartilha o mesmo `WeekdayPicker`, com botões acessíveis e alvos de toque de pelo menos 44 px. O upload de referência conserva dias e papéis escolhidos. O JSON é opcional; a cópia fiel continua em Importar sem alterações. A escolha Criar treino por dia não herda a primeira rotina de um JSON de várias rotinas.
+
+`trainingLevel` é uma escolha global na geração atual: beginner=4, intermediate=6, advanced=8 exercícios por sessão de musculação. O servidor valida e completa a seleção com candidatos elegíveis distintos; a programação A/B conserva a quantidade. O backend aceita até oito exercícios no contexto anterior da semana. Tempo insuficiente e falta de candidatos são erros explícitos e traduzidos. Não reduzir silenciosamente a quantidade nem alterar planos importados. As quantidades são presets de produto, não um protocolo clínico. [Detalhes e validação](../coach-weekly-split/training-level.md).
