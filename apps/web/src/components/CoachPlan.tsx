@@ -257,7 +257,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
               estimatedMinutes: cardioMinutes, cardio: { exerciseId: selectedCardioId, seconds: cardioMinutes * 60 } };
           } else {
             const focus = ROLE_FOCUS[role];
-            const available = eligiblePlanExercises(exercises ?? [], inventory, focus, restrictEquipment, venue, trainingLevel)
+            const available = eligiblePlanExercises(exercises ?? [], inventory, ['lower', 'legs'].includes(role) ? 'full' : focus, restrictEquipment, venue, trainingLevel)
               .filter((exercise) => matchesPlanRole(exercise, role));
             const previous = previousByRole.get(role) ?? [];
             const retained = new Set(previous.flatMap(({ exercises }) => exercises.map(({ exerciseId }) => exerciseId)));
@@ -297,14 +297,27 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
   }
 
   function planNote(result: CoachPlanResult, pool: readonly Exercise[]) {
-    if (venue !== 'gym') return undefined;
+    const comparison = result.referenceComparison;
+    const notes = comparison ? [t('coach.referenceTotals', [comparison.exercisesBefore, comparison.setsBefore,
+      comparison.exercisesAfter, comparison.setsAfter])] : [];
+    if (comparison?.unavailableExamples.length) notes.push(t('coach.referenceUnavailable', [comparison.unavailableExamples.join(', ')]));
+    if (venue !== 'gym') return notes.join('\n') || undefined;
     const lines = result.exercises.flatMap(({ exerciseId }) => {
       const exercise = pool.find(({ id }) => id === exerciseId);
       if (!exercise) return [];
       const variants = planAlternatives(exercise, pool);
       return variants.length ? [exercise.name + ' → ' + variants.map(({ name }) => name).join(' / ')] : [];
     });
-    return lines.length ? [t('coach.variantsNote'), ...lines].join('\n') : undefined;
+    return [...notes, ...(lines.length ? [t('coach.variantsNote'), ...lines] : [])].join('\n') || undefined;
+  }
+
+  function comparisonNotice(result: CoachPlanResult) {
+    const comparison = result.referenceComparison;
+    return comparison && <div className="coach-reference-comparison">
+      <p>{t('coach.referenceTotals', [comparison.exercisesBefore, comparison.setsBefore, comparison.exercisesAfter, comparison.setsAfter])}</p>
+      <p className="hint">{t('coach.referenceTotalsHelp')}</p>
+      {comparison.unavailableExamples.length > 0 && <p className="hint">{t('coach.referenceUnavailable', [comparison.unavailableExamples.join(', ')])}</p>}
+    </div>;
   }
 
   async function save() {
@@ -590,6 +603,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
         <div className="coach-proposal self-host-card">
           <h3>{result.name}</h3>
           <p>{result.summary}</p>
+          {comparisonNotice(result)}
           {result.estimatedMinutes !== undefined && <p className="hint">{t('coach.estimate', [result.estimatedMinutes])}</p>}
           <ul className="self-host-list">
             {result.exercises.map(({ exerciseId, sets, reps, restSec }) => {
@@ -641,6 +655,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
               {entry.result && (
                 <>
                   <p>{entry.result.summary}</p>
+                  {comparisonNotice(entry.result)}
                   {entry.result.week && entry.result.week.variation !== 'initial' && <p className="hint">
                     {t(entry.result.week.variation === 'exercises' ? 'coach.weekChanged' : 'coach.weekLimited')}
                   </p>}

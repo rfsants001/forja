@@ -30,10 +30,13 @@ export const homeMovements = new Map([
   movement('prone-row', 'Remada deitada sem carga', 'back', ['peso corporal'], ['shoulders']),
   movement('supine-floor-press', 'Supino com halteres no chão', 'chest', ['halter'], ['triceps', 'shoulders']),
   movement('single-arm-floor-press', 'Supino unilateral com halter no chão', 'chest', ['halter'], ['triceps', 'shoulders']),
+  movement('neutral-floor-press', 'Supino neutro com halteres no chão', 'chest', ['halter'], ['triceps', 'shoulders']),
   movement('floor-fly', 'Crucifixo com halteres no chão', 'chest', ['halter'], ['shoulders']),
   movement('plate-squat', 'Agachamento segurando anilha', 'quads', ['anilha'], ['glutes']),
   movement('plate-raise', 'Elevação frontal com anilha', 'shoulders', ['anilha'], []),
   movement('plate-curl', 'Rosca com anilha', 'biceps', ['anilha'], ['forearms']),
+  movement('hollow-rock', 'Hollow body rocks', 'abs', ['peso corporal'], ['obliques']),
+  movement('reverse-crunch', 'Abdominal reverso no chão', 'abs', ['peso corporal'], []),
   movement('plate-twist', 'Rotação de tronco no chão com anilha', 'abs', ['anilha'], []),
   movement('ez-romanian-deadlift', 'Terra romeno com barra W', 'glutes', ['barra ez'], ['hamstrings', 'back']),
   movement('sliding-leg-curl', 'Flexão de pernas no chão com discos deslizantes', 'hamstrings', ['disco deslizante'], ['glutes']),
@@ -58,6 +61,7 @@ export const homeMovements = new Map([
   movement('arnold-press', 'Desenvolvimento Arnold com halteres em pé', 'shoulders', ['halter'], ['triceps']),
   movement('lateral-raise', 'Elevação lateral com halter em pé', 'shoulders', ['halter'], []),
   movement('overhead-triceps', 'Extensão de tríceps acima da cabeça com halter em pé', 'triceps', ['halter'], []),
+  movement('single-arm-overhead-triceps', 'Extensão de tríceps unilateral acima da cabeça com halter', 'triceps', ['halter'], []),
   movement('floor-triceps', 'Tríceps testa no chão com halteres', 'triceps', ['halter'], []),
   movement('ez-floor-triceps', 'Tríceps testa no chão com barra W', 'triceps', ['barra ez'], []),
   movement('diamond-pushup', 'Flexão diamante no chão', 'chest', ['peso corporal'], ['triceps', 'shoulders']),
@@ -67,6 +71,7 @@ export const homeMovements = new Map([
   movement('single-leg-rdl', 'Terra romeno unilateral com halter', 'hamstrings', ['halter'], ['glutes']),
   movement('dumbbell-reverse-lunge', 'Afundo reverso com halter', 'quads', ['halter'], ['glutes']),
   movement('dumbbell-side-lunge', 'Afundo lateral com halter', 'quads', ['halter'], ['glutes']),
+  movement('dumbbell-walking-lunge', 'Afundo andando com halter', 'quads', ['halter'], ['glutes']),
   movement('weighted-glute-bridge', 'Ponte de glúteo no chão com anilha', 'glutes', ['anilha'], ['hamstrings']),
   movement('standing-calf', 'Panturrilha em pé com halter', 'calves', ['halter'], []),
   movement('single-leg-calf', 'Panturrilha unilateral com halter', 'calves', ['halter'], []),
@@ -74,7 +79,7 @@ export const homeMovements = new Map([
 
 export const pairedDumbbellExercises = new Set(['ds-0289', 'ds-0308', 'home-supine-floor-press', 'home-floor-fly',
   'home-dumbbell-row', 'home-dumbbell-shrug', 'home-rear-delt-fly', 'home-dumbbell-press', 'home-arnold-press',
-  'home-floor-triceps', 'home-dumbbell-rdl']);
+  'home-floor-triceps', 'home-dumbbell-rdl', 'home-neutral-floor-press']);
 
 export function canPlanAtHome(exercise: Exercise, requirements: readonly string[]): boolean {
   return (exercise.custom === true && requirements.length > 0) || verified.has(exercise.id) || homeMovements.has(exercise.id);

@@ -123,3 +123,8 @@ A elegibilidade e o recorte de candidatos são puros em `lib/coach-catalog.ts`, 
 ### Inventário livre e seleção de trabalho
 
 `equipmentKey` aceita handles de haltere com notas entre parênteses e suportes para flexão. A identificação não altera o nome salvo nem presume pesos montados. Handles precisam de anilhas para habilitar halteres. `isCoachWorkingExercise` é compartilhado por catálogo e API; preparatórios não contam como exercícios de trabalho e regressões simples não completam o avançado. Aliases de barra fixa usam uma identidade comum de resistência. Depois da ordenação/complementação, a API produz o resumo a partir da lista final, evitando reapresentar uma justificativa que descreva a ordem original do modelo.
+
+
+### Contrato de composição
+
+A taxonomia compartilhada identifica movimentos equivalentes e papéis permitidos. `week-programming` reserva os padrões do dia, aplica os limites de família/segmento e valida trocas A/B sem quebrar a composição. A preferência pela referência considera equivalência do movimento, resistência explícita e pegada; não exige igualdade literal PT/EN. A seleção conserva prescrições válidas do modelo; complementos usam a mesma família ou uma referência compatível antes de recorrer à base. `referenceComparison` expõe contagens e cobertura e é persistida como nota, sem nova migração de banco. A estimativa de duração conta lados e descanso entre movimentos. [Aceite e regras](../coach-weekly-split/training-level.md#composição-verificável-e-comparação--19112026).

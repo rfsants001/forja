@@ -6,6 +6,7 @@ export function isCoachWorkingExercise(exercise: { id?: string; name: string }, 
   if (exercise.id === 'home-prone-row' || exercise.id === 'home-scapular-pushup'
     || /^(?:scapular (?:pullups?|pull ups?|pushups?|push ups?)|(?:puxada|flexao) escapular|elbow lift|remada deitada sem carga)\b/.test(name)) return false;
   if (level !== 'advanced') return true;
+  if (/\b(pushups?|push ups?|flexao)\b/.test(name) && /\b(on knees|on knee|kneeling|ajoelhad[oa]|joelhos)\b/.test(name)) return false;
   return !['home-wall-pushup', 'home-air-squat', 'home-reverse-lunge', 'home-glute-bridge'].includes(exercise.id ?? '')
     && !/^(?:wall pushups?|wall push ups?|flexao na parede|air squat|agachamento livre sem carga|afundo reverso sem carga)\b/.test(name);
 }

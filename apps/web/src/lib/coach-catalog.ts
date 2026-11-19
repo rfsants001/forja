@@ -1,4 +1,5 @@
 import type { EquipmentItem, Exercise, MuscleGroup } from '@forja/core';
+import { allowsCoachRole, movementIdentity } from '../../../../packages/core/src/coach-movements.ts';
 import { isCoachWorkingExercise } from '../../../../packages/core/src/coach-exercises.ts';
 import type { PlanFocus, PlanVenue } from './coach-plan.ts';
 import { equipmentKey, exerciseRequirements, hasDumbbellPair, inventoryKeys, supportsEquipment } from './equipment.ts';
@@ -7,21 +8,7 @@ import { movementFamily, resistance } from './coach-movements.ts';
 import { canPlanAtHome, homeMovements, pairedDumbbellExercises } from './home-exercises.ts';
 
 export type PlanDayRole = 'upper' | 'lower' | 'full' | 'push' | 'pull' | 'legs' | 'cardio';
-const roleMuscles: Record<PlanDayRole, ReadonlySet<MuscleGroup>> = {
-  upper: new Set(['chest', 'back', 'lats', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps']),
-  lower: new Set(['quads', 'hamstrings', 'glutes', 'calves']),
-  full: new Set(['chest', 'back', 'lats', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps',
-    'quads', 'hamstrings', 'glutes', 'calves', 'abs', 'obliques', 'fullbody']),
-  push: new Set(['chest', 'shoulders', 'triceps']),
-  pull: new Set(['back', 'lats', 'biceps', 'traps', 'forearms']),
-  legs: new Set(['quads', 'hamstrings', 'glutes', 'calves']),
-  cardio: new Set(),
-};
-
-export function matchesPlanRole(exercise: Exercise, role: PlanDayRole): boolean {
-  return roleMuscles[role].has(exercise.primaryMuscle)
-    || (role === 'pull' && exercise.primaryMuscle === 'shoulders' && movementFamily(exercise) === 'rear-delt-fly');
-}
+export const matchesPlanRole = (exercise: Exercise, role: PlanDayRole) => allowsCoachRole(exercise, role);
 
 const lower = new Set<MuscleGroup>(['quads', 'hamstrings', 'glutes', 'calves']);
 const upper = new Set<MuscleGroup>(['chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps', 'lats']);
@@ -50,22 +37,30 @@ export function planCandidates(eligible: readonly Exercise[], equipment: string[
     + 2 * Number(Boolean(movementFamily(exercise))) + Number(exercise.demo.kind === 'asset');
   const sorted = [...eligible].sort((a, b) => rank(b) - rank(a));
   const picked = new Map<string, Exercise>(eligible.filter(({ id }) => retainIds.has(id)).map((exercise) => [exercise.id, exercise]));
+  const identities = new Set([...picked.values()].map(exercise => movementIdentity({ ...exercise, family: movementFamily(exercise), resistance: resistance(exercise) })));
+  function add(exercise: Exercise) {
+    const key = movementIdentity({ ...exercise, family: movementFamily(exercise), resistance: resistance(exercise) });
+    if (identities.has(key)) return false;
+    picked.set(exercise.id, exercise);
+    identities.add(key);
+    return true;
+  }
   for (const key of new Set(equipment.map(equipmentKey))) {
     const item = sorted.find((exercise) => exerciseRequirements(exercise).includes(key));
-    if (item) picked.set(item.id, item);
+    if (item) add(item);
   }
   const groups = new Set<string>();
   for (const exercise of sorted) {
     const family = movementFamily(exercise);
     if (!family || groups.has(family)) continue;
-    picked.set(exercise.id, exercise);
+    add(exercise);
     groups.add(family);
   }
   const counts = new Map<MuscleGroup, number>();
   for (const exercise of sorted) {
     const count = counts.get(exercise.primaryMuscle) ?? 0;
     if (count >= 8 || picked.has(exercise.id)) continue;
-    picked.set(exercise.id, exercise);
+    if (!add(exercise)) continue;
     counts.set(exercise.primaryMuscle, count + 1);
   }
   return [...picked.values()].slice(0, 60).map((exercise) => ({

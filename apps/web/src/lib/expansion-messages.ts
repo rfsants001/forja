@@ -1,5 +1,9 @@
 export const expansionMessages = {
   pt: {
+    'coach.compositionUnavailable': "Não foi possível completar a quantidade deste nível mantendo uma distribuição equilibrada e sem exercícios equivalentes. Revise o inventário ou o nível.",
+    'coach.referenceTotals': "Referência: {0} exercícios · {1} séries. Proposta: {2} exercícios · {3} séries.",
+    'coach.referenceTotalsHelp': "A proposta adapta a referência ao nível, à duração e aos equipamentos. Estes totais não medem equivalência de carga ou esforço.",
+    'coach.referenceUnavailable': "Sem cobertura compatível no catálogo para esta seleção: {0}.",
     'inventory.recognizedAs': "Reconhecido no Assistente como: {0}",
     'coach.trainingLevel': "Nível geral de treino",
     'coach.level.beginner': "Iniciante · {0} exercícios",
@@ -427,6 +431,10 @@ export const expansionMessages = {
     'coach.weekUnavailable': "Não foi possível diferenciar as sessões com essas opções. Confira o inventário ou a divisão semanal e gere novamente.",
   },
   en: {
+    'coach.compositionUnavailable': "Could not meet this level’s exercise count with a balanced selection and no equivalent exercises. Review your inventory or level.",
+    'coach.referenceTotals': "Reference: {0} exercises · {1} sets. Proposal: {2} exercises · {3} sets.",
+    'coach.referenceTotalsHelp': "The proposal adapts the reference to your level, duration, and equipment. These totals do not measure equivalent load or effort.",
+    'coach.referenceUnavailable': "No compatible catalog coverage in this selection: {0}.",
     'inventory.recognizedAs': "Recognized by the Assistant as: {0}",
     'coach.trainingLevel': "Overall training level",
     'coach.level.beginner': "Beginner · {0} exercises",

@@ -41,3 +41,17 @@ O teste de regressão usa os helpers reais do frontend e o coach comum com halte
 - Reutilizar o filtro puro na API para a regra não depender somente do prompt. Deduplicar aliases de barra fixa/pull-up independentemente da etiqueta de resistência usada pelo dataset.
 - No Puxar, assegurar remada e puxada vertical quando o inventário permitir, alternando a primeira prioridade A/B. O resumo usa os exercícios finais, pois a ordenação e complementação da Forja podem mudar a resposta do modelo.
 - Testar com a descrição real de handles e todos os pesos de anilhas, não apenas Halteres. A importação fiel e o histórico permanecem fora dessas regras de geração.
+
+
+## Composição verificável e comparação — 19/11/2026
+
+- Famílias e identidade em `packages/core/src/coach-movements.ts` são usadas pela UI e API. Inferir lateral, frontal, panturrilha, punhos, pullover e core; distinguir lateralidade e postura reais e deduplicar traduções equivalentes. O recorte de 60 candidatos conserva IDs de sessões anteriores e evita gastar espaço com aliases.
+- Rear delt não entra em Empurrar. As novas propostas com nível usam o padrão de até dois exercícios da mesma família, com até três se a referência pedir três variações. Panturrilha tem teto de dois, reduzido a um quando a referência contém apenas um movimento; antebraço tem teto de um e core de dois. A seleção mantém as pegadas e variações da referência quando há correspondência compatível; o repertório inclui supino neutro no chão, tríceps unilateral acima da cabeça e afundo andando para essas adaptações. Estes são limites de montagem do produto, não limites clínicos.
+- Priorizar padrões principais e, quando houver alternativas, duas roscas em Puxar e dois movimentos de tríceps em Empurrar nos níveis de seis/oito exercícios. Ordenar padrões principais antes dos acessórios. Não descartar uma prescrição válida só por repetir família.
+- Em pernas, admitir core como acessório. A referência determina se o dia contém core, com até duas posições; sem arquivo, o B pode incluir uma posição. Não retirar o core do sábado para acrescentar aliases de panturrilha. Não inventar sliders, banco ou apoio para reproduzir um movimento não elegível.
+- Se a quantidade escolhida não couber numa composição válida, retornar `PLAN_COMPOSITION_UNAVAILABLE`. Não gerar uma proposta reduzida com rótulo de sucesso.
+- Retornar `referenceComparison` com contagens de exercícios/séries declaradas antes/depois e exemplos de famílias sem cobertura no catálogo elegível. Mostrar a comparação na prévia e preservá-la na nota. Não chamar essa contagem de equivalência de estímulo, tonelagem ou recuperação.
+- Estimar os dois lados dos unilaterais explícitos e o descanso entre exercícios, além dos intervalos entre séries e aquecimento. Tempos de montagem/carga continuam desconhecidos; uma sessão antes estimada abaixo de 40 min pode precisar de mais tempo. Rejeitar duração inviável sem reduzir abaixo do mínimo de séries do fluxo.
+- Preservar o modo Importar sem alterações e dados já gravados. A correção vale para novas propostas.
+
+Testar os seis dias com o JSON externo, inventário literal e modelos simulados tanto com resposta curta quanto com a resposta problemática de oito itens. Assertar identidades, distribuição, séries preservadas, core e comparação — não apenas tamanho de array ou IDs distintos.

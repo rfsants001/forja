@@ -19,6 +19,7 @@ const errors: Record<string, string> = {
   COACH_LOCAL_REQUIRED: 'engines.localOnly', ENGINE_CHANGED: 'engines.changed',
   INVALID_PROVIDER_RESPONSE: 'coach.invalidResponse', WEEK_VARIATION_UNAVAILABLE: 'coach.weekUnavailable', CODEX_LOGIN_REQUIRED: 'coach.codexLoginRequired',
   PLAN_EXERCISE_COUNT_UNAVAILABLE: 'coach.levelUnavailable', SESSION_DURATION_TOO_SHORT: 'coach.sessionTooShort',
+  PLAN_COMPOSITION_UNAVAILABLE: 'coach.compositionUnavailable',
   MODEL_UNAVAILABLE: 'coach.modelMissing', PROVIDER_BUSY: 'coach.busy', CURSOR_RESET: 'sync.cursorReset',
 };
 export function syncMessage(error: unknown, t: ReturnType<typeof useT>) {

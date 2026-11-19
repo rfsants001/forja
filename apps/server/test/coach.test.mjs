@@ -118,14 +118,15 @@ test('fit cardio and strength into a weight-loss session while forwarding only r
       return { ...result, cardioExerciseId, exercises: result.exercises.map((item) => ({ ...item, sets: 4, reps: 15 })) };
     },
   });
-  const input = { ...example, goal: 'weight-loss', venue: 'home', minutes: 15, inventory, cardioCandidates,
+  const input = { ...example, goal: 'weight-loss', venue: 'home', minutes: 16, inventory, cardioCandidates,
     weightGoal: { currentKg: 88, targetKg: 80, history: 'private' } };
   const session = await coach.plan(input);
   assert.deepEqual(received.weightGoal, { currentKg: 88, targetKg: 80 });
   assert.deepEqual(received.inventory[0], { name: 'Weight plates', quantity: 4, unitWeightKg: 5 });
   assert.deepEqual(received.inventory[1], inventory[1]);
   assert.deepEqual(session.cardio, { exerciseId: 'treadmill', seconds: 300 });
-  assert(session.estimatedMinutes <= 15);
+  assert.equal(session.estimatedMinutes, 16);
+  await assert.rejects(coach.plan({ ...input, minutes: 15 }), { code: 'SESSION_DURATION_TOO_SHORT' });
   cardioExerciseId = 'unavailable';
   const withoutMachines = await coach.plan({ ...input, cardioCandidates: [cardioCandidates[1]] });
   assert.deepEqual(withoutMachines.cardio, { exerciseId: 'walk', seconds: 300 });

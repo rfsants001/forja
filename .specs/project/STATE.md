@@ -7,7 +7,7 @@ Atualizado em 19/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [
 - Abertura durante inicialização local e introdução em quatro slides, com Pular, Voltar, navegação por etapa e checkbox persistente **Não mostrar a introdução novamente**. PT/EN, tema e movimento reduzido; preserva URL, sessão ativa e pareamento. [Aceite/SDD](../features/boas-vindas/spec.md).
 - Dias do Coach foram refeitos: controle comum de seleção com toque/teclado em Por split e Criar com IA; primeiro dias, depois cards apenas dos dias marcados. Upload mantém dias/tipos; Criar treino não herda automaticamente a primeira rotina do JSON.
 - Novo nível global: Iniciante 4, Intermediário 6, Avançado 8 exercícios de musculação por sessão. Presets de produto aplicados no servidor para qualquer provedor, incluindo A/B; cardio dedicado separado. Tempo é por sessão em todas as chamadas diárias. Falta de candidatos e duração incompatível têm erros traduzidos. Importar sem alterações preserva o plano. [PRD/TRD/SDD](../features/coach-weekly-split/training-level.md).
-- Gates: 142 testes core + 40 servidor, typecheck e build de produção. Verificação no navegador cobre a abertura, persistência, PT/EN, tema claro e movimento reduzido, upload e dias, geração por sessão e layout de 320 a 1366 px. Os quatro splits e seis dias personalizados Puxar/Empurrar/Pernas A/B foram gerados e salvos; no avançado, cada sessão teve oito exercícios e recebeu 75 minutos separadamente. Provedores simulados; os testes físicos abaixo continuam pendentes.
+- Gates: 147 testes core + 45 servidor, typecheck e build de produção. Verificação no navegador cobre a abertura, persistência, PT/EN, tema claro e movimento reduzido, upload e dias, geração por sessão e layout de 320 a 1366 px. Os quatro splits e seis dias personalizados Puxar/Empurrar/Pernas A/B foram gerados e salvos; no avançado, cada sessão teve oito exercícios e recebeu 75 minutos separadamente. Provedores simulados; os testes físicos abaixo continuam pendentes.
 
 ## Correção do catálogo de casa — 19/11/2026
 
@@ -24,6 +24,18 @@ O cadastro real usava `barra de haltere (haltere customizado com anilhas)` e `su
 O filtro de exercícios de trabalho é compartilhado entre UI e API em `packages/core/src/coach-exercises.ts`. Preparatórios como remada deitada sem carga, elbow lift e controle escapular não completam a quota; no avançado, regressões simples também não. Barra fixa e pull-up sem assistência são deduplicados mesmo quando o dataset usa peso corporal ou barra fixa como resistência. Puxar inclui remada e puxada vertical quando ambas existem, alternando a prioridade A/B. O resumo é composto a partir da sequência final para não contradizer ajustes do plano.
 
 A regressão usa o cadastro exato: uma barra fixa, uma W, dois handles montáveis, quatro anilhas de cada peso (3, 4 e 5 kg) e duas de 10 kg, e dois apoios. No navegador, esse cadastro gerou e salvou seis sessões de oito exercícios de trabalho, com e sem JSON externo, usando provedor simulado. Não se deve voltar a validar apenas com o nome genérico Halteres. A cópia fiel de arquivos e os registros salvos não passam pelo filtro de geração.
+
+## Composição e comparação da referência — 19/11/2026
+
+As famílias e identidades agora são compartilhadas em `packages/core/src/coach-movements.ts`. Elevação lateral, panturrilha, punhos e core têm identificação canônica; aliases PT/EN deixam de preencher a meta como exercícios distintos. Rear delt é de Puxar/Upper/Full, não Empurrar. A API normaliza metadados e aplica a regra mesmo com candidatos de clientes antigos.
+
+No fluxo com nível, a montagem usa o limite padrão de dois exercícios por família (até três quando a referência pede três), até duas panturrilhas, um de antebraço e dois de core, priorizando os padrões do papel. Puxar/Empurrar com seis ou oito movimentos reservam duas variações de rosca/tríceps quando há opções distintas. As regras são heurísticas de produto, não prescrições universais da literatura. O core de uma referência de pernas é preservado até duas posições quando compatível; sem referência, o B de pernas inclui um acessório de core. A quantidade escolhida continua obrigatória; composição inviável tem erro próprio, sem preenchimento por aliases. Prescrições válidas de movimentos da mesma família deixam de ser descartadas e resetadas a 2×6.
+
+A proposta mostra exercícios/séries da referência e do resultado e informa exemplos sem cobertura na seleção elegível. Essa comparação vai para a nota da rotina salva. Importação fiel e histórico não são reprogramados. A estimativa inclui ambos os lados em nomes explicitamente unilaterais e descanso entre exercícios; continua aproximada e não presume tempos de montagem de anilhas.
+
+No navegador com o inventário e JSON informados, seis rotinas de oito movimentos foram geradas, salvas e reabertas. A prévia mostrou as contagens e a nota conservou a comparação; sábado manteve dois movimentos de core e um de panturrilha. Sem arquivo, a geração também passou. Provedor simulado; gates: 147 core + 45 servidor, typecheck e build.
+
+Regressão `apps/server/test/composition.test.mjs` usa o padrão problemático relatado (traduções duplicadas, quatro panturrilhas, dois punhos), o inventário montável real e três provedores simulados. Confere distribuição, core, preservação de séries, referência e tempo. Não basta contar IDs diferentes.
 
 ## Histórico publicado na main
 

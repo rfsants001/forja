@@ -47,3 +47,8 @@ O service worker pré-cacheia o app, o catálogo, as fontes e as demonstrações
 A raiz monta `AppStartup` enquanto uma promise única executa `ensureSeed` e carrega aparência/idioma. A introdução é uma etapa anterior ao app, não uma rota. `Settings.hideIntro` é opcional e local; a validação de backup o aceita sem exigir migração dos registros existentes. Links e sessão em andamento são preservados. [SDD da entrada](../features/boas-vindas/spec.md).
 
 `WeekdayPicker` compartilha seleção e acessibilidade entre Criar com IA e Por split. `CoachPlan.trainingLevel` vale para a geração inteira: beginner=4, intermediate=6, advanced=8. A API valida a escolha, completa a seleção distinta e preserva a quantidade no A/B; tempo por sessão é validado com os descansos e ao menos duas séries por exercício. Erros específicos impedem salvar uma proposta inviável. A API sem nível preserva o contrato legado 3–6. Não aplicar essa regra à cópia fiel de planos. [TRD/SDD](../features/coach-weekly-split/training-level.md).
+
+
+## Identidade e composição do Coach
+
+`packages/core/src/coach-movements.ts` concentra taxonomia, identidade e papéis de movimentos, sem I/O. O frontend recorta candidatos e a API normaliza e valida novamente. A montagem com nível equilibra padrões e evita quotas preenchidas por traduções. O contexto semanal e as substituições são conferidos contra os mesmos limites. Comparação opcional da referência é apenas metadado de proposta, convertida em nota ao salvar; não altera esquema ou histórico. A duração estimada inclui lados e descansos entre exercícios. Ver [SDD e regras](../features/coach-weekly-split/training-level.md).

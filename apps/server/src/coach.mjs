@@ -1,5 +1,6 @@
 import { ApiError, assert } from './storage.mjs';
 import { distinguishPrescription, exerciseIdentity, programWeek, weekInput } from './week-programming.mjs';
+import { movementFamilyFor, isUnilateralMovement } from '../../../packages/core/src/coach-movements.ts';
 import { isCoachWorkingExercise } from '../../../packages/core/src/coach-exercises.ts';
 
 const reviewSchema = {
@@ -59,7 +60,7 @@ const integer = (value, min, max) => Number.isInteger(value) && value >= min && 
 const goals = new Set(['strength', 'muscle', 'general', 'weight-loss']);
 const focuses = new Set(['full', 'upper', 'lower']);
 const compound = new Set(['chest-press', 'overhead-press', 'row', 'vertical-pull', 'squat', 'lunge', 'leg-press', 'hinge', 'hip-extension']);
-const families = new Set([...compound, 'chest-fly', 'biceps-curl', 'triceps-extension', 'rear-delt-fly']);
+const families = new Set([...compound, 'chest-fly', 'biceps-curl', 'triceps-extension', 'rear-delt-fly', 'lateral-raise', 'front-raise', 'calf-raise', 'wrist-flexion', 'wrist-extension', 'leg-curl', 'pullover', 'core-flexion', 'core-rotation', 'core-stability', 'shrug']);
 const upper = new Set(['chest', 'back', 'lats', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps']);
 const lower = new Set(['quads', 'hamstrings', 'glutes', 'calves']);
 const ranges = { strength: [4, 8], muscle: [6, 20], general: [6, 15], 'weight-loss': [6, 15] };
@@ -116,7 +117,8 @@ function planInput(body) {
   assert(Array.isArray(body.exercises) && body.exercises.length >= 3 && body.exercises.length <= 60);
   const exercises = body.exercises.map((item) => {
     assert(item && text(item.id, 160) && text(item.name, 220) && text(item.muscle, 32));
-    const { id, name, muscle, family, resistance } = item;
+    const { id, name, muscle, resistance } = item;
+    const family = movementFamilyFor({ name, muscle }) ?? item.family;
     assert(family === undefined || families.has(family));
     assert(resistance === undefined || text(resistance, 80));
     return { id, name, muscle, family, resistance };
@@ -132,10 +134,11 @@ function planInput(body) {
     ...(body.goal === 'weight-loss' ? cardioPlanInput(body) : {}) };
 }
 
-function fitSession(exercises, minutes, minimumSets = 1) {
-  // Estimate 5 min of warm-up, 3 s per rep, inter-set rest and 25 s per change.
+function fitSession(exercises, minutes, minimumSets = 1, catalog = new Map()) {
+  // Estimate both sides when explicit, and allow rest between exercises as well as sets.
   const seconds = () => 300 + exercises.reduce((total, exercise, index) =>
-    total + exercise.sets * exercise.reps * 3 + (exercise.sets - 1) * exercise.restSec + (index ? 25 : 0), 0);
+    total + exercise.sets * exercise.reps * 3 * (catalog.has(exercise.exerciseId) && isUnilateralMovement(catalog.get(exercise.exerciseId)) ? 2 : 1)
+      + (exercise.sets - 1) * exercise.restSec + (index < exercises.length - 1 ? Math.max(25, exercise.restSec) : 0), 0);
   while (seconds() > minutes * 60) {
     const exercise = exercises.findLast((item) => item.sets > minimumSets);
     if (!exercise) break;
@@ -180,6 +183,21 @@ function finalPlanSummary(input, exercises, week, english) {
       : ' Esta variante muda a seleção de exercícios e mantém o foco do dia.'
     : english ? ' With the available repertoire, this variant keeps the movements and changes the prescription.'
       : ' Com o repertório disponível, esta variante mantém os movimentos e ajusta a prescrição.');
+}
+
+function referenceComparison(input, exercises) {
+  if (!input.reference) return {};
+  const available = new Set(input.exercises.map(item => item.family).filter(Boolean));
+  return { referenceComparison: {
+    exercisesBefore: input.reference.exercises.length,
+    exercisesAfter: exercises.length,
+    setsBefore: input.reference.exercises.reduce((sum, item) => sum + item.sets, 0),
+    setsAfter: exercises.reduce((sum, item) => sum + item.sets, 0),
+    unavailableExamples: input.reference.exercises.filter(item => {
+      const family = movementFamilyFor(item);
+      return family && !available.has(family);
+    }).map(item => item.name),
+  } };
 }
 
 export function createCoach(provider) {
@@ -244,7 +262,10 @@ export function createCoach(provider) {
       'Não conte mobilidade, ativação escapular ou remada deitada sem carga como exercícios principais. ' +
       'Para nível avançado, use os movimentos de trabalho compatíveis em vez de regressões de iniciante. ' +
       'Respeite as quantidades e os pesos por unidade informados no inventário. Sem quantidade ou peso conhecido, não presuma valores. ' +
-      'Na academia, escolha um exercício de cada família quando houver outras opções. Substituições de equipamento são alternativas. ' +
+      'Priorize padrões complementares e variações reais de execução. Não use traduções do mesmo movimento como exercícios diferentes. ' +
+      'No Puxar com seis ou oito exercícios, inclua duas roscas distintas se disponíveis; no Empurrar, duas variações de tríceps. ' +
+      'Não inclua posterior de ombro em Empurrar nem preencha a sessão com panturrilhas ou punhos. ' +
+      'Preserve acessórios de core da referência do dia quando forem compatíveis. Estes limites de composição são regras do produto. ' +
       'Proponha ' + (exerciseCount ? 2 : 1) + ' a 4 séries, ' + minReps + ' a ' + maxReps + ' repetições e 60 a 240 segundos de descanso. ' +
       'Reserve mais descanso para movimentos compostos e séries exigentes. Priorize qualidade técnica, sem carga absoluta e sem recomendar falha. ' +
       'Escreva um resumo curto, sem afirmar ordem ou números antes da validação final. ' +
@@ -276,15 +297,24 @@ export function createCoach(provider) {
     if (!input.venue) return { name, summary: result.summary, exercises };
     const groupOf = (exercise) => permitted.get(exercise.exerciseId);
     const usedFamilies = new Set();
-    const duplicateMoves = [];
+    const seenMovements = new Set();
     exercises = exercises.filter((exercise) => {
-      const family = groupOf(exercise).family;
-      if (family && usedFamilies.has(family)) { duplicateMoves.push(exercise); return false; }
-      if (family) usedFamilies.add(family);
+      const candidate = groupOf(exercise);
+      const key = exerciseIdentity(candidate);
+      if (seenMovements.has(key)) return false;
+      if (!input.trainingLevel && candidate.family && usedFamilies.has(candidate.family)) return false;
+      seenMovements.add(key);
+      if (candidate.family) usedFamilies.add(candidate.family);
       return true;
     });
     function baseline(candidate) {
-      return { exerciseId: candidate.id, sets: 2, reps: minReps, restSec: compound.has(candidate.family) ? 120 : 90 };
+      const prior = exercises.find(entry => groupOf(entry).family && groupOf(entry).family === candidate.family);
+      const source = input.reference?.exercises.find(entry => movementFamilyFor(entry) === candidate.family);
+      const reps = prior?.reps ?? (Number(source?.reps?.split(/[–-]/)[0]) || minReps);
+      return { exerciseId: candidate.id,
+        sets: Math.max(exerciseCount ? 2 : 1, Math.min(prior?.sets ?? source?.sets ?? 2, input.goal === 'strength' ? 3 : 4)),
+        reps: Math.min(maxReps, Math.max(minReps, reps)),
+        restSec: Math.max(prior?.restSec ?? 90, compound.has(candidate.family) ? 120 : 60) };
     }
     for (const candidate of input.exercises) {
       if (exercises.length >= 3) break;
@@ -293,7 +323,6 @@ export function createCoach(provider) {
       if (candidate.family) usedFamilies.add(candidate.family);
       exercises.push(baseline(candidate));
     }
-    if (exercises.length < 3) exercises.push(...duplicateMoves.slice(0, 3 - exercises.length));
     exercises = exercises.slice(0, maxExercises);
     if (input.focus === 'full') {
       for (const group of [upper, lower]) {
@@ -320,12 +349,13 @@ export function createCoach(provider) {
     }
     const cardioSlot = withCardio ? cardioMinutes + 1 : 0;
     const estimatedMinutes = distinguishPrescription(exercises, input, minReps, maxReps,
-      (entries) => fitSession(entries, input.minutes - cardioSlot, exerciseCount ? 2 : 1)) + cardioSlot;
+      (entries) => fitSession(entries, input.minutes - cardioSlot, exerciseCount ? 2 : 1, permitted)) + cardioSlot;
     const week = programmed.week ? { week: programmed.week } : {};
     const summary = finalPlanSummary(input, exercises, programmed.week, body.lang === 'en');
-    if (!withCardio) return { name, summary, exercises, estimatedMinutes, ...week };
+    const comparison = referenceComparison(input, exercises);
+    if (!withCardio) return { name, summary, exercises, estimatedMinutes, ...week, ...comparison };
     const cardio = input.cardioCandidates.find(({ id }) => id === result.cardioExerciseId) ?? input.cardioCandidates[0];
-    return { name, summary, exercises, estimatedMinutes, cardio: { exerciseId: cardio.id, seconds: cardioMinutes * 60 }, ...week };
+    return { name, summary, exercises, estimatedMinutes, cardio: { exerciseId: cardio.id, seconds: cardioMinutes * 60 }, ...week, ...comparison };
   }
 
   async function test(body, signal) {

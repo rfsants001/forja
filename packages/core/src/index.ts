@@ -10,3 +10,4 @@ export * from './schedule.js';
 export * from './pr.js';
 export * from './plates.js';
 export * from './fivethreeone.js';
+export * from './coach-movements.js';

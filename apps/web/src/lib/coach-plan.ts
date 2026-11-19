@@ -22,6 +22,13 @@ export interface CoachPlanResult {
   name: string;
   summary: string;
   estimatedMinutes?: number;
+  referenceComparison?: {
+    exercisesBefore: number;
+    exercisesAfter: number;
+    setsBefore: number;
+    setsAfter: number;
+    unavailableExamples: string[];
+  };
   exercises: PlanExercise[];
   cardio?: { exerciseId: string; seconds: number };
   week?: {
