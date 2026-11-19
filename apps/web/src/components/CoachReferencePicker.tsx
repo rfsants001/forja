@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Exercise, WorkoutLog } from '@forja/core';
 import { useT } from '../lib/i18n';
 import { localCoachReferences, readCoachReferences, type CoachReference, type ReferenceSource } from '../lib/coach-reference';
 import { UiError } from '../lib/ui-error';
+import { CoachFileInput } from './CoachFileInput';
 
 const formats = ['external', 'hevy', 'strong', 'fitnotes', 'backup', 'plan'] as const;
 type Source = ReferenceSource | 'none' | 'history';
@@ -27,11 +28,6 @@ export function CoachReferencePicker({ catalog, workouts, reference, onChange, o
   const items = source === 'history' ? history : fileItems;
   const needsFile = source !== 'none' && source !== 'history';
 
-  // Notify parent when the full item list changes (history source)
-  useEffect(() => {
-    if (source === 'history') onItems?.(history);
-  }, [history, source, onItems]);
-
   async function read(file: File | undefined, format: ReferenceSource) {
     setError('');
     setFileItems([]);
@@ -43,7 +39,7 @@ export function CoachReferencePicker({ catalog, workouts, reference, onChange, o
     try {
       const next = await readCoachReferences(file, format, catalog);
       setFileItems(next);
-      onItems?.(next);
+      if (format === 'plan' || (format === 'external' && /\.json$/i.test(file.name))) onItems?.(next);
       onChange(next[0]);
     } catch (failure) {
       setError(failure instanceof UiError ? t(failure.key, failure.args) : t('ui.importError'));
@@ -65,27 +61,27 @@ export function CoachReferencePicker({ catalog, workouts, reference, onChange, o
           setFileItems([]);
           setError('');
           onChange(undefined);
-          if (next !== 'history') onItems?.([]);
+          onItems?.([]);
         }}>
           <option value="none">{t('coach.referenceNone')}</option>
           <option value="history">{t('coach.referenceHistory')}</option>
           {formats.map((format) => <option value={format} key={format}>{t('coach.reference.' + format)}</option>)}
         </select></label>
         {source === 'external' && <p className="hint">{t('coach.referenceExternalHelp')}</p>}
-        {needsFile && <label>{t('coach.referenceFile')}<input key={source} type="file" disabled={disabled || reading}
+        {needsFile && <CoachFileInput key={source} disabled={disabled || reading}
           accept={source === 'external' ? '.csv,text/csv,.json,application/json'
             : source === 'plan' || source === 'backup' ? '.json,application/json' : '.csv,text/csv'}
-          onChange={(event) => void read(event.target.files?.[0], source)} /></label>}
+          onFile={(file) => void read(file, source)} />}
         {source === 'history' && items.length === 0 && <p className="hint">{t('coach.referenceEmpty')}</p>}
         {items.length > 0 && source === 'external' && <p className="hint">{t('coach.referenceAllDays', [items.length])}</p>}
-        {items.length > 0 && source !== 'external' && (
+        {items.length > 0 && (
           <label>{t('coach.referenceSession')}<select disabled={disabled} value={reference?.key ?? ''}
             onChange={(event) => onChange(items.find((item) => item.key === event.target.value))}>
             <option value="">{t('coach.referenceChoose')}</option>
             {items.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
           </select></label>
         )}
-        {reference && source !== 'external' && (
+        {reference && (
           <>
             <p className="hint">{t(reference.kind === 'logged' ? 'coach.referenceLogged' : 'coach.referencePrescribed')}</p>
             <ul className="self-host-list">

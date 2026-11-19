@@ -1,4 +1,4 @@
-import type { EquipmentItem, Exercise, MuscleGroup, Weekday } from '@forja/core';
+import type { EquipmentItem, Exercise, MuscleGroup } from '@forja/core';
 import { db } from '../db/db';
 import { upsertExercise, upsertRoutine } from '../db/repo';
 import { syncWrite } from '../db/sync-write';
@@ -25,23 +25,12 @@ export interface CoachPlanResult {
   estimatedMinutes?: number;
   exercises: PlanExercise[];
   cardio?: { exerciseId: string; seconds: number };
-}
-
-// Weekday 0=Sunday … 6=Saturday, matching WeekPlan. The first word of a plan's
-// day label ("Segunda · Upper A", "Seg · Skill") carries the weekday.
-const weekdayTokens: Record<string, Weekday> = {
-  dom: 0, domingo: 0, sun: 0, sunday: 0,
-  seg: 1, segunda: 1, mon: 1, monday: 1,
-  ter: 2, terca: 2, tue: 2, tuesday: 2,
-  qua: 3, quarta: 3, wed: 3, wednesday: 3,
-  qui: 4, quinta: 4, thu: 4, thursday: 4,
-  sex: 5, sexta: 5, fri: 5, friday: 5,
-  sab: 6, sabado: 6, sat: 6, saturday: 6,
-};
-
-export function parseWeekday(label: string): Weekday | undefined {
-  const token = label.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').match(/^[a-z]+/)?.[0];
-  return token ? weekdayTokens[token] : undefined;
+  week?: {
+    role: string;
+    variant: number;
+    variation: 'initial' | 'exercises' | 'prescription';
+    changedExercises: number;
+  };
 }
 
 const lower = new Set<MuscleGroup>(['quads', 'hamstrings', 'glutes', 'calves']);
@@ -63,12 +52,12 @@ export function eligiblePlanExercises(catalog: readonly Exercise[], equipment: r
   });
 }
 
-export function planCandidates(eligible: readonly Exercise[], equipment: string[], previousNames: string[]) {
+export function planCandidates(eligible: readonly Exercise[], equipment: string[], previousNames: string[], retainIds: ReadonlySet<string> = new Set()) {
   const previous = new Set(previousNames.map(normalizeExName));
   const rank = (exercise: Exercise) => 4 * Number(previous.has(normalizeExName(exercise.name)))
     + 2 * Number(Boolean(movementFamily(exercise))) + Number(exercise.demo.kind === 'asset');
   const sorted = [...eligible].sort((a, b) => rank(b) - rank(a));
-  const picked = new Map<string, Exercise>();
+  const picked = new Map<string, Exercise>(eligible.filter(({ id }) => retainIds.has(id)).map((exercise) => [exercise.id, exercise]));
   for (const key of new Set(equipment.map(equipmentKey))) {
     const item = sorted.find((exercise) => exerciseRequirements(exercise).includes(key));
     if (item) picked.set(item.id, item);

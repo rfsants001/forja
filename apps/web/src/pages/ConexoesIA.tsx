@@ -6,7 +6,7 @@ import { useT } from '../lib/i18n';
 import { syncMessage } from './Dispositivos';
 import '../styles/self-host.css';
 
-type EngineId = 'ollama' | 'codex-cli';
+type EngineId = 'ollama' | 'codex-cli' | 'compatible';
 interface Provider {
   id: EngineId; available: boolean; models: string[]; reason?: string;
 }
@@ -19,6 +19,7 @@ interface Login {
   status: 'idle' | 'pending' | 'connected' | 'failed';
   url?: string;
   code?: string;
+  reason?: string;
 }
 
 export function ConexoesIA() {
@@ -70,6 +71,7 @@ export function ConexoesIA() {
 
   const ollama = engines?.providers.find(({ id }) => id === 'ollama');
   const codex = engines?.providers.find(({ id }) => id === 'codex-cli');
+  const compatible = engines?.providers.find(({ id }) => id === 'compatible');
   const manage = engines?.canManage ?? false;
   const ollamaActive = engines?.active.id === 'ollama' && !!ollama?.models.length
     && (!engines.active.model || engines.active.model === ollamaModel);
@@ -113,7 +115,7 @@ export function ConexoesIA() {
           <p>{t('engines.codexPurpose')}</p>
           <p className="hint">{!codex ? t('coach.checking') : codex.available ? t('engines.codexReady')
             : t(codex.reason === 'CODEX_LOGIN_REQUIRED' ? 'engines.codexNeedsLogin' : 'coach.codexUnavailable')}</p>
-          {login?.status === 'failed' && <p className="feedback error" role="status">{t('engines.loginFailed')}</p>}
+          {login?.status === 'failed' && <p className="feedback error" role="status">{t(login.reason ? 'engines.loginFailed.' + login.reason : 'engines.loginFailed')}</p>}
           {login?.status === 'pending' ? (
             <div className="engine-login">
               <p role="status">{t(login.url ? 'engines.loginWaiting' : 'engines.loginStarting')}</p>
@@ -133,6 +135,10 @@ export function ConexoesIA() {
                     onClick={() => void run(async () => { setLogin(await post<Login>('/coach/engines/codex-login', { device: false })); })}>
                     <PlugZap size={16} aria-hidden />{t('engines.connectCodex')}
                   </button>
+                  {codex?.reason === 'CODEX_CLI_MISSING' && <a className="engine-policy"
+                    href="https://learn.chatgpt.com/docs/cli" target="_blank" rel="noreferrer">{t('engines.installCodex')}</a>}
+                  {manage && !codex?.available && <button className="btn ghost" type="button" disabled={busy}
+                    onClick={() => void run(refresh)}>{t('engines.refreshCodex')}</button>}
                   {manage && codex?.reason === 'CODEX_LOGIN_REQUIRED' && <button className="btn ghost" type="button" disabled={busy}
                     onClick={() => void run(async () => { setLogin(await post<Login>('/coach/engines/codex-login', { device: true })); })}>
                     {t('engines.connectWithCode')}
@@ -142,6 +148,15 @@ export function ConexoesIA() {
           )}
         </section>
 
+        <section className="card engine-card">
+          <div className="engine-heading"><h2>{t('engines.compatTitle')}</h2>
+            {engines?.active.id === 'compatible' && <span>{t('engines.inUse')}</span>}</div>
+          <p>{t('engines.compatDescription')}</p>
+          <p className="hint">{compatible?.available ? compatible.models[0] : t('engines.compatSetup')}</p>
+          {compatible?.available && engines?.active.id !== 'compatible' && <button className="btn" type="button"
+            disabled={!manage || busy} onClick={() => void run(() => activate('compatible', compatible.models[0]), 'engines.saved')}>
+            {t('engines.use')}</button>}
+        </section>
         <section className="card engine-card">
           <div className="engine-heading"><h2>Claude Code</h2></div>
           <p>{t('engines.claudeUnavailable')}</p>

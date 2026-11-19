@@ -82,7 +82,7 @@ Provider = {
 
 A tela Perfil → Conexões de IA lista os provedores e grava a seleção no SQLite da instalação. Ollama detecta o serviço local. Codex inicia o login oficial do CLI em perfil dedicado e apresenta apenas o link da OpenAI e, na opção remota, o código de dispositivo. Os comandos locais `npm run dev` e `npm start` servem a API na mesma origem do navegador. O fluxo local da IA é separado do sync. Na instalação remota, a geração exige uma sessão autorizada e a configuração exige o dono. O descanso por exercício vem da geração.
 
-O Bubblewrap dá ao Codex acesso de leitura aos certificados do sistema. Em Fedora e Nobara, os caminhos sob `/etc/ssl` referenciam bundles PEM em `/etc/pki`. Esses arquivos precisam estar visíveis dentro do processo para a troca do token HTTPS funcionar.
+O Bubblewrap dá ao Codex acesso de leitura aos certificados do sistema em Fedora e Nobara, onde os caminhos sob `/etc/ssl` referenciam bundles PEM em `/etc/pki`; o Bubblewrap se aplica apenas ao Linux. No Windows não há Bubblewrap: o Codex roda diretamente com um diretório de perfil isolado criado pela Forja, dependendo dos guardrails próprios do CLI.
 
 O inventário é editado em Perfil → Meus equipamentos. Cada linha em `Settings.equipmentInventory` guarda um tipo, a quantidade e o peso unitário quando aplicável. Tipos com pesos diferentes têm linhas separadas. Os nomes legados de `gymEquipment` continuam disponíveis com quantidade desconhecida até serem editados. O treino em casa combina opções verificadas da biblioteca, movimentos domésticos e exercícios personalizados. O salvamento confere novamente o inventário e materializa novos movimentos na mesma transação da rotina.
 
@@ -95,3 +95,14 @@ A origem Plano externo aceita o JSON `opengym_plan: 1`, um CSV tabular ou um JSO
 O assistente lê referência local, CSV de Hevy/Strong/FitNotes e JSON de backup/plano da Forja no navegador. O usuário escolhe uma sessão ou rotina. A rota de montagem recebe um recorte de até 16 exercícios com séries, reps e carga registrada conforme disponibilidade. Rótulos da sessão, nomes de arquivo e notas ficam fora do pedido. Nada é gravado ao anexar a referência.
 
 Os princípios de progressão, volume, ordem e especificidade seguem a [posição ACSM 2026](https://acsm.org/resistance-training-guidelines-update-2026/). Os intervalos de reps e descanso e o estimador de tempo são regras de programação da Forja. A IA escolhe entre IDs elegíveis. A API ajusta séries à duração estimada, prioriza compostos em força e complementa superiores/inferiores quando o foco é corpo inteiro e a lista permite. Em casa, os candidatos passam pelo inventário. Na academia, as alternativas requerem mesma família de movimento e outra resistência, verificadas na biblioteca. A rotina salva mantém as substituições nas notas.
+
+## Compatibilidade entre sistemas e APIs
+
+O Codex usa Bubblewrap no Linux e executável nativo no Windows e macOS. A instalação npm pode expor um shim. A Forja encontra o binário do pacote e inicia o processo diretamente em um diretório temporário, mantendo o perfil de login dedicado. A API compatível com OpenAI usa URL e modelo definidos pelo host. A chave permanece no servidor.
+
+
+## Montagem e validação de variantes semanais
+
+A rota `/coach/plans` aplica as regras de `week-programming.mjs` após validar a resposta de qualquer provedor. O contexto carrega o papel, o índice da variante e as prescrições anteriores do mesmo papel. A resposta traz `week.variation` e o número de exercícios diferentes em relação à sessão anterior. A API alterna prioridades disponíveis, detecta composições equivalentes e confere duplicatas de prescrição após ajustar o tempo. Com opções limitadas, sinaliza a repetição de exercícios e a alteração da prescrição. O cliente envia somente as sessões já geradas na operação atual. Importar sem alterações mantém o fluxo de cópia local.
+
+O plano semanal exibe as letras A/B desde a primeira ocorrência e salva as rotinas e a agenda em transação. A progressão automática ao longo de várias semanas permanece no planejamento. [Requisitos semanais](../coach-weekly-split/spec.md).

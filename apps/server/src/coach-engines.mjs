@@ -1,5 +1,5 @@
 import { createCoach } from './coach.mjs';
-import { codexFromEnv, resolveProvider } from './providers/index.mjs';
+import { codexFromEnv, compatibleFromEnv, resolveProvider } from './providers/index.mjs';
 import { ollamaProvider } from './providers/ollama.mjs';
 import { assert } from './storage.mjs';
 
@@ -23,7 +23,8 @@ export function createCoachEngines(store, { env = {}, ollama, coachProvider } = 
   const configured = coachProvider ?? resolveProvider(env, ollama);
   const codex = configured.id === 'codex-cli' ? configured : codexFromEnv(env);
   const ollamaEngine = configured.id === 'ollama' ? configured : ollamaProvider(ollama ?? env.FORJA_OLLAMA_URL ?? 'http://127.0.0.1:11434');
-  const engines = new Map([['ollama', createCoach(ollamaEngine)], ['codex-cli', createCoach(codex)]]);
+  const compatible = configured.id === 'compatible' ? configured : compatibleFromEnv(env);
+  const engines = new Map([['ollama', createCoach(ollamaEngine)], ['codex-cli', createCoach(codex)], ['compatible', createCoach(compatible)]]);
   let login;
   let running = false;
 
@@ -51,8 +52,8 @@ export function createCoachEngines(store, { env = {}, ollama, coachProvider } = 
 
   function loginStatus() {
     if (!login) return { status: 'idle' };
-    const { status, url, code } = login;
-    return { status, url, code };
+    const { status, url, code, reason } = login;
+    return { status, url, code, reason };
   }
 
   function startLogin(device) {
@@ -70,7 +71,15 @@ export function createCoachEngines(store, { env = {}, ollama, coachProvider } = 
         if (challenge.url) Object.assign(current, challenge);
       },
     })).then(() => { if (current.status === 'pending') current.status = 'connected'; })
-      .catch(() => { if (current.status === 'pending') current.status = 'failed'; })
+      .catch((error) => {
+        if (current.status !== 'pending') return;
+        current.status = 'failed';
+        const diagnostic = output + String(error?.stderr ?? '');
+        if (error?.code === 'CODEX_CLI_MISSING') current.reason = 'missing';
+        else if (/error sending request|token.exchange.failed|certificate|unknown issuer|timed out/i.test(diagnostic)) current.reason = 'network';
+        else if (/address already in use|EADDRINUSE|failed to bind|os error 10048|os error 10013/i.test(diagnostic)) current.reason = 'callback';
+        else if (device) current.reason = 'device';
+      })
       .finally(() => { current.url = undefined; current.code = undefined; });
     return loginStatus();
   }

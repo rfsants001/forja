@@ -75,6 +75,8 @@ export interface RoutineExercise {
   targetReps?: string;
   /** Tempo-alvo em segundos (modo time/cardio). */
   targetSec?: number;
+  targetSecMax?: number;
+  targetWeightKg?: number;
   restSec?: number;
   progression?: ProgressionPolicy;
   /** Incremento de carga por sessão (kg) quando a política dispara. */

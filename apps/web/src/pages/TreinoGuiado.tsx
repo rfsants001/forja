@@ -68,13 +68,15 @@ function buildActiveExercise(config: RoutineExercise, exercise: Exercise, workou
   const sec = isReps ? undefined : prescription.sec ?? config.targetSec;
   const distanceM = exercise.mode === 'cardio' ? config.targetDistanceM : undefined;
   const speedKmh = exercise.mode === 'cardio' ? config.targetSpeedKmh : undefined;
-  const weightKg = isReps && mainSets === undefined ? prescription.weightKg : undefined;
+  const weightKg = isReps && mainSets === undefined ? config.targetWeightKg ?? prescription.weightKg : undefined;
   const count = mainSets?.length ?? config.sets;
   return {
     exerciseId: exercise.id,
     name: exercise.name,
     mode: exercise.mode,
     restSec: config.restSec,
+    targetSecMax: config.targetSecMax,
+    note: config.note,
     supersetGroup: config.supersetGroup,
     prescription,
     target: {
@@ -1040,7 +1042,7 @@ export function TreinoGuiado() {
             {currentEx.target.sets} série{currentEx.target.sets !== 1 ? 's' : ''}
             {isTimedMode
               ? currentEx.target.sec !== undefined
-                ? ` · ${currentEx.target.sec}s`
+                ? ` · ${currentEx.target.sec}${currentEx.targetSecMax !== undefined ? `–${currentEx.targetSecMax}` : ''} s`
                 : ''
               : currentEx.target.reps !== undefined
                 ? ` · ${currentEx.target.reps} reps`
@@ -1055,6 +1057,8 @@ export function TreinoGuiado() {
               ? ` · ${currentEx.target.speedKmh}km/h`
               : ''}
           </div>
+
+          {currentEx.note && <p className="hint">{currentEx.note}</p>}
 
           {/* Dica discreta de prescrição */}
           {prescription !== undefined && <p className="tg-why">{prescription.reason

@@ -134,3 +134,20 @@ test('fit cardio and strength into a weight-loss session while forwarding only r
   assert.equal(received.weightGoal, undefined);
   await assert.rejects(coach.plan({ ...input, inventory: [{ name: 'Weight plates', quantity: 0 }] }));
 });
+
+test('strength days in a weight-loss split do not require an aerobic candidate', async () => {
+  const coach = createCoach({
+    id: 'fixture',
+    async listModels() { return { available: true, models: ['default'] }; },
+    async generate(_model, _system, input, schema) {
+      assert.deepEqual(input.weightGoal, { currentKg: 80, targetKg: 75 });
+      assert.deepEqual(input.cardioCandidates, []);
+      assert(!schema.required.includes('cardioExerciseId'));
+      return result;
+    },
+  });
+  const plan = await coach.plan({ ...example, venue: 'home', goal: 'weight-loss', includeCardio: false,
+    weightGoal: { currentKg: 80, targetKg: 75 } });
+  assert.equal(plan.cardio, undefined);
+  assert.equal(plan.exercises.length, 3);
+});

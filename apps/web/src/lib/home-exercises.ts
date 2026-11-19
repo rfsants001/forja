@@ -22,6 +22,8 @@ function movement(id: string, name: string, primaryMuscle: MuscleGroup, equipmen
 }
 
 export const homeMovements = new Map([
+  movement('wall-pushup', 'Flexão na parede', 'chest', ['peso corporal'], ['triceps', 'shoulders']),
+  movement('scapular-pushup', 'Flexão escapular', 'chest', ['peso corporal'], ['shoulders']),
   movement('air-squat', 'Agachamento livre sem carga', 'quads', ['peso corporal'], ['glutes']),
   movement('reverse-lunge', 'Afundo reverso sem carga', 'quads', ['peso corporal'], ['glutes']),
   movement('glute-bridge', 'Ponte de glúteo no chão', 'glutes', ['peso corporal'], ['hamstrings']),

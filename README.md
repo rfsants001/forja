@@ -156,7 +156,7 @@ Para copiar a instalação inteira, pare o servidor e copie a pasta de dados, in
 Com a Forja aberta por `npm start` ou `npm run dev`, vá a **Perfil → Conexões de IA**. O Assistente funciona no computador que roda o servidor. **Dispositivos** cuida do sync e do acesso remoto.
 
 - **Ollama.** Deixe o Ollama aberto com um modelo instalado. Selecione **Verificar Ollama**, escolha o modelo e clique em **Usar no Assistente**. A Forja detecta o serviço local em `http://127.0.0.1:11434`. O administrador pode usar `FORJA_OLLAMA_URL` para um endpoint alternativo.
-- **Codex CLI.** No Linux com Codex CLI oficial e Bubblewrap instalados, ou no Windows com o `codex.exe` nativo instalado, clique em **Conectar ChatGPT** e abra o login da OpenAI que a Forja mostrar. Quando o login aparecer como reconhecido, use **Usar no Assistente**. O modo com código de dispositivo é uma alternativa quando habilitada na conta. [Autenticação do Codex](https://learn.chatgpt.com/docs/auth).
+- **Codex CLI.** Instale o CLI oficial no Windows, macOS ou Linux e confirme que `codex --version` funciona no terminal que abre a Forja. Uma opção disponível nas três plataformas é `npm install -g @openai/codex`. No Linux, instale também o Bubblewrap. Em **Perfil → Conexões de IA**, clique em **Conectar ChatGPT** e, ao concluir, em **Usar no Assistente**. [Instalação do Codex](https://learn.chatgpt.com/docs/cli) · [Autenticação do Codex](https://learn.chatgpt.com/docs/auth).
 - **Claude Code.** O card informa a disponibilidade. A Anthropic restringe o uso de credenciais de assinatura por aplicativos de terceiros. [Política da Anthropic](https://code.claude.com/docs/en/legal-and-compliance#authentication-and-credential-use).
 
 <a name="montar-um-treino-com-codex-por-assinatura"></a>
@@ -181,7 +181,21 @@ Na academia, a prévia mostra substituições por outra resistência quando a bi
 
 O login fica no perfil dedicado do Codex no host. O servidor usa o provedor e o modelo escolhidos na tela. Instalações avançadas ainda podem indicar caminhos absolutos por `FORJA_CODEX_BINARY` e `FORJA_CODEX_HOME`. Use `pnpm self-host:codex-probe` para testar o perfil dedicado com dados fictícios.
 
-No Linux, o Codex roda dentro do Bubblewrap para isolamento de sistema de arquivos. No Windows, não há Bubblewrap: o Codex roda diretamente, usando seus próprios guardrails `--sandbox read-only` e um diretório de perfil isolado criado pela Forja. Prefira o executável nativo `codex.exe`; shims `.cmd` também funcionam, mas o executável nativo é recomendado. Se necessário, aponte o caminho completo com `FORJA_CODEX_BINARY`.
+A Forja usa um perfil isolado do Codex em todos os sistemas. No Linux, usa Bubblewrap e os certificados do sistema. No Windows e no macOS, executa o binário nativo com as restrições do CLI. No Windows, a Forja localiza o executável associado à instalação npm e também aceita o caminho de `codex.exe` em `FORJA_CODEX_BINARY`. O modo por código fica disponível quando habilitado na conta. Para um proxy com CA própria, o CLI aceita `CODEX_CA_CERTIFICATE` apontando para o certificado PEM configurado no host. [Documentação de autenticação do Codex](https://learn.chatgpt.com/docs/auth#custom-ca-bundles).
+
+### Usar uma API de IA compatível
+
+Configure `FORJA_COMPAT_URL` com a URL base até `/v1` ou equivalente e `FORJA_COMPAT_MODEL` com o ID do modelo. Se a API exigir chave, configure `FORJA_COMPAT_API_KEY` no ambiente do servidor. No macOS e Linux use `export NOME=valor`. No PowerShell use `$env:NOME = "valor"`. Inicie a Forja, abra **Conexões de IA → API compatível com OpenAI** e selecione **Usar no Assistente**.
+
+Exemplos de URLs são `https://api.openai.com/v1`, `https://generativelanguage.googleapis.com/v1beta/openai/` para Gemini e `http://127.0.0.1:1234/v1` para LM Studio. A API precisa aceitar Chat Completions e retornar texto em JSON. O destino aparece antes da geração. [Compatibilidade Gemini](https://ai.google.dev/gemini-api/docs/openai) · [Compatibilidade LM Studio](https://lmstudio.ai/docs/developer/openai-compat).
+
+### Importar e distribuir um plano na semana
+
+Em **Montar treino com IA → Criar com IA**, o arquivo é opcional. Para começar do zero, selecione **Criar treino** nos dias desejados e escolha o tipo de cada sessão. Para usar um plano anterior, anexe seu JSON e selecione as rotinas como referência. Atribua a cada dia que quiser treinar uma rotina do arquivo e um tipo, como superior, inferior, push, pull, pernas ou cardio. Confira a semana antes de salvar. O modo **Por split** cria uma divisão a partir de um padrão escolhido. Em **Superior / Inferior + Cardio**, cinco dias de segunda a sexta geram Superior A, Inferior A, Cardio, Superior B e Inferior B. A Forja compara as sessões do mesmo tipo e diferencia a seleção de exercícios compatíveis. Se o inventário limitar as trocas, a prévia informa a limitação e o app varia a prescrição dentro do objetivo. Quando há dias dedicados ao cardio, esses dias são montados localmente.
+
+Em **Importar sem alterações**, carregue um JSON da Forja, do OpenGym ou no formato portátil acima. Atribua as rotinas aos dias que escolher e confirme. A importação é local e mantém as prescrições do arquivo nos campos suportados. Rotinas sem dia também aparecem em **Treinos**. A agenda tem uma rotina por dia e a substituição de um dia ocupado exige confirmação.
+
+O [app desktop com servidor PWA integrado e QR para o celular](.specs/features/desktop-pwa/spec.md) está em planejamento.
 
 
 ## Seus dados

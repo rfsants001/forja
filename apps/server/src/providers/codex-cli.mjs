@@ -1,7 +1,8 @@
 import { constants } from 'node:fs';
 import { access, lstat, mkdir, realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { delimiter, dirname, join, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { ApiError } from '../storage.mjs';
 import { sandboxRun } from './sandbox-run.mjs';
 
@@ -18,29 +19,50 @@ async function executable(path) {
   } catch { /* Continue the local executable lookup. */ }
 }
 
-async function locate(binary) {
-  if (binary) return executable(resolve(binary));
-  const extensions = process.platform === 'win32'
-    ? (process.env.PATHEXT ?? '.exe;.cmd;.bat').split(';').map((e) => e.toLowerCase()).filter(Boolean)
-    : [''];
-  for (const dir of (process.env.PATH ?? '').split(delimiter).filter(Boolean)) {
-    for (const ext of extensions) {
-      const found = await executable(join(dir, 'codex' + ext));
-      if (found) return found;
-    }
+async function npmExecutable(packageRoot, platform, arch) {
+  const cpu = arch === 'arm64' ? 'aarch64' : arch === 'x64' ? 'x86_64' : undefined;
+  if (!cpu) return undefined;
+  const target = { linux: cpu + '-unknown-linux-musl', darwin: cpu + '-apple-darwin', win32: cpu + '-pc-windows-msvc' }[platform];
+  const require = createRequire(join(packageRoot, 'package.json'));
+  let vendor = join(packageRoot, 'vendor');
+  try { vendor = join(dirname(require.resolve(`@openai/codex-${platform}-${arch}/package.json`)), 'vendor'); } catch {}
+  const filename = platform === 'win32' ? 'codex.exe' : 'codex';
+  return await executable(join(vendor, target, 'bin', filename)) ?? executable(join(vendor, target, 'codex', filename));
+}
+
+export async function locateCodex(binary, platform = process.platform, arch = process.arch, env = process.env) {
+  const windows = platform === 'win32';
+  const filename = windows ? 'codex.exe' : 'codex';
+  if (binary && (!windows || /\.exe$/i.test(binary))) {
+    const resolved = await executable(resolve(binary));
+    if (!resolved) return undefined;
+    if (/\/bin\/codex\.js$/.test(resolved)) return npmExecutable(dirname(dirname(resolved)), platform, arch);
+    return resolved;
+  }
+  const path = (env.PATH ?? env.Path ?? '').split(windows ? ';' : ':').map((item) => item.trim().replace(/^"|"$/g, ''));
+  if (windows && env.LOCALAPPDATA) path.push(join(env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Links'));
+  if (windows && env.APPDATA) path.push(join(env.APPDATA, 'npm'));
+  path.push(join(homedir(), '.local', 'bin'));
+  const directories = binary ? [dirname(resolve(binary))] : [...new Set(path.filter(isAbsolute))];
+  for (const dir of directories) {
+    const found = !binary && await executable(join(dir, filename));
+    if (found && !/\/bin\/codex\.js$/.test(found)) return found;
+    const root = found ? dirname(dirname(found)) : join(dir, 'node_modules', '@openai', 'codex');
+    const packaged = await npmExecutable(root, platform, arch);
+    if (packaged) return packaged;
   }
 }
 
 export function codexCliProvider({
-  binary, home = join(homedir(), '.local', 'share', 'forja-codex'), model, run = sandboxRun,
+  binary, home = join(homedir(), '.local', 'share', 'forja-codex'), model, run = sandboxRun, platform = process.platform, env = process.env,
 } = {}) {
   const models = [model || 'default'];
 
   async function runtime(requireLogin = true) {
-    if (process.platform !== 'linux' && process.platform !== 'win32') throw new ApiError(503, 'PROVIDER_UNAVAILABLE');
-    const posix = process.platform !== 'win32';
-    const installed = await locate(binary);
-    if (!installed) throw new ApiError(503, 'PROVIDER_UNAVAILABLE');
+    if (!['linux', 'darwin', 'win32'].includes(platform)) throw new ApiError(503, 'PROVIDER_UNAVAILABLE');
+    const posix = platform !== 'win32';
+    const installed = await locateCodex(binary, platform, process.arch, env);
+    if (!installed) throw new ApiError(503, 'CODEX_CLI_MISSING');
     if (!requireLogin) await mkdir(home, { recursive: true, mode: 0o700 });
     const directory = await realpath(home).catch(() => undefined);
     const userHome = await realpath(homedir()).catch(() => homedir());
@@ -51,11 +73,11 @@ export function codexCliProvider({
     const auth = await lstat(join(directory, 'auth.json')).catch(() => undefined);
     if (!folder.isDirectory()
       || (posix && ((folder.mode & 0o077) !== 0 || folder.uid !== process.getuid()))
-      || (requireLogin && (!auth?.isFile()
-        || (posix && (auth.uid !== process.getuid() || (auth.mode & 0o077) !== 0))))) {
+      || (requireLogin && !auth)
+      || (auth && (!auth.isFile() || (posix && (auth.uid !== process.getuid() || (auth.mode & 0o077) !== 0))))) {
       throw new ApiError(503, 'CODEX_LOGIN_REQUIRED');
     }
-    return { binary: installed, home: directory };
+    return { binary: installed, home: directory, platform, env };
   }
 
   async function listModels(signal) {

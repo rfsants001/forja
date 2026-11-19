@@ -29,6 +29,8 @@ export interface ActiveExercise {
   name?: string;
   mode?: ExerciseMode;
   restSec?: number;
+  targetSecMax?: number;
+  note?: string;
   supersetGroup?: number;
   prescription?: Prescription;
   /** Target que valia quando o treino foi iniciado (imutável durante a sessão). */

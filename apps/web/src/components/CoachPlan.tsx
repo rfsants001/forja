@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Exercise, MuscleGroup, Settings, Weekday, WorkoutLog } from '@forja/core';
 import { db } from '../db/db';
 import { setWeekday } from '../db/repo';
-import { eligiblePlanExercises, parseWeekday, planCandidates, saveCoachPlan, type CoachPlanResult, type PlanFocus, type PlanGoal, type PlanVenue } from '../lib/coach-plan';
+import { syncWrite } from '../db/sync-write';
+import { PortablePlanImport, weekdayOrder as WEEKDAY_ORDER } from './PortablePlanImport';
+import { eligiblePlanExercises, planCandidates, saveCoachPlan, type CoachPlanResult, type PlanFocus, type PlanGoal, type PlanVenue } from '../lib/coach-plan';
 import { planAlternatives } from '../lib/coach-movements';
 import { cardioExercises } from '../lib/coach-cardio';
 import { equipmentItems, inventoryKeys, supportsEquipment } from '../lib/equipment';
@@ -34,7 +36,7 @@ interface PlanDayEntry {
   scheduled?: 'yes' | 'skipped';
 }
 
-type PlanMode = 'reference' | 'split';
+type PlanMode = 'reference' | 'split' | 'port';
 type SplitKind = 'upper-lower' | 'upper-lower-cardio' | 'full-body' | 'push-pull-legs';
 type DayRole = 'upper' | 'lower' | 'full' | 'push' | 'pull' | 'legs' | 'cardio';
 
@@ -45,8 +47,7 @@ const SPLIT_ROLES: Record<SplitKind, DayRole[]> = {
   'push-pull-legs': ['push', 'pull', 'legs'],
 };
 
-// Monday-first sort order for weekdays.
-const WEEKDAY_ORDER: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
+const dayRoles: DayRole[] = ['full', 'upper', 'lower', 'push', 'pull', 'legs', 'cardio'];
 
 // Muscle groups per role (used to filter eligible exercises client-side).
 const ROLE_MUSCLES: Record<DayRole, Set<MuscleGroup>> = {
@@ -86,6 +87,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
   const [reference, setReference] = useState<CoachReference>();
   const [dayItems, setDayItems] = useState<CoachReference[]>([]);
   const [readingReference, setReadingReference] = useState(false);
+  const [sourceDays, setSourceDays] = useState<Partial<Record<Weekday, { key: string; role?: DayRole }>>>({});
 
   // Single-day generate result
   const [result, setResult] = useState<CoachPlanResult>();
@@ -98,7 +100,9 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
   const [planDays, setPlanDays] = useState<PlanDayEntry[]>([]);
   const [generatingDay, setGeneratingDay] = useState<{ current: number; total: number } | undefined>();
   const [allSaved, setAllSaved] = useState(false);
-  const [scheduleWeek, setScheduleWeek] = useState(true);
+  const [replaceDays, setReplaceDays] = useState(false);
+  const occupied = useLiveQuery(async () => new Set((await db.weekPlan.toArray())
+    .filter(({ routineId }) => routineId).map(({ weekday }) => weekday)), []);
 
   // Mode toggle
   const [mode, setMode] = useState<PlanMode>('reference');
@@ -159,14 +163,21 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
     setError('');
   }
 
-  function resetMultiPreview() {
+  const resetMultiPreview = useCallback(() => {
     setPlanDays([]);
     setGeneratingDay(undefined);
     setAllSaved(false);
-  }
+    setReplaceDays(false);
+  }, []);
+
+  const onFileItems = useCallback((items: CoachReference[]) => {
+    setDayItems(items);
+    setSourceDays({});
+    resetMultiPreview();
+  }, [resetMultiPreview]);
 
   async function generate() {
-    if (request.current || readingReference || !model || options.length < 3) return;
+    if (request.current || readingReference || !model || options.length < 3 || !validMinutes || multiMode) return;
     resetPreview();
     resetMultiPreview();
     const controller = new AbortController();
@@ -191,59 +202,97 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
     }
   }
 
-  async function generateAll() {
-    if (request.current || readingReference || !model || dayItems.length <= 1) return;
+  const forSource = WEEKDAY_ORDER.flatMap((weekday) => {
+    const choice = sourceDays[weekday];
+    const day = choice?.key === 'new' ? reference : dayItems.find(({ key }) => key === choice?.key);
+    if (!choice?.role || (choice.key !== 'new' && !day)) return [];
+    return [{ weekday, role: choice.role, label: day?.label ?? t('coach.role.' + choice.role) + ' · ' + t('wd.full.' + weekday),
+      reference: day }];
+  });
+  const multiMode = mode === 'reference' && (dayItems.length > 0 || Object.values(sourceDays).some(Boolean));
+  const allSourceRowsComplete = Object.values(sourceDays).every((choice) => !choice || choice.role);
+  const splitHasCardio = split === 'upper-lower-cardio';
+  const usesDedicatedCardio = mode === 'split' ? splitHasCardio : forSource.some(({ role }) => role === 'cardio');
+  const validMinutes = Number.isInteger(minutes) && minutes >= 15 && minutes <= 90;
+  const validCardioMinutes = Number.isInteger(cardioMinutes) && cardioMinutes >= 10 && cardioMinutes <= 90;
+
+  function labelWeek(week: { weekday: Weekday; role: DayRole; reference?: CoachReference }[]) {
+    const totals = new Map<DayRole, number>();
+    const counts = new Map<DayRole, number>();
+    for (const { role } of week) totals.set(role, (totals.get(role) ?? 0) + 1);
+    return week.map((day) => {
+      const variant = counts.get(day.role) ?? 0;
+      counts.set(day.role, variant + 1);
+      const suffix = day.role !== 'cardio' && totals.get(day.role)! > 1 ? ' ' + String.fromCharCode(65 + variant) : '';
+      const label = t('coach.role.' + day.role) + suffix;
+      return { ...day, variant, label: day.reference ? label + ' · ' + day.reference.label : label };
+    });
+  }
+
+  const splitDays = WEEKDAY_ORDER.filter((day) => trainingDays.has(day)).map((weekday, index) => ({
+    weekday, role: SPLIT_ROLES[split][index % SPLIT_ROLES[split].length]!,
+  }));
+  const splitPreview = labelWeek(splitDays);
+
+  function generateSplit() {
+    return generateWeek(splitDays);
+  }
+
+  async function generateWeek(week: { weekday: Weekday; role: DayRole; reference?: CoachReference }[]) {
+    if (request.current || !week.length || !validMinutes || (usesDedicatedCardio && !validCardioMinutes)
+      || (!model && week.some(({ role }) => role !== 'cardio'))) return;
     resetPreview();
     resetMultiPreview();
-    const days = dayItems.slice(0, 12);
-    const capped = dayItems.length > 12;
     const controller = new AbortController();
     request.current = controller;
     setBusy(true);
-    // Build entries with label and weekday pre-parsed (no longer parsed in saveAll).
-    const entries: PlanDayEntry[] = days.map((day) => ({
-      label: day.label,
-      weekday: parseWeekday(day.label),
-    }));
+    const labeled = labelWeek(week);
+    const entries: PlanDayEntry[] = labeled.map(({ weekday, label }) => ({ weekday, label }));
+    const previousByRole = new Map<DayRole, CoachPlanResult[]>();
     setPlanDays([...entries]);
     try {
-      for (const [i, day] of days.entries()) {
+      for (const [index, { weekday, label, role, variant, reference: source }] of labeled.entries()) {
         if (controller.signal.aborted) break;
-        setGeneratingDay({ current: i + 1, total: days.length });
-        const dayCandidates = planCandidates(
-          eligibleFull,
-          restrictEquipment ? names : [],
-          day.exercises.map((e) => e.name),
-        );
-        if (dayCandidates.length < 3) {
-          entries[i] = { label: day.label, weekday: parseWeekday(day.label), error: t('coach.planDayFew') };
-          setPlanDays([...entries]);
-          continue;
-        }
+        setGeneratingDay({ current: index + 1, total: week.length });
         try {
-          const draft = await post<CoachPlanResult>('/coach/plans', {
-            model, provider, goal, focus: 'full', minutes, venue, lang: english ? 'en' : 'pt',
-            exercises: dayCandidates,
-            reference: { kind: day.kind, exercises: day.exercises },
-            inventory: restrictEquipment ? inventory.slice(0, 100).map(({ name, quantity, unitWeightKg }) => ({
-              name: name.trim().slice(0, 80), quantity, unitWeightKg,
-            })) : undefined,
-            ...(weightLoss ? { cardioCandidates: cardio.map(({ id, name }) => ({ id, name })),
-              weightGoal: { currentKg, targetKg } } : {}),
-          }, controller.signal);
-          if (controller.signal.aborted) break;
-          const displayLabel = day.label.trim().slice(0, 80);
-          const namedDraft: CoachPlanResult = { ...draft, name: displayLabel || draft.name };
-          entries[i] = { label: day.label, weekday: parseWeekday(day.label), result: namedDraft };
-          setPlanDays([...entries]);
+          let draft: CoachPlanResult;
+          if (role === 'cardio') {
+            if (!cardio.some(({ id }) => id === selectedCardioId)) throw new Error('NO_CARDIO');
+            draft = { name: label, summary: t('coach.splitCardioSummary', [cardioMinutes]), exercises: [],
+              estimatedMinutes: cardioMinutes, cardio: { exerciseId: selectedCardioId, seconds: cardioMinutes * 60 } };
+          } else {
+            const focus = ROLE_FOCUS[role];
+            const available = eligiblePlanExercises(exercises ?? [], inventory, focus, restrictEquipment, venue)
+              .filter(({ primaryMuscle }) => ROLE_MUSCLES[role].has(primaryMuscle));
+            const previous = previousByRole.get(role) ?? [];
+            const retained = new Set(previous.flatMap(({ exercises }) => exercises.map(({ exerciseId }) => exerciseId)));
+            const candidates = planCandidates(available, restrictEquipment ? names : [], source?.exercises.map(({ name }) => name) ?? [], retained);
+            if (candidates.length < 3) throw new Error('FEW_EXERCISES');
+            draft = await post<CoachPlanResult>('/coach/plans', {
+              model, provider, goal, focus, minutes, venue, lang: english ? 'en' : 'pt', exercises: candidates,
+              week: { role, variant, previous: previous.map(({ exercises }) => ({ exercises })) },
+              reference: source && { kind: source.kind, exercises: source.exercises },
+              inventory: restrictEquipment ? inventory.slice(0, 100).map(({ name, quantity, unitWeightKg }) => ({
+                name: name.trim().slice(0, 80), quantity, unitWeightKg,
+              })) : undefined,
+              ...(weightLoss ? { weightGoal: { currentKg, targetKg }, includeCardio: !usesDedicatedCardio,
+                cardioCandidates: usesDedicatedCardio ? undefined : cardio.map(({ id, name }) => ({ id, name })) } : {}),
+            }, controller.signal);
+          }
+          if (role !== 'cardio') {
+            const previous = previousByRole.get(role) ?? [];
+            previousByRole.set(role, [...previous, draft]);
+          }
+          if (!controller.signal.aborted) entries[index] = { weekday, label, result: { ...draft, name: label } };
         } catch (failure) {
           if (controller.signal.aborted) break;
-          entries[i] = { label: day.label, weekday: parseWeekday(day.label), error: t('coach.planDayError', [syncMessage(failure, t)]) };
+          const reason = failure instanceof Error ? failure.message : '';
+          entries[index] = { weekday, label, error: reason === 'FEW_EXERCISES' ? t('coach.planDayFew')
+            : reason === 'NO_CARDIO' ? t('coach.splitNoCardio') : t('coach.planDayError', [syncMessage(failure, t)]) };
           setPlanDays([...entries]);
+          break;
         }
-      }
-      if (!controller.signal.aborted && capped) {
-        setError(t('coach.planAllCapped'));
+        setPlanDays([...entries]);
       }
     } finally {
       request.current = null;
@@ -252,118 +301,15 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
     }
   }
 
-  async function generateSplit() {
-    if (request.current || !model || trainingDays.size === 0) return;
-    resetPreview();
-    resetMultiPreview();
-
-    const roles = SPLIT_ROLES[split];
-    // Sort selected days in Monday-first order.
-    const sortedDays = WEEKDAY_ORDER.filter((wd) => trainingDays.has(wd));
-    // Assign roles by cycling over sorted days. The non-null assertion is safe:
-    // roles is a non-empty const array and i % roles.length is always a valid index.
-    const dayRoles: Array<{ weekday: Weekday; role: DayRole }> = sortedDays.map((wd, i) => ({
-      weekday: wd,
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      role: roles[i % roles.length]!,
-    }));
-
-    // Count how many times each role appears (for A/B suffix).
-    const roleCount = new Map<DayRole, number>();
-    const roleIndex = new Map<DayRole, number>();
-    for (const { role } of dayRoles) {
-      roleCount.set(role, (roleCount.get(role) ?? 0) + 1);
-    }
-
-    const controller = new AbortController();
-    request.current = controller;
-    setBusy(true);
-
-    const buildLabel = (role: DayRole): string => {
-      const roleLabel = t('coach.role.' + role);
-      const count = roleCount.get(role) ?? 1;
-      if (count <= 1) return roleLabel;
-      const idx = (roleIndex.get(role) ?? 0) + 1;
-      roleIndex.set(role, idx);
-      return `${roleLabel} ${String.fromCharCode(64 + idx)}`; // A, B, C…
-    };
-
-    // Build initial entries (placeholder labels — labels are built during generation to get correct A/B).
-    // We pre-build entries now so progress updates work.
-    const entries: PlanDayEntry[] = dayRoles.map(({ weekday, role }) => ({
-      label: t('coach.role.' + role),
-      weekday,
-    }));
-    setPlanDays([...entries]);
-
-    // Reset roleIndex for actual label assignment during generation.
-    roleIndex.clear();
-
-    try {
-      for (const [i, { weekday, role }] of dayRoles.entries()) {
-        if (controller.signal.aborted) break;
-        setGeneratingDay({ current: i + 1, total: dayRoles.length });
-
-        const label = buildLabel(role);
-        // Update the placeholder label now that we know A/B.
-        entries[i] = { label, weekday };
-        setPlanDays([...entries]);
-
-        if (role === 'cardio') {
-          // Build cardio day locally without calling AI.
-          if (!selectedCardioId || cardio.length === 0) {
-            entries[i] = { label, weekday, error: t('coach.splitNoCardio') };
-            setPlanDays([...entries]);
-            continue;
-          }
-          const cardioResult: CoachPlanResult = {
-            name: label,
-            summary: t('coach.splitCardioSummary', [cardioMinutes]),
-            exercises: [],
-            cardio: { exerciseId: selectedCardioId, seconds: cardioMinutes * 60 },
-          };
-          entries[i] = { label, weekday, result: cardioResult };
-          setPlanDays([...entries]);
-          continue;
-        }
-
-        // Strength day: filter eligible exercises by role muscles.
-        const roleMuscles = ROLE_MUSCLES[role];
-        const mappedFocus = ROLE_FOCUS[role];
-        const base = eligiblePlanExercises(exercises ?? [], inventory, mappedFocus, restrictEquipment, venue);
-        const roleEligible = base.filter((ex) => roleMuscles.has(ex.primaryMuscle));
-        const candidates = planCandidates(roleEligible, restrictEquipment ? names : [], []);
-
-        if (candidates.length < 3) {
-          entries[i] = { label, weekday, error: t('coach.planDayFew') };
-          setPlanDays([...entries]);
-          continue;
-        }
-
-        try {
-          const draft = await post<CoachPlanResult>('/coach/plans', {
-            model, provider, goal, focus: mappedFocus, minutes, venue,
-            lang: english ? 'en' : 'pt',
-            exercises: candidates,
-            inventory: restrictEquipment ? inventory.slice(0, 100).map(({ name, quantity, unitWeightKg }) => ({
-              name: name.trim().slice(0, 80), quantity, unitWeightKg,
-            })) : undefined,
-            // No reference in split mode; no weight-loss cardio block (cardio handled by dedicated days).
-          }, controller.signal);
-          if (controller.signal.aborted) break;
-          entries[i] = { label, weekday, result: { ...draft, name: label } };
-          setPlanDays([...entries]);
-        } catch (failure) {
-          if (controller.signal.aborted) break;
-          entries[i] = { label, weekday, error: t('coach.planDayError', [syncMessage(failure, t)]) };
-          setPlanDays([...entries]);
-        }
-      }
-    } finally {
-      request.current = null;
-      setBusy(false);
-      setGeneratingDay(undefined);
-    }
+  function planNote(result: CoachPlanResult, pool: readonly Exercise[]) {
+    if (venue !== 'gym') return undefined;
+    const lines = result.exercises.flatMap(({ exerciseId }) => {
+      const exercise = pool.find(({ id }) => id === exerciseId);
+      if (!exercise) return [];
+      const variants = planAlternatives(exercise, pool);
+      return variants.length ? [exercise.name + ' → ' + variants.map(({ name }) => name).join(' / ')] : [];
+    });
+    return lines.length ? [t('coach.variantsNote'), ...lines].join('\n') : undefined;
   }
 
   async function save() {
@@ -372,13 +318,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
     setBusy(true);
     setError('');
     try {
-      const substitutions = result.exercises.flatMap(({ exerciseId }) => {
-        const opts = alternativesFor(exerciseId);
-        const exercise = eligible.find(({ id }) => id === exerciseId);
-        return opts.length && exercise ? [`${exercise.name} → ${opts.map(({ name }) => name).join(' / ')}`] : [];
-      });
-      const note = substitutions.length ? [t('coach.variantsNote'), ...substitutions].join('\n') : undefined;
-      setSavedId((await saveCoachPlan(result, selectedCategory, restrictEquipment, note)).id);
+      setSavedId((await saveCoachPlan(result, selectedCategory, restrictEquipment, planNote(result, eligible))).id);
     } catch (failure) {
       setError(failure instanceof SyncError && failure.code === 'STALE_PROPOSAL' ? t('coach.planStale') : t('ui.saveRoutineFailed'));
     } finally {
@@ -387,57 +327,37 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
     }
   }
 
+  const scheduleConflict = planDays.some(({ weekday }) => weekday !== undefined && occupied?.has(weekday));
   async function saveAll() {
-    if (!selectedCategory || saving.current) return;
+    if (!selectedCategory || saving.current || !planDays.length || planDays.some(({ result }) => !result)
+      || (scheduleConflict && !replaceDays)) return;
     saving.current = true;
     setBusy(true);
     setError('');
-    const updated: PlanDayEntry[] = planDays.map((e) => ({ ...e }));
-    // One routine per weekday: first saved routine wins its day, later ones skip.
-    const taken = new Set<Weekday>();
-    for (const entry of updated) {
-      const wd = entry.scheduled === 'yes' ? entry.weekday : undefined;
-      if (wd !== undefined) taken.add(wd);
-    }
     try {
-      for (const [i, entry] of updated.entries()) {
-        if (!entry.result || entry.savedId) continue;
-        const substitutions = entry.result.exercises.flatMap(({ exerciseId }) => {
-          const opts = alternativesForFull(exerciseId);
-          const exercise = eligibleFull.find(({ id }) => id === exerciseId);
-          return opts.length && exercise ? [`${exercise.name} → ${opts.map(({ name }) => name).join(' / ')}`] : [];
-        });
-        const note = substitutions.length ? [t('coach.variantsNote'), ...substitutions].join('\n') : undefined;
-        try {
-          const saved = await saveCoachPlan(entry.result, selectedCategory, restrictEquipment, note);
-          let scheduled: PlanDayEntry['scheduled'];
-          if (scheduleWeek) {
-            const wd = entry.weekday;
-            if (wd !== undefined && !taken.has(wd)) {
-              try { await setWeekday(wd, saved.id); taken.add(wd); scheduled = 'yes'; }
-              catch { scheduled = 'skipped'; }
-            } else scheduled = 'skipped';
-          }
-          updated[i] = { label: entry.label, weekday: entry.weekday, result: entry.result, savedId: saved.id, scheduled };
-          setPlanDays([...updated]);
-        } catch (failure) {
-          const msg = failure instanceof SyncError && failure.code === 'STALE_PROPOSAL'
-            ? t('coach.planStale')
-            : t('ui.saveRoutineFailed');
-          updated[i] = { label: entry.label, weekday: entry.weekday, result: entry.result, savedId: entry.savedId, error: msg };
-          setPlanDays([...updated]);
+      const updated = await syncWrite(['routines', 'categories', 'exercises', 'settings', 'weekPlan'], async () => {
+        const result = [];
+        for (const entry of planDays) {
+          if (entry.weekday === undefined || !entry.result) throw new SyncError('STALE_PROPOSAL');
+          if (!replaceDays && (await db.weekPlan.get(entry.weekday))?.routineId) throw new SyncError('DAY_OCCUPIED');
+          const details = [planNote(entry.result, eligibleFull),
+            entry.result.week?.variation === 'prescription' ? t('coach.weekLimited') : undefined].filter(Boolean).join('\n') || undefined;
+          const saved = await saveCoachPlan(entry.result, selectedCategory, restrictEquipment, details);
+          await setWeekday(entry.weekday, saved.id);
+          result.push({ ...entry, savedId: saved.id, scheduled: 'yes' as const });
         }
-      }
-      const hasUnsaved = updated.some((e) => e.result && !e.savedId);
-      if (!hasUnsaved) setAllSaved(true);
+        return result;
+      });
+      setPlanDays(updated);
+      setAllSaved(true);
+    } catch (failure) {
+      const code = failure instanceof SyncError ? failure.code : '';
+      setError(t(code === 'DAY_OCCUPIED' ? 'coach.portOccupied' : code === 'STALE_PROPOSAL' ? 'coach.planStale' : 'ui.saveRoutineFailed'));
     } finally {
       saving.current = false;
       setBusy(false);
     }
   }
-
-  const multiMode = mode === 'reference' && dayItems.length > 1;
-  const splitHasCardio = split === 'upper-lower-cardio';
 
   function toggleDay(wd: Weekday) {
     setTrainingDays((prev) => {
@@ -448,28 +368,50 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
     resetMultiPreview();
   }
 
+  const cardioControls = usesDedicatedCardio && (
+              <div className="coach-plan-fields coach-cardio-fields">
+                <label>
+                  {t('coach.cardioMinutes')}
+                  <input type="number" min={10} max={90} value={cardioMinutes || ''}
+                    onChange={(event) => { setCardioMinutes(Number(event.target.value)); resetMultiPreview(); }} />
+                </label>
+                {cardio.length > 0 ? (
+                  <label>
+                    <span id="coach-cardio-ex-label">{t('coach.cardioExercise')}</span>
+                    <select aria-labelledby="coach-cardio-ex-label" value={selectedCardioId}
+                      onChange={(event) => { setSelectedCardioId(event.target.value); resetMultiPreview(); }}>
+                      {cardio.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+                    </select>
+                  </label>
+                ) : (
+                  <p className="hint">{t('coach.splitNoCardio')}</p>
+                )}
+              </div>
+            );
+
   return (
     <section className="card self-host-card" id="montar-treino">
-      <h2>{t('coach.planTitle')}</h2>
-      <p className="hint">{t('coach.plansRest')}</p>
+      <h2>{t(mode === 'port' ? 'coach.portTitle' : 'coach.planTitle')}</h2>
+      {mode !== 'port' && <p className="hint">{t('coach.plansRest')}</p>}
 
       {/* Mode toggle */}
       <div className="coach-plan-mode" role="group" aria-label={t('coach.planTitle')}>
-        {(['reference', 'split'] as const).map((m) => (
+        {(['reference', 'split', 'port'] as const).map((m) => (
           <label key={m} className={'coach-plan-mode-option' + (mode === m ? ' selected' : '')}>
             <input
               type="radio"
               name="coach-plan-mode"
               value={m}
-              checked={mode === m}
-              onChange={() => { setMode(m); resetPreview(); resetMultiPreview(); }}
+              checked={mode === m} disabled={busy || readingReference}
+              onChange={() => { setMode(m); setReference(undefined); onFileItems([]); resetPreview(); }}
             />
-            {t(m === 'reference' ? 'coach.planModeReference' : 'coach.planModeSplit')}
+            {t(m === 'reference' ? 'coach.planModeReference' : m === 'split' ? 'coach.planModeSplit' : 'coach.portTitle')}
           </label>
         ))}
       </div>
 
-      <form onSubmit={(event) => { event.preventDefault(); if (mode === 'reference') void generate(); }}>
+      {mode === 'port' && <PortablePlanImport catalog={exercises ?? []} />}
+      {mode !== 'port' && <form onSubmit={(event) => { event.preventDefault(); if (mode === 'reference') void generate(); }}>
         <fieldset className="coach-plan-inputs" disabled={busy}>
           <div className="coach-plan-fields">
             <label><span id="coach-venue-label">{t('coach.venue')}</span><select aria-labelledby="coach-venue-label" value={venue}
@@ -481,7 +423,7 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
               onChange={(event) => { setGoal(event.target.value as PlanGoal); resetPreview(); resetMultiPreview(); }}>
               {(['general', 'strength', 'muscle', 'weight-loss'] as const).map((value) => <option key={value} value={value}>{t('coach.goal.' + value)}</option>)}
             </select></label>
-            {mode === 'reference' && (
+            {mode === 'reference' && !multiMode && (
               <label><span id="coach-focus-label">{t('coach.focus')}</span><select aria-labelledby="coach-focus-label" value={focus}
                 onChange={(event) => { setFocus(event.target.value as PlanFocus); resetPreview(); resetMultiPreview(); }}>
                 {(['full', 'upper', 'lower'] as const).map((value) => <option key={value} value={value}>{t('coach.focus.' + value)}</option>)}
@@ -515,25 +457,57 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
             <CoachReferencePicker catalog={exercises ?? []} workouts={workouts ?? []} disabled={busy}
               reference={reference} onReading={setReadingReference}
               onChange={(value) => { setReference(value); resetPreview(); resetMultiPreview(); }}
-              onItems={(items) => { setDayItems(items); resetPreview(); resetMultiPreview(); }} />
-            <details>
+              onItems={onFileItems} />
+            <fieldset className="coach-plan-inputs" disabled={busy}>
+              <legend>{t('coach.sourceSchedule')}</legend>
+              <p className="hint">{t('coach.sourceScheduleHelp')}</p>
+              <div className="coach-week-rows">
+                {WEEKDAY_ORDER.map((weekday) => <div key={weekday} className="coach-week-choice">
+                  <label><span id={'coach-source-day-' + weekday}>{t('wd.full.' + weekday)}</span>
+                    <select aria-labelledby={'coach-source-day-' + weekday} value={sourceDays[weekday]?.key ?? ''}
+                      onChange={(event) => {
+                        setSourceDays({ ...sourceDays, [weekday]: event.target.value
+                          ? { key: event.target.value, role: sourceDays[weekday]?.role } : undefined });
+                        resetMultiPreview();
+                      }}>
+                      <option value="">{t('coach.leaveDay')}</option>
+                      <option value="new">{t('coach.newDay')}</option>
+                      {dayItems.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
+                    </select>
+                  </label>
+                  {sourceDays[weekday] && <label><span id={'coach-source-role-' + weekday}>{t('coach.dayRole')}</span>
+                    <select aria-labelledby={'coach-source-role-' + weekday} value={sourceDays[weekday]?.role ?? ''}
+                      onChange={(event) => {
+                        const item = sourceDays[weekday];
+                        if (item) setSourceDays({ ...sourceDays, [weekday]: { ...item, role: (event.target.value || undefined) as DayRole | undefined } });
+                        resetMultiPreview();
+                      }}>
+                      <option value="">{t('coach.pickDayRole')}</option>
+                      {dayRoles.map((role) => <option key={role} value={role}>{t('coach.role.' + role)}</option>)}
+                    </select>
+                  </label>}
+                </div>)}
+              </div>
+            </fieldset>
+            {cardioControls}
+            {!multiMode && <details>
               <summary>{t('coach.planInput', [options.length])}</summary>
               <p className="hint">{t('coach.planInputDetails')}</p>
               <ul className="self-host-list coach-plan-candidates">
                 {options.map(({ id, name }) => <li key={id}>{name}</li>)}
               </ul>
-            </details>
+            </details>}
             {destination && <p className="hint">{t('coach.destination', [destination])}</p>}
-            {exercises && options.length < 3 && <p className="hint">{t('coach.planEquipment')}</p>}
+            {!multiMode && exercises && options.length < 3 && <p className="hint">{t('coach.planEquipment')}</p>}
             <div className="self-host-actions">
-              <button className="btn" disabled={!model || busy || readingReference || options.length < 3} type="submit">
+              {!multiMode && <button className="btn" disabled={!model || busy || readingReference || options.length < 3} type="submit">
                 {t(external ? 'coach.sendPlan' : 'coach.generatePlan')}
-              </button>
+              </button>}
               {multiMode && (
                 <button className="btn" type="button"
-                  disabled={!model || busy || readingReference}
-                  onClick={() => void generateAll()}>
-                  {t('coach.generateAll', [Math.min(dayItems.length, 12)])}
+                  disabled={busy || readingReference || !validMinutes || !allSourceRowsComplete || (usesDedicatedCardio && !validCardioMinutes) || !forSource.length || (!model && forSource.some(({ role }) => role !== 'cardio'))}
+                  onClick={() => void generateWeek(forSource)}>
+                  {t('coach.generateSplit')}
                 </button>
               )}
               {request.current && <button className="btn ghost" type="button" onClick={() => request.current?.abort()}>{t('tg.cancel')}</button>}
@@ -571,37 +545,24 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
                 </div>
               </fieldset>
             </div>
-            {splitHasCardio && (
-              <div className="coach-plan-fields">
-                <label>
-                  {t('coach.cardioMinutes')}
-                  <input type="number" min={10} max={90} value={cardioMinutes || ''}
-                    onChange={(event) => { setCardioMinutes(Number(event.target.value)); resetMultiPreview(); }} />
-                </label>
-                {cardio.length > 0 ? (
-                  <label>
-                    <span id="coach-cardio-ex-label">{t('coach.cardioExercise')}</span>
-                    <select aria-labelledby="coach-cardio-ex-label" value={selectedCardioId}
-                      onChange={(event) => { setSelectedCardioId(event.target.value); resetMultiPreview(); }}>
-                      {cardio.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-                    </select>
-                  </label>
-                ) : (
-                  <p className="hint">{t('coach.splitNoCardio')}</p>
-                )}
-              </div>
-            )}
+            <ol className="self-host-list coach-split-preview" aria-label={t('coach.weekPreview')}>
+              {splitPreview.map(({ weekday, label }) => <li key={weekday}>
+                <span>{t('wd.full.' + weekday)}</span><strong>{label}</strong>
+              </li>)}
+            </ol>
+            <p className="hint">{t('coach.weekVariationHelp')}</p>
+            {cardioControls}
             <div className="self-host-actions">
               <button className="btn" type="button"
-                disabled={!model || busy || trainingDays.size === 0}
+                disabled={!model || busy || !validMinutes || (usesDedicatedCardio && !validCardioMinutes) || trainingDays.size === 0}
                 onClick={() => void generateSplit()}>
                 {t('coach.generateSplit')}
               </button>
-              {request.current && <button className="btn ghost" type="button" onClick={() => request.current?.abort()}>{t('tg.cancel')}</button>}
             </div>
           </fieldset>
         )}
-      </form>
+        {mode === 'split' && request.current && <button className="btn ghost" type="button" onClick={() => request.current?.abort()}>{t('tg.cancel')}</button>}
+      </form>}
 
       {error && <p className="feedback error" role="alert">{error}</p>}
       {generatingDay && (
@@ -656,13 +617,16 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
         <div className="coach-proposal self-host-card">
           {planDays.map((entry, index) => (
             <div key={entry.label + '-' + index} className="self-host-card">
-              <h3>{entry.label || `${index + 1}`}</h3>
+              <h3>{entry.weekday === undefined ? '' : t('wd.full.' + entry.weekday) + ' · '}{entry.label}</h3>
               {entry.error && !entry.result && (
                 <p className="feedback error">{entry.error}</p>
               )}
               {entry.result && (
                 <>
                   <p>{entry.result.summary}</p>
+                  {entry.result.week && entry.result.week.variation !== 'initial' && <p className="hint">
+                    {t(entry.result.week.variation === 'exercises' ? 'coach.weekChanged' : 'coach.weekLimited')}
+                  </p>}
                   {entry.result.estimatedMinutes !== undefined && (
                     <p className="hint">{t('coach.estimate', [entry.result.estimatedMinutes])}</p>
                   )}
@@ -701,11 +665,11 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
                 <label>{t('ui.category')}<select value={selectedCategory} disabled={busy} onChange={(event) => setCategoryId(event.target.value)}>
                   {categories?.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
                 </select></label>
-                <label className="coach-plan-inventory"><input type="checkbox" checked={scheduleWeek} disabled={busy}
-                  onChange={(event) => setScheduleWeek(event.target.checked)} /> {t('coach.scheduleWeek')}</label>
+                {scheduleConflict && <label className="coach-plan-inventory"><input type="checkbox" checked={replaceDays} disabled={busy}
+                  onChange={(event) => setReplaceDays(event.target.checked)} /> {t('ui.replaceBusyDays')}</label>}
                 <div className="self-host-actions">
                   <button className="btn" type="button"
-                    disabled={busy || !selectedCategory || planDays.every((e) => !e.result || !!e.savedId)}
+                    disabled={busy || !selectedCategory || planDays.some(({ result }) => !result) || (scheduleConflict && !replaceDays)}
                     onClick={() => void saveAll()}>
                     {t('coach.saveAll')}
                   </button>

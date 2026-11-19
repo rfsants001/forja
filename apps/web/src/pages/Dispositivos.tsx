@@ -17,7 +17,7 @@ const errors: Record<string, string> = {
   INSTALLATION_CHANGED: 'sync.installationChanged', CONFLICT_REQUIRES_COPY: 'sync.requiresCopy',
   PAYLOAD_TOO_LARGE: 'sync.payload', UPDATE_REQUIRED: 'sync.updateRequired', PROVIDER_UNAVAILABLE: 'coach.providerError',
   COACH_LOCAL_REQUIRED: 'engines.localOnly', ENGINE_CHANGED: 'engines.changed',
-  INVALID_PROVIDER_RESPONSE: 'coach.invalidResponse', CODEX_LOGIN_REQUIRED: 'coach.codexLoginRequired',
+  INVALID_PROVIDER_RESPONSE: 'coach.invalidResponse', WEEK_VARIATION_UNAVAILABLE: 'coach.weekUnavailable', CODEX_LOGIN_REQUIRED: 'coach.codexLoginRequired',
   MODEL_UNAVAILABLE: 'coach.modelMissing', PROVIDER_BUSY: 'coach.busy', CURSOR_RESET: 'sync.cursorReset',
 };
 export function syncMessage(error: unknown, t: ReturnType<typeof useT>) {

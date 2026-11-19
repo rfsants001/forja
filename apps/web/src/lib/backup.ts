@@ -91,7 +91,7 @@ const validRow: Record<TableName, (value: unknown) => boolean> = {
   exercises: fields({ id, name: id, mode: oneOf('reps', 'time', 'cardio'), primaryMuscle: muscle,
     secondaryMuscles: list(muscle), equipment: list(string), demo, instructions: optString, note: optString }),
   routines: fields({ id, name: id, categoryId: id, note: optString, createdAt: number, updatedAt: number,
-    exercises: list(fields({ exerciseId: id, sets: integer, targetReps: optString, targetSec: optNumber,
+    exercises: list(fields({ exerciseId: id, sets: integer, targetReps: optString, targetSec: optNumber, targetSecMax: optNumber, targetWeightKg: optNumber,
       restSec: optNumber, progression: policy, incrementKg: optNumber, targetDistanceM: optNumber,
       targetSpeedKmh: optNumber, supersetGroup: optional(integer), trainingMaxKg: optNumber, trainingMaxIncrementKg: optNumber })) }),
   weekPlan: fields({ weekday, routineId: (value) => value === null || id(value) }),

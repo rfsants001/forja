@@ -13,7 +13,7 @@ import { CoachPlan } from '../components/CoachPlan';
 import { equipmentItems } from '../lib/equipment';
 import { syncMessage } from './Dispositivos';
 
-interface Providers { id: 'ollama' | 'codex-cli'; destination: string; models: string[]; available: boolean; reason?: string; selectedModel?: string }
+interface Providers { id: 'ollama' | 'codex-cli' | 'compatible'; destination: string; models: string[]; available: boolean; reason?: string; selectedModel?: string }
 
 export function Assistente() {
   const t = useT();
@@ -81,7 +81,7 @@ export function Assistente() {
     : !providers ? t('coach.checking')
     : !providers.available ? t(unavailableKey)
     : !providers.models.length ? t('coach.modelUnavailable')
-    : !model ? t('coach.modelMissing') : external ? 'Codex CLI · ChatGPT' : 'Ollama';
+    : !model ? t('coach.modelMissing') : external ? 'Codex CLI · ChatGPT' : providers.id === 'compatible' ? t('engines.compatTitle') : 'Ollama';
 
   function generate() {
     if (!preview || !routines) return;

@@ -1,4 +1,5 @@
 import { ApiError, assert } from './storage.mjs';
+import { distinguishPrescription, programWeek, weekInput } from './week-programming.mjs';
 
 const reviewSchema = {
   type: 'object', additionalProperties: false, required: ['summary', 'suggestions'],
@@ -77,8 +78,10 @@ function inventoryInput(inventory) {
 }
 
 function cardioPlanInput(body) {
-  assert(body.venue && Array.isArray(body.cardioCandidates) && integer(body.cardioCandidates.length, 1, 10));
-  const cardioCandidates = body.cardioCandidates.map((item) => {
+  assert(body.venue && (body.includeCardio === undefined || typeof body.includeCardio === 'boolean'));
+  const includeCardio = body.includeCardio !== false;
+  if (includeCardio) assert(Array.isArray(body.cardioCandidates) && integer(body.cardioCandidates.length, 1, 10));
+  const cardioCandidates = (includeCardio ? body.cardioCandidates : []).map((item) => {
     assert(item && text(item.id, 160) && text(item.name, 220));
     return { id: item.id, name: item.name };
   });
@@ -115,8 +118,10 @@ function planInput(body) {
   });
   assert(new Set(exercises.map((exercise) => exercise.id)).size === exercises.length);
   assert(body.venue === undefined || ['home', 'gym'].includes(body.venue));
+  assert(body.week === undefined || body.venue);
   return { goal: body.goal, focus: body.focus, minutes: body.minutes, venue: body.venue, exercises,
     reference: referenceInput(body.reference), inventory: inventoryInput(body.inventory),
+    week: weekInput(body.week, body.focus, exercises),
     ...(body.goal === 'weight-loss' ? cardioPlanInput(body) : {}) };
 }
 
@@ -175,7 +180,7 @@ export function createCoach(provider) {
   async function plan(body, signal) {
     const input = planInput(body);
     const [minReps, maxReps] = ranges[input.goal];
-    const withCardio = input.goal === 'weight-loss';
+    const withCardio = Boolean(input.cardioCandidates?.length);
     const cardioMinutes = withCardio ? Math.min(20, Math.floor(input.minutes / 3)) : 0;
     const maxExercises = withCardio && input.minutes <= 20 ? 3 : 6;
     const result = await generate(body.model,
@@ -190,8 +195,11 @@ export function createCoach(provider) {
       'Proponha 1 a 4 séries, ' + minReps + ' a ' + maxReps + ' repetições e 60 a 240 segundos de descanso. ' +
       'Reserve mais descanso para movimentos compostos e séries exigentes. Priorize qualidade técnica, sem carga absoluta e sem recomendar falha. ' +
       'O resumo deve explicar as escolhas sem repetir números, pois a Forja ajusta o volume à duração. ' +
-      (withCardio ? 'Inclua cardio moderado depois da musculação. Escolha cardioExerciseId da lista cardioCandidates. ' +
-        'Use o peso atual e a meta somente como contexto de acompanhamento. Se for o caso, reconheça que o peso já está na meta ou abaixo dela. ' +
+      'Se houver week, compare com previous do mesmo papel. Em upper, alterne ênfase horizontal e vertical. ' +
+      'Em lower ou legs, alterne prioridade de joelho e quadril. Mantenha movimentos úteis como referência, ' +
+      'varie os complementos compatíveis e evite repetir a composição inteira, inclusive com IDs equivalentes. ' +
+      (withCardio ? 'Inclua cardio moderado depois da musculação. Escolha cardioExerciseId da lista cardioCandidates. ' : '') +
+      (input.goal === 'weight-loss' ? 'Use o peso atual e a meta somente como contexto de acompanhamento. Se for o caso, reconheça que o peso já está na meta ou abaixo dela. ' +
         'Não prescreva dieta, calorias, prazo para emagrecer, intensidade baseada só no peso ou perda adicional após atingir a meta.' : ''),
       input, withCardio ? cardioPlanSchema : planSchema, signal);
     const name = typeof result?.name === 'string' ? result.name.trim() : '';
@@ -250,14 +258,18 @@ export function createCoach(provider) {
         }
       }
     }
+    const programmed = programWeek(exercises, input, baseline);
+    exercises = programmed.exercises;
     if (input.goal === 'strength') {
       exercises.sort((a, b) => Number(compound.has(groupOf(b).family)) - Number(compound.has(groupOf(a).family)));
     }
     const cardioSlot = withCardio ? cardioMinutes + 1 : 0;
-    const estimatedMinutes = fitSession(exercises, input.minutes - cardioSlot) + cardioSlot;
-    if (!withCardio) return { name, summary: result.summary, exercises, estimatedMinutes };
+    const estimatedMinutes = distinguishPrescription(exercises, input, minReps, maxReps,
+      (entries) => fitSession(entries, input.minutes - cardioSlot)) + cardioSlot;
+    const week = programmed.week ? { week: programmed.week } : {};
+    if (!withCardio) return { name, summary: result.summary, exercises, estimatedMinutes, ...week };
     const cardio = input.cardioCandidates.find(({ id }) => id === result.cardioExerciseId) ?? input.cardioCandidates[0];
-    return { name, summary: result.summary, exercises, estimatedMinutes, cardio: { exerciseId: cardio.id, seconds: cardioMinutes * 60 } };
+    return { name, summary: result.summary, exercises, estimatedMinutes, cardio: { exerciseId: cardio.id, seconds: cardioMinutes * 60 }, ...week };
   }
 
   async function test(body, signal) {
