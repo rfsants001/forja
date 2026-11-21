@@ -63,6 +63,20 @@ export async function readPortablePlan(file: File, catalog: readonly Exercise[])
     if (!name || !Array.isArray(entries) || !entries.length) throw invalid();
     return { key: String(index), name, note: text(row.note), moves: entries.map((entry) => {
       const move = object(entry);
+      // Reject invalid supported fields rather than silently losing a source prescription.
+      if (!openGym) {
+        for (const field of ['loadKg', 'weight', 'restSec', 'rest', 'targetDistanceM', 'targetSpeedKmh', 'trainingMaxKg']) {
+          if (move[field] !== undefined && numeric(move[field]) === undefined) throw invalid();
+        }
+        for (const field of ['seconds', 'sec', 'secondsMax', 'supersetGroup']) {
+          if (move[field] !== undefined && target(move[field]) === undefined) throw invalid();
+        }
+        if (move.reps !== undefined && repsText(move.reps) === undefined) throw invalid();
+        if (move.mode !== undefined && !['reps', 'time', 'cardio'].includes(String(move.mode))) throw invalid();
+        const seconds = target(move.seconds ?? move.sec);
+        const maximum = target(move.secondsMax);
+        if (maximum !== undefined && (seconds === undefined || maximum < seconds)) throw invalid();
+      }
       const sets = target(move.sets);
       const sourceId = text(move.id) ?? (typeof move.id === 'number' ? String(move.id) : undefined);
       const matched = sourceId && known.get(/^\d{1,4}$/.test(sourceId) ? 'ds-' + sourceId.padStart(4, '0') : sourceId);

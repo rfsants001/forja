@@ -1,6 +1,6 @@
 # Forja · Roadmap
 
-Atualizado em 14/11/2026. O [PRD](PRD.md) define o aceite de produto e o [STATE](STATE.md) registra a retomada.
+Atualizado em 20/11/2026. O [PRD](PRD.md) define o aceite de produto e o [STATE](STATE.md) registra a retomada.
 
 | Fase | Estado | Entrega |
 | --- | --- | --- |
@@ -10,7 +10,7 @@ Atualizado em 14/11/2026. O [PRD](PRD.md) define o aceite de produto e o [STATE]
 | F3 Insights | Implementada | Heatmap, streak, volume, cobertura muscular, 1RM e esforço. |
 | F3.5 Execução | Implementada com pendências de aceite | Supersets, cardio, timers recuperáveis, PR, mapa e biblioteca. Ver specs de mídia, PR e timers. |
 | F4 Backup | Implementada e testada com IndexedDB simulado | Backup v2 inclui medidas, compatibilidade v1, validação antes de restaurar e ações explícitas. |
-| F4.5 Portabilidade | Implementada com pendências de fixture | CSVs, peso Apple Health, plano JSON v2, impressão e esforço agregado. Validar exports reais e PDF no browser. |
+| F4.5 Portabilidade | Implementada com pendências de fixture | CSVs, peso Apple Health, plano JSON v2, importação JSON fiel no Perfil/Assistente com agenda explícita, impressão e esforço agregado. Validar exports reais e PDF no browser. |
 | F5 Conforto | Implementada | Quatro planos, temas, medidas, notas, anilhas, 5/3/1 e i18n PT/EN (P5-003 concluído em 17/11). P5-006/P5-007 aguardam evidência de demanda. |
 | F6 Sync e Assistente | Piloto implementado | PWA com pareamento opcional, sync self-hosted, revisão semanal e montagem de treino com Ollama ou Codex CLI por login dedicado. [Pacote de implementação](../features/self-hosted-assistant/README.md). |
 

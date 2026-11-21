@@ -1,0 +1,9 @@
+.coach-day-picker { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.coach-day-toggle { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 0; min-height: 46px; padding: 9px 4px; border: 1px solid var(--control-border); border-radius: var(--r-sm); background: var(--surface); font-size: 13px; font-weight: 600; }
+.coach-day-toggle:hover:not(:disabled) { border-color: var(--accent); }
+.coach-day-toggle[aria-pressed='true'] { border-color: var(--accent); background: var(--surface-2); }
+.coach-day-indicator { display: grid; place-items: center; flex: 0 0 16px; width: 16px; height: 16px; border: 1px solid var(--control-border); border-radius: 5px; }
+.coach-day-toggle[aria-pressed='true'] .coach-day-indicator { color: var(--on-accent); border-color: var(--accent); background: var(--accent); }
+.coach-day-toggle:disabled { opacity: .6; cursor: not-allowed; }
+@media (max-width: 600px) { .coach-day-picker { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; } }
+@media (forced-colors: active) { .coach-day-toggle[aria-pressed='true'] { outline: 2px solid Highlight; outline-offset: -3px; } }

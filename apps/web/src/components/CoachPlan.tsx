@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Exercise, Settings, Weekday, WorkoutLog } from '@forja/core';
 import { db } from '../db/db';
 import { setWeekday } from '../db/repo';
 import { syncWrite } from '../db/sync-write';
-import { PortablePlanImport, weekdayOrder as WEEKDAY_ORDER } from './PortablePlanImport';
+import { PortablePlanImport } from './PortablePlanImport';
+import { weekdayOrder as WEEKDAY_ORDER } from '../lib/weekdays';
 import { eligiblePlanExercises, planCandidates, saveCoachPlan, trainingLevelCounts, type TrainingLevel, type CoachPlanResult, type PlanFocus, type PlanGoal, type PlanVenue } from '../lib/coach-plan';
 import { planAlternatives } from '../lib/coach-movements';
 import { cardioExercises } from '../lib/coach-cardio';
@@ -97,7 +98,21 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
     .filter(({ routineId }) => routineId).map(({ weekday }) => weekday)), []);
 
   // Mode toggle
-  const [mode, setMode] = useState<PlanMode>('reference');
+  const [params, setParams] = useSearchParams();
+  const urlMode: PlanMode = params.get('modo') === 'port' ? 'port' : params.get('modo') === 'split' ? 'split' : 'reference';
+  const [mode, setSelectedMode] = useState<PlanMode>(urlMode);
+  const [portBusy, setPortBusy] = useState(false);
+  useEffect(() => { setSelectedMode(urlMode); }, [urlMode]);
+  function setMode(value: PlanMode) {
+    // Confirm the native radio synchronously while React Router updates the URL.
+    setSelectedMode(value);
+    setParams((previous) => {
+      const next = new URLSearchParams(previous);
+      if (value === 'reference') next.delete('modo');
+      else next.set('modo', value);
+      return next;
+    }, { replace: true });
+  }
 
   // Split config
   const [split, setSplit] = useState<SplitKind>('upper-lower');
@@ -405,20 +420,20 @@ export function CoachPlan({ exercises, workouts, settings, model, destination, p
       {/* Mode toggle */}
       <div className="coach-plan-mode" role="group" aria-label={t('coach.planTitle')}>
         {(['reference', 'split', 'port'] as const).map((m) => (
-          <label key={m} className={'coach-plan-mode-option' + (mode === m ? ' selected' : '')}>
+          <label key={m} className="choice-button">
             <input
               type="radio"
               name="coach-plan-mode"
               value={m}
-              checked={mode === m} disabled={busy || readingReference}
+              checked={mode === m} disabled={busy || readingReference || portBusy}
               onChange={() => { setMode(m); setReference(undefined); onFileItems([]); setSourceDays({}); resetPreview(); }}
             />
-            {t(m === 'reference' ? 'coach.planModeReference' : m === 'split' ? 'coach.planModeSplit' : 'coach.portTitle')}
+            <span>{t(m === 'reference' ? 'coach.planModeReference' : m === 'split' ? 'coach.planModeSplit' : 'coach.portTitle')}</span>
           </label>
         ))}
       </div>
 
-      {mode === 'port' && <PortablePlanImport catalog={exercises ?? []} />}
+      {mode === 'port' && <PortablePlanImport catalog={exercises ?? []} onBusyChange={setPortBusy} />}
       {mode !== 'port' && <form onSubmit={(event) => { event.preventDefault(); if (mode === 'reference') void generate(); }}>
         <fieldset className="coach-plan-inputs" disabled={busy}>
           <div className="coach-plan-fields">

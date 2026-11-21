@@ -1,0 +1,47 @@
+html .app dialog.portable-dialog { max-width: 760px; background: var(--surface); overflow-y: auto; overscroll-behavior: contain; scroll-padding-block: 16px 100px; }
+.portable-import { display: grid; gap: 12px; min-width: 0; }
+.portable-file { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--control-border); background: var(--surface-2); border-radius: var(--r-sm); }
+.portable-file > svg { color: var(--accent); flex-shrink: 0; }
+.portable-file > div { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.portable-file strong { font-size: 14px; overflow-wrap: anywhere; }
+.portable-file .btn { flex-shrink: 0; }
+html .app .portable-dialog .form-dialog-heading h2 { font-size: 22px; line-height: 1.2; }
+.portable-footer > .hint { flex: 1 1 230px; font-size: 12px; }
+.portable-format { font-size: 13px; }
+.portable-format summary { font-weight: 600; cursor: pointer; padding: 5px 0; min-height: 36px; }
+.portable-format p { margin: 8px 0; color: var(--text-2); line-height: 1.6; }
+.portable-format pre { background: var(--bg-2); border: 1px solid var(--border-soft); border-radius: var(--r-sm); padding: 12px; margin-block: 12px; max-height: 230px; overflow: auto; font: 12px/1.6 ui-monospace, monospace; }
+.portable-section-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; }
+.portable-section-heading h3, .portable-schedule legend { font: 650 14px/1.4 var(--font-body); }
+.portable-routines { border-block: 1px solid var(--border); }
+.portable-routines > details + details { border-top: 1px solid var(--border-soft); }
+.portable-routines summary { cursor: pointer; padding: 12px 2px; font-size: 13px; }
+.portable-routines summary span { margin-inline-start: 10px; font-size: 12px; color: var(--text-muted); }
+.portable-routines ol { padding: 0 0 12px 24px; }
+.portable-routines li { padding: 7px 4px; font-size: 13px; border-top: 1px solid var(--border-soft); }
+.portable-routines li > small { display: block; margin-top: 3px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.portable-schedule { border: 0; padding: 0; min-width: 0; }
+.portable-schedule > .hint { margin-block: 6px 12px; }
+.portable-day-rows { display: grid; margin-top: 12px; }
+.portable-day-rows > label { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr); align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border-soft); font-size: 13px; }
+.portable-day-rows label > span { display: grid; gap: 2px; }
+.portable-day-rows small { font-size: 11px; color: var(--warn); }
+.portable-category { display: grid; gap: 5px; margin-top: 14px; font-size: 13px; }
+.portable-conflict { display: flex !important; gap: 8px; align-items: start; padding-top: 12px; font-size: 13px; }
+.portable-conflict input { margin-top: 3px !important; }
+.portable-footer { position: sticky; bottom: 0; z-index: 2; background: var(--surface); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-block: 12px; }
+.portable-success { display: flex; gap: 12px; padding: 16px; border: 1px solid var(--ok); background: var(--surface-2); font-size: 14px; }
+.portable-success > svg { color: var(--ok); flex-shrink: 0; }
+.portable-success p { margin: 6px 0 14px; color: var(--text-2); }
+@media (max-width: 540px) {
+  .portable-file { flex-wrap: wrap; }
+  .portable-file > div { flex-basis: calc(100% - 40px); }
+  .portable-file .btn { width: 100%; }
+  .portable-file.ready { flex-wrap: nowrap; padding: 10px; gap: 8px; }
+  .portable-file.ready > div { flex-basis: 0; }
+  .portable-file.ready .btn { width: auto; }
+  .portable-footer > .hint { flex-basis: auto; }
+  .portable-footer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  html .app .portable-footer .btn { width: auto; }
+  html .app dialog.portable-dialog { width: calc(100% - 20px); max-height: calc(100dvh - 20px); padding: 16px; }
+}

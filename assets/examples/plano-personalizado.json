@@ -1,0 +1,23 @@
+{
+  "routines": [
+    {
+      "name": "Superior A",
+      "note": "Manter a técnica e a sequência do plano.",
+      "exercises": [
+        {
+          "name": "Remada com halteres",
+          "sets": 3,
+          "reps": "8–12",
+          "loadKg": 10,
+          "restSec": 90
+        },
+        {
+          "name": "Prancha",
+          "sets": 2,
+          "seconds": 30,
+          "restSec": 60
+        }
+      ]
+    }
+  ]
+}

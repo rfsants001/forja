@@ -1,5 +1,8 @@
 # Forja
 
+- Latest delivery (2026-11-20): Profile → Import from another app → Import custom JSON opens the same local `PortablePlanImport` used by Assistant → Import unchanged (`?modo=port`). Keep the example/download, preview, explicit weekdays, prescription fidelity, occupied-day guard, transaction and active draft/history preservation. This path requires no AI or server. [PRD/TRD/SDD](.specs/features/dados-portabilidade/importacao-json.md).
+- Shared UI now uses 4/6/8 px radii, compact headings and divided lists. All native radios use button-shaped labels with the real input covering the target; preserve keyboard arrows/focus/checked/disabled. Weekday controls/styles and `lib/weekdays.ts` are shared, including Profile's lazy route. Do not restore nested Coach cards or show engine requirements in local import mode.
+
 - Start with [current state](.specs/project/STATE.md), [roadmap](.specs/project/ROADMAP.md) and [PRD](.specs/project/PRD.md).
 - The [SDD](.specs/codebase/ARCHITECTURE.md) describes the session, progression, IndexedDB and import invariants. Feature acceptance lives in `.specs/features/`.
 - The reliability and UX changes are on `main` in `e93c859`. The [README](README.md) has real app screenshots with demo data, plus the setup and PWA instructions verified in `27310e1`.

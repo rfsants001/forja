@@ -22,6 +22,7 @@ import {
   applyImport, previewImport,
 } from '../lib/importers';
 import type { ImportResult } from '../lib/importers';
+import { PortablePlanImportDialog } from '../components/PortablePlanImport';
 import { downloadPlan, importPlan, printPlan } from '../lib/plan-share';
 
 // ---------------------------------------------------------------------------
@@ -729,6 +730,7 @@ interface ImportPreview {
 
 function ImportarAppSection() {
   const t = useT();
+  const [jsonOpen, setJsonOpen] = useState(false);
   const [source, setSource] = useState<ImportSource>('fitnotes');
   const [status, setStatus] = useState<'idle' | 'parsing' | 'preview' | 'applying' | 'done' | 'error'>('idle');
   const [applying, setApplying] = useState(false);
@@ -740,7 +742,7 @@ function ImportarAppSection() {
     { value: 'fitnotes',   label: 'FitNotes',     accept: '.csv,text/csv' },
     { value: 'strong',     label: 'Strong',        accept: '.csv,text/csv' },
     { value: 'hevy',       label: 'Hevy',          accept: '.csv,text/csv' },
-    { value: 'applehealth',label: 'Apple Health (peso)', accept: '.xml,application/xml,text/xml' },
+    { value: 'applehealth',label: t('port.appleHealth'), accept: '.xml,application/xml,text/xml' },
   ];
 
   function showError(msg: string) {
@@ -810,27 +812,25 @@ function ImportarAppSection() {
   const currentSource = sourceOptions.find((s) => s.value === source);
 
   return (
-    <div className="card">
+    <div className="card import-app-card">
+      {jsonOpen && <PortablePlanImportDialog onClose={() => setJsonOpen(false)} />}
+      <button className="profile-tool import-json-action" type="button" onClick={() => setJsonOpen(true)}>
+        <FileInput size={20} aria-hidden /><span><strong>{t('port.title')}</strong><small>{t('port.entryHint')}</small></span><ChevronRight size={16} aria-hidden />
+      </button>
+      <h3 className="import-history-title">{t('port.historyTitle')}</h3>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <FileInput size={15} style={{ opacity: 0.6, flexShrink: 0 }} />
         <p className="hint" style={{ lineHeight: 1.5 }}>{t("ui.importHelp")}</p>
       </div>
 
-      {/* Seletor de origem */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+      <div className="import-sources" role="group" aria-label={t('port.historySource')}>
         {sourceOptions.map((opt) => (
-          <button
-            key={opt.value}
-            className={`btn ghost${source === opt.value ? ' active-source' : ''}`}
-            style={{
-              flex: '1 1 auto',
-              borderColor: source === opt.value ? 'var(--flame)' : undefined,
-              color: source === opt.value ? 'var(--flame)' : undefined,
-            }}
-            onClick={() => { setSource(opt.value); resetState(); }}
-          >
-            {opt.label}
-          </button>
+          <label key={opt.value} className="choice-button">
+            <input type="radio" name="import-source" value={opt.value} checked={source === opt.value}
+              disabled={status === 'parsing' || status === 'applying'}
+              onChange={() => { setSource(opt.value); resetState(); }} />
+            <span>{opt.label}</span>
+          </label>
         ))}
       </div>
 
@@ -851,7 +851,7 @@ function ImportarAppSection() {
             onClick={() => fileInputRef.current?.click()}
           >
             <ArrowDownToLine size={15} />
-            {status === 'parsing' ? t("perf.processing") : `Selecionar arquivo ${currentSource?.label ?? ''}`}
+            {status === 'parsing' ? t("perf.processing") : t('port.selectHistoryFile', [currentSource?.label ?? ''])}
           </button>
         </>
       )}
@@ -1079,6 +1079,13 @@ export function Perfil() {
         </div>
       </div>
 
+      <nav className="page-sections" aria-label={t('port.profileSections')}>
+        <a href="#profile-settings">{t('perf.settingsTitle')}</a>
+        <a href="#importar-historico">{t('perf.importTitle')}</a>
+        <a href="#profile-weight">{t('perf.weightTitle')}</a>
+        <a href="#profile-backup">{t('perf.dataTitle')}</a>
+        <a href="#profile-plan">{t('perf.shareTitle')}</a>
+      </nav>
       <div className="profile-layout">
         <section aria-labelledby="profile-settings">
           <h2 className="section-title" id="profile-settings">{t('perf.settingsTitle')}</h2>

@@ -42,10 +42,10 @@
   --font-body: 'Inter', system-ui, sans-serif;
 
   /* Raios de contêineres e controles. */
-  --r-sm: 7px;
-  --r: 10px;
-  --r-lg: 14px;
-  --r-pill: 6px;
+  --r-sm: 4px;
+  --r: 6px;
+  --r-lg: 8px;
+  --r-pill: 4px;
 
   /* sombras / glow */
   --shadow: none;

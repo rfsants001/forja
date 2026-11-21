@@ -1,6 +1,6 @@
 # Forja · PRD
 
-Atualizado em 19/11/2026.
+Atualizado em 20/11/2026.
 
 ## Problema e proposta
 
@@ -22,7 +22,7 @@ Quem treina em casa precisa adaptar uma rotina ao próprio equipamento, lembrar 
 | PRD-02 | Controle da agenda | Treinar agora, exceção por data e retorno ao plano recorrente. Excluir uma rotina ou plano pronto exige confirmação, limpa a agenda associada e preserva nomes e notas dos treinos registrados. |
 | PRD-03 | Registro recuperável | Fechar/reabrir preserva a sessão e timestamps dos timers. Falha de escrita mantém o rascunho e uma mensagem orienta a repetir. O retry usa o mesmo ID. |
 | PRD-04 | Progressão explicável | A série editável, o alvo gravado e o histórico descrevem a mesma meta. Abaixo da carga é miss. Primeiro registro serve de referência. 5/3/1 preenche três séries individuais e avança após acertos. |
-| PRD-05 | Portabilidade | Backup v2 inclui medidas e lê v1. Preview, cancelar, mesclar e substituir são ações distintas. Plano inclui definições mínimas de exercícios. CSV informa linhas ignoradas e evita repetição por identidade de origem. |
+| PRD-05 | Portabilidade | Backup v2 inclui medidas e lê v1. Preview, cancelar, mesclar e substituir são ações distintas. Plano inclui definições mínimas de exercícios. JSON personalizado no Perfil/Assistente oferece exemplo e prévia, preserva prescrições sem IA e exige escolha de dias. CSV informa linhas ignoradas e evita repetição por identidade de origem. |
 | PRD-06 | UX acessível | Fluxos principais com status visível, teclado, foco claro, texto e ícone além da cor, áreas de toque adequadas e contraste aferido em ambos os temas. Usar WCAG 2.2 AA como referência de teste. |
 | PRD-07 | Uso offline | Após a carga inicial em origem segura, testar navegação, dois treinos, retomada, histórico e backup sem rede. As demonstrações locais e o atlas carregam em modo avião. |
 | PRD-08 | Biblioteca para casa e academia | Filtros por músculo principal ou auxiliar, equipamentos próprios e demonstrações. Detalhes exibem vistas frente/costas, legenda e crédito da mídia. |

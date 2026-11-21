@@ -83,6 +83,18 @@
   [![Montagem semanal com nível geral, seleção de dias e cards para definir Puxar, Empurrar e Pernas em seis dias.](assets/screenshots/coach-dias-desktop.png)](assets/screenshots/coach-dias-desktop.png)
 </details>
 
+<details>
+  <summary><strong>Continue seu plano: importação JSON sem IA, no PC e no celular</strong></summary>
+  <br />
+  <table>
+    <tr><th scope="col">Prévia e agenda no desktop</th><th scope="col">Os mesmos controles no celular</th></tr>
+    <tr>
+      <td><a href="assets/screenshots/importar-json-desktop.png"><img src="assets/screenshots/importar-json-desktop.png" width="560" alt="Importação JSON com prévia das rotinas, escolha dos dias e categoria, sem usar IA"></a></td>
+      <td><a href="assets/screenshots/importar-json-mobile.png"><img src="assets/screenshots/importar-json-mobile.png" width="240" alt="Importação no celular com dias em botões e ação Importar e agendar visível"></a></td>
+    </tr>
+  </table>
+</details>
+
 <sub>Capturas da aplicação com dados de demonstração. A tela do Assistente usa um provedor simulado.</sub>
 
 ## Do primeiro treino ao próximo
@@ -185,7 +197,7 @@ Em **Criar com IA**, marque primeiro os dias de treino. Depois, escolha o tipo d
 
 O tempo escolhido vale para **cada sessão individual**: 60 minutos em seis dias significam até 60 minutos em cada dia. Se os exercícios e os descansos do nível não couberem no tempo, ou faltarem exercícios compatíveis com seu equipamento, a Forja informa o impedimento. Você pode ajustar a duração, o nível ou o inventário. **Importar sem alterações** mantém o conteúdo original do arquivo e permite distribuir suas rotinas nos dias desejados. Na geração com referência, a prévia compara exercícios e séries antes/depois e informa exemplos sem cobertura no catálogo elegível. A comparação fica na nota da rotina salva. A seleção evita traduções duplicadas e preenchimento excessivo de panturrilhas ou punhos; a estimativa considera os dois lados dos unilaterais explícitos e os descansos entre exercícios.
 
-Em **Usar treino anterior como referência**, escolha uma sessão do Histórico, um CSV de Hevy, Strong ou FitNotes, um JSON da Forja ou **Plano externo (CSV ou JSON)**. A prévia mostra até 40 sessões ou rotinas. O arquivo é lido no navegador. Ao gerar, a IA recebe somente o resumo escolhido, com exercícios, séries, repetições, tempo e carga quando disponíveis. Para gravar sessões no Histórico, use **Perfil → Importar de outro app**.
+Em **Usar treino anterior como referência**, escolha uma sessão do Histórico, um CSV de Hevy, Strong ou FitNotes, um JSON da Forja ou **Plano externo (CSV ou JSON)**. A prévia mostra até 40 sessões ou rotinas. O arquivo é lido no navegador. Ao gerar, a IA recebe somente o resumo escolhido, com exercícios, séries, repetições, tempo e carga quando disponíveis. Para gravar sessões concluídas no Histórico, use as opções CSV em **Perfil → Importar de outro app**. Para continuar um programa sem IA, escolha **Importar JSON personalizado** nesse mesmo card.
 
 **Plano externo** aceita o JSON de plano do OpenGym (`opengym_plan: 1`). Você também pode montar um CSV com `treino,exercicio,series,repeticoes,segundos,carga_kg` ou um JSON com `routines` e uma lista de `exercises` por rotina. No CSV, só `exercicio` e `series` são obrigatórios. No JSON, `name` e `sets` são obrigatórios por exercício e `reps`, `seconds` e `loadKg` são opcionais. Um arquivo com uma rotina pode ter este formato.
 
@@ -213,7 +225,9 @@ Exemplos de URLs são `https://api.openai.com/v1`, `https://generativelanguage.g
 
 Em **Montar treino com IA → Criar com IA**, o arquivo é opcional. Para começar do zero, selecione **Criar treino** nos dias desejados e escolha o tipo de cada sessão. Para usar um plano anterior, anexe seu JSON e selecione as rotinas como referência. Atribua a cada dia que quiser treinar uma rotina do arquivo e um tipo, como superior, inferior, push, pull, pernas ou cardio. Confira a semana antes de salvar. O modo **Por split** cria uma divisão a partir de um padrão escolhido. Em **Superior / Inferior + Cardio**, cinco dias de segunda a sexta geram Superior A, Inferior A, Cardio, Superior B e Inferior B. A Forja compara as sessões do mesmo tipo e diferencia a seleção de exercícios compatíveis. Se o inventário limitar as trocas, a prévia informa a limitação e o app varia a prescrição dentro do objetivo. Quando há dias dedicados ao cardio, esses dias são montados localmente.
 
-Em **Importar sem alterações**, carregue um JSON da Forja, do OpenGym ou no formato portátil acima. Atribua as rotinas aos dias que escolher e confirme. A importação é local e mantém as prescrições do arquivo nos campos suportados. Rotinas sem dia também aparecem em **Treinos**. A agenda tem uma rotina por dia e a substituição de um dia ocupado exige confirmação.
+Para continuar seu treino atual, abra **Perfil → Importar de outro app → Importar JSON personalizado**. O modal explica os campos aceitos, mostra um exemplo e permite baixá-lo. [Baixar um JSON de exemplo](assets/examples/plano-personalizado.json).
+
+O mesmo fluxo está em **Assistente → Importar sem alterações**. Carregue um JSON da Forja, do OpenGym ou no formato portátil acima. Confira os exercícios na prévia, marque os dias e ajuste a rotina de cada dia. As sugestões seguem a ordem do arquivo e só são gravadas depois de **Importar e agendar**. A importação é local e mantém as prescrições do arquivo nos campos suportados. Rotinas sem dia também aparecem em **Treinos**. A agenda tem uma rotina por dia e a substituição de um dia ocupado exige confirmação. Histórico e treino em execução são preservados. Campos desconhecidos do arquivo não são importados; use `note` para orientações adicionais. Carga (`loadKg`), descanso (`restSec`), tempo (`seconds`/`secondsMax`), distância (`targetDistanceM`) e velocidade (`targetSpeedKmh`) mantêm suas unidades. Esse fluxo funciona sem configurar IA ou servidor.
 
 A comparação entre sessões repetidas vale para todas as divisões disponíveis.
 

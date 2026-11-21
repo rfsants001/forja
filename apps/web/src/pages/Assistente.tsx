@@ -19,6 +19,7 @@ export function Assistente() {
   const t = useT();
   const [params] = useSearchParams();
   const reviewMode = params.get('aba') === 'revisao';
+  const importing = !reviewMode && params.get('modo') === 'port';
   const [end, setEnd] = useState(toISO(new Date()));
   const [providers, setProviders] = useState<Providers>();
   const [connectionError, setConnectionError] = useState<SyncError>();
@@ -68,9 +69,9 @@ export function Assistente() {
   }
 
   useEffect(() => {
-    void refreshProvider(true);
+    if (!importing) void refreshProvider(true);
     return () => call.current?.abort();
-  }, [refreshProvider]);
+  }, [refreshProvider, importing]);
 
   const noServer = connectionError?.code === 'NO_SERVER';
   const external = providers?.id === 'codex-cli';
@@ -107,12 +108,12 @@ export function Assistente() {
         <div><h1>{t('coach.title')}</h1><p className="hint">{t('coach.workspaceIntro')}</p></div>
         <Link className="btn ghost" to="/perfil/ia"><PlugZap size={16} aria-hidden />{t('engines.title')}</Link>
       </header>
-      <div className="coach-engine-status">
+      {!importing && <div className="coach-engine-status">
         <div><strong>{t('engines.current')}</strong><p role="status">{providerStatus}</p></div>
         {providers?.available && model && <span>{external && model === 'default' ? t('coach.codexDefaultModel') : model}</span>}
-      </div>
+      </div>}
       <nav className="coach-modes" aria-label={t('coach.title')}>
-        <Link to="/perfil/assistente" aria-current={!reviewMode ? 'page' : undefined}>{t('coach.planTitle')}</Link>
+        <Link to="/perfil/assistente" aria-current={!reviewMode ? 'page' : undefined}>{t('port.planTab')}</Link>
         <Link to="/perfil/assistente?aba=revisao" aria-current={reviewMode ? 'page' : undefined}>{t('coach.weekly')}</Link>
       </nav>
       {!reviewMode ? (

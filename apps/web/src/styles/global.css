@@ -8,6 +8,7 @@
 @import './theme.css';
 @import './journal.css';
 @import './forms.css';
+@import './workspace.css';
 
 * {
   box-sizing: border-box;

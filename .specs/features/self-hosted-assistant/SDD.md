@@ -1,5 +1,9 @@
 # SDD · Arquitetura proposta
 
+## Importação fiel compartilhada — 20/11/2026
+
+O modo local `port` usa o mesmo `PortablePlanImport` do modal no Perfil. Lê JSON, mostra a prescrição e agenda somente os dias escolhidos, sem provider nem reprogramação. A escrita é transacional e gera a fila de sync pelo repositório. [Contrato técnico e aceite](../dados-portabilidade/importacao-json.md). A conexão de IA continua necessária apenas para gerar/revisar com IA.
+
 Versão de implementação · 15/11/2026. Use o [TRD](TRD.md) para os requisitos do piloto.
 
 O servidor em `apps/server` usa módulos HTTP e SQLite do Node.js 24. A PWA e a API compartilham a origem, e a API valida a origem das mutações. A chave de dono é gerada na pasta de dados e recuperada no terminal com `pnpm self-host:admin`. O dono aprova convites, cada aparelho tem uma sessão revogável e o QR usa um segredo no fragmento da URL.

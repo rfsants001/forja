@@ -1,6 +1,14 @@
 # Forja · Estado e retomada
 
-Atualizado em 19/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [ROADMAP](ROADMAP.md).
+## Entrega atual — 20/11/2026
+
+JSON personalizado está no Perfil, em **Importar de outro app**, com modal explicativo, exemplo baixável e prévia; o Assistente usa o mesmo formulário em **Importar sem alterações** (`?modo=port`). A pessoa escolhe os dias, revisa as rotinas sugeridas e confirma. Portabilidade não chama IA nem muda a prescrição. Histórico e rascunho ativo são preservados; dias ocupados exigem autorização.
+
+Rádios têm aparência de botão, sem perder semântica ou teclado. A fundação visual usa raios de 4/6/8 px, títulos compactos, listas com divisórias, navegação por seções no Perfil e menos cartões aninhados no Coach. O painel de engine não aparece no modo de importação. Preto/laranja, claro/escuro e Inter permanecem.
+
+O navegador conferiu os dois pontos de entrada, campos e unidades, download do exemplo, erros, conflitos, PT/EN, teclado e o JSON real com 19 rotinas. Importação também passou com a rede desligada e controles móveis por toque; o modo local não consulta engines. Nove telas em 320/390/1440 px passaram sem overflow. Nenhum POST de geração de IA. Gates: 147 core + 45 servidor, typecheck e build. Ver [PRD/TRD/SDD](../features/dados-portabilidade/importacao-json.md). Testes físicos e validação em todos os SOs permanecem pendentes, sem ampliar a garantia.
+
+Atualizado em 20/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [ROADMAP](ROADMAP.md).
 
 ## Retomada — 19/11/2026
 

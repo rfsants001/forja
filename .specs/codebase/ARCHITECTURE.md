@@ -1,6 +1,10 @@
 # Forja · SDD / arquitetura
 
-Atualizado em 19/11/2026. O [PRD](../project/PRD.md) define a jornada e os critérios de produto.
+## Atualização de portabilidade — 20/11/2026
+
+O formulário `PortablePlanImport` é compartilhado pelo Perfil (wrapper com dialog nativo) e Coach (modo `port` na query). `lib/portable-plan.ts` valida antes de gravar; a confirmação escreve definições, rotinas e dias escolhidos na mesma `syncWrite`, sem chamar providers. `lib/weekdays.ts` e `WeekdayPicker` são comuns aos fluxos. Estilos de rádio ficam em `forms.css`, fundação em `theme.css`/`workspace.css`, importação em `portable-plan.css`. Ver [contrato e aceite](../features/dados-portabilidade/importacao-json.md).
+
+Atualizado em 20/11/2026. O [PRD](../project/PRD.md) define a jornada e os critérios de produto.
 
 ## Camadas
 

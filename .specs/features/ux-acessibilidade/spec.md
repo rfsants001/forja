@@ -1,5 +1,9 @@
 # UX e acessibilidade
 
+## Revisão de 20/11/2026
+
+Rádios de todo o app têm aparência de botões, mantendo input/name/checked e setas; foco e estado selecionado são visíveis além da cor. Perfil ganha âncoras, atalhos agrupados e importação JSON em dialog nativo, sem IA. Fundamentos e evidências em [importação e UI](../dados-portabilidade/importacao-json.md). A revisão reduz cartões aninhados no Coach e padroniza raios de 4/6/8 px.
+
 Escopo da revisão: início, treinos, sessão guiada, histórico, importação e restauração.
 
 | Heurística | Aplicação |
