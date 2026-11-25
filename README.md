@@ -1,136 +1,141 @@
 <h1 align="center">
-  <a href="#telas">
-    <img src="assets/brand/forja-banner.webp" width="1440" alt="Forja, diário de treino de força para PC e celular. Veja as telas de evolução de carga e treino guiado." />
+  <a href="#screenshots">
+    <img src="assets/brand/forja-banner.webp" width="1440" alt="Forja, a strength training journal for desktop and mobile. Explore load progression and guided workout screens." />
   </a>
 </h1>
 
 <p align="center">
-  Crie rotinas, registre suas séries e acompanhe o peso que você consegue levantar.
+  Build routines, log your sets, and track how much you can lift.
   <br />
-  Instale a Forja pelo navegador. Para sincronizar PC e celular, use sua própria instalação.
+  Install Forja from your browser. Sync your computer and phone through your own server.
 </p>
 
 <p align="center">
-  <strong><a href="#telas">Ver a Forja em ação</a> · <a href="#rodar-localmente">Rodar localmente</a></strong>
+  <strong><a href="#screenshots">See Forja in action</a> · <a href="#run-locally">Run locally</a></strong>
   <br />
-  <a href="#instalar-como-app">Instalar como app</a> · <a href="#sincronizar-pc-e-celular">Configurar a sincronização</a> · <a href="#seus-dados">Fazer backup</a>
+  <a href="#install-as-an-app">Install as an app</a> · <a href="#sync-desktop-and-mobile">Set up sync</a> · <a href="#your-data">Back up your data</a>
 </p>
 
-<a name="screenshots"></a>
+<a name="telas"></a>
+<a name="capturas"></a>
 
-## Telas
+## Screenshots
 
-[![Forja no desktop. Caderno de treino com evolução de carga, sessão de hoje e agenda semanal.](assets/screenshots/hoje-desktop.webp)](assets/screenshots/hoje-desktop.webp)
+[![Forja on desktop: a training journal with load progression, today's workout, and a weekly schedule.](assets/screenshots/hoje-desktop.webp)](assets/screenshots/hoje-desktop.webp)
 
 <table>
   <tr>
-    <th scope="col">Hoje no celular</th>
-    <th scope="col">Treino guiado no celular</th>
-    <th scope="col">Histórico no celular</th>
+    <th scope="col">Today on mobile</th>
+    <th scope="col">Guided workout on mobile</th>
+    <th scope="col">History on mobile</th>
   </tr>
   <tr>
-    <td><a href="assets/screenshots/hoje.webp"><img src="assets/screenshots/hoje.webp" width="240" alt="Tela Hoje em grafite e laranja, com próximo treino, evolução de carga e agenda da semana"></a></td>
-    <td><a href="assets/screenshots/treino-mobile.webp"><img src="assets/screenshots/treino-mobile.webp" width="240" alt="Séries, descanso, demonstração do supino e mapa muscular no treino guiado"></a></td>
-    <td><a href="assets/screenshots/historico-mobile.webp"><img src="assets/screenshots/historico-mobile.webp" width="240" alt="Histórico em Semana passada, com sessões agrupadas por dia e séries de uma sessão aberta"></a></td>
+    <td><a href="assets/screenshots/hoje.webp"><img src="assets/screenshots/hoje.webp" width="240" alt="Today screen in graphite and orange, showing the next workout, load progression, and weekly schedule"></a></td>
+    <td><a href="assets/screenshots/treino-mobile.webp"><img src="assets/screenshots/treino-mobile.webp" width="240" alt="Sets, rest timer, bench press demonstration, and muscle map in a guided workout"></a></td>
+    <td><a href="assets/screenshots/historico-mobile.webp"><img src="assets/screenshots/historico-mobile.webp" width="240" alt="Last week's history, with sessions grouped by day and an expanded session showing its sets"></a></td>
   </tr>
 </table>
 
 <details>
-  <summary><strong>Ver mais telas do desktop</strong></summary>
+  <summary><strong>Explore more desktop screens</strong></summary>
   <br />
   <table>
-    <tr><th scope="col">Histórico</th><th scope="col">Progresso</th></tr>
+    <tr><th scope="col">History</th><th scope="col">Progress</th></tr>
     <tr>
-      <td><a href="assets/screenshots/historico.webp"><img src="assets/screenshots/historico.webp" width="480" alt="Histórico filtrado pela semana anterior, com sessões por dia, volume, séries e mapa muscular"></a></td>
-      <td><a href="assets/screenshots/progresso.webp"><img src="assets/screenshots/progresso.webp" width="480" alt="Painel de progresso com atividade, volume e mapa muscular"></a></td>
+      <td><a href="assets/screenshots/historico.webp"><img src="assets/screenshots/historico.webp" width="480" alt="History filtered to the previous week, with daily sessions, volume, sets, and a muscle map"></a></td>
+      <td><a href="assets/screenshots/progresso.webp"><img src="assets/screenshots/progresso.webp" width="480" alt="Progress dashboard with activity, training volume, and a muscle map"></a></td>
     </tr>
-    <tr><th scope="col">Atlas de exercícios</th><th scope="col">Treino guiado</th></tr>
+    <tr><th scope="col">Exercise atlas</th><th scope="col">Guided workout</th></tr>
     <tr>
-      <td><a href="assets/screenshots/atlas.webp"><img src="assets/screenshots/atlas.webp" width="480" alt="Demonstração de supino com os músculos principais e auxiliares destacados"></a></td>
-      <td><a href="assets/screenshots/treino-guiado.webp"><img src="assets/screenshots/treino-guiado.webp" width="480" alt="Treino guiado com séries e descanso ao lado da demonstração, busca no YouTube e mapa muscular"></a></td>
+      <td><a href="assets/screenshots/atlas.webp"><img src="assets/screenshots/atlas.webp" width="480" alt="Bench press demonstration with primary and secondary muscles highlighted"></a></td>
+      <td><a href="assets/screenshots/treino-guiado.webp"><img src="assets/screenshots/treino-guiado.webp" width="480" alt="Guided workout with sets and rest beside the demonstration, YouTube search, and muscle map"></a></td>
     </tr>
   </table>
 </details>
 
 <details>
-  <summary><strong>Ver sincronização, Assistente e evolução de carga</strong></summary>
+  <summary><strong>Explore sync, the Assistant, and load progression</strong></summary>
   <br />
   <table>
-    <tr><th scope="col">Pareamento no PC</th><th scope="col">Dispositivos no celular</th></tr>
+    <tr><th scope="col">Pairing on desktop</th><th scope="col">Devices on mobile</th></tr>
     <tr>
-      <td><a href="assets/screenshots/dispositivos-desktop.webp"><img src="assets/screenshots/dispositivos-desktop.webp" width="480" alt="Pareamento no computador com QR code e código manual"></a></td>
-      <td><a href="assets/screenshots/dispositivos-mobile.webp"><img src="assets/screenshots/dispositivos-mobile.webp" width="240" alt="Status da instalação self-hosted no celular"></a></td>
+      <td><a href="assets/screenshots/dispositivos-desktop.webp"><img src="assets/screenshots/dispositivos-desktop.webp" width="480" alt="Desktop device pairing with a QR code and manual pairing code"></a></td>
+      <td><a href="assets/screenshots/dispositivos-mobile.webp"><img src="assets/screenshots/dispositivos-mobile.webp" width="240" alt="Self-hosted installation status on a phone"></a></td>
     </tr>
-    <tr><th scope="col">Revisão semanal</th><th scope="col">Evolução de carga</th></tr>
+    <tr><th scope="col">Weekly review</th><th scope="col">Load progression</th></tr>
     <tr>
-      <td><a href="assets/screenshots/assistente-desktop.webp"><img src="assets/screenshots/assistente-desktop.webp" width="480" alt="Assistente de treino com revisão de demonstração e troca de exercício"></a></td>
-      <td><a href="assets/screenshots/evolucao-desktop.webp"><img src="assets/screenshots/evolucao-desktop.webp" width="480" alt="Evolução da carga por exercício, com período e tabela de registros"></a></td>
+      <td><a href="assets/screenshots/assistente-desktop.webp"><img src="assets/screenshots/assistente-desktop.webp" width="480" alt="Training Assistant with a sample weekly review and exercise replacement"></a></td>
+      <td><a href="assets/screenshots/evolucao-desktop.webp"><img src="assets/screenshots/evolucao-desktop.webp" width="480" alt="Load progression by exercise, with a date range and training records"></a></td>
     </tr>
   </table>
 </details>
 
 <details>
-  <summary><strong>Ver a introdução e a montagem semanal com IA</strong></summary>
+  <summary><strong>Explore onboarding and AI weekly planning</strong></summary>
   <br />
   <table>
-    <tr><th scope="col">Introdução no desktop</th><th scope="col">Introdução no celular</th></tr>
+    <tr><th scope="col">Desktop introduction</th><th scope="col">Mobile introduction</th></tr>
     <tr>
-      <td><a href="assets/screenshots/boas-vindas-desktop.png"><img src="assets/screenshots/boas-vindas-desktop.png" width="560" alt="Introdução da Forja com navegação por slides, opção de pular e preferência para não repetir"></a></td>
-      <td><a href="assets/screenshots/boas-vindas-mobile.png"><img src="assets/screenshots/boas-vindas-mobile.png" width="240" alt="Introdução adaptada ao celular, com exemplo da agenda e controles acessíveis"></a></td>
+      <td><a href="assets/screenshots/boas-vindas-desktop.png"><img src="assets/screenshots/boas-vindas-desktop.png" width="560" alt="Forja introduction with slide navigation, a skip button, and an option to hide future introductions"></a></td>
+      <td><a href="assets/screenshots/boas-vindas-mobile.png"><img src="assets/screenshots/boas-vindas-mobile.png" width="240" alt="Mobile introduction with a sample schedule and accessible controls"></a></td>
     </tr>
   </table>
 
-  [![Montagem semanal com nível geral, seleção de dias e cards para definir Puxar, Empurrar e Pernas em seis dias.](assets/screenshots/coach-dias-desktop.png)](assets/screenshots/coach-dias-desktop.png)
+  [![Weekly planning with a global training level, day selection, and controls for six Push, Pull, and Legs sessions.](assets/screenshots/coach-dias-desktop.png)](assets/screenshots/coach-dias-desktop.png)
 </details>
 
 <details>
-  <summary><strong>Continue seu plano: importação JSON sem IA, no PC e no celular</strong></summary>
+  <summary><strong>Keep your plan: import JSON without AI on desktop and mobile</strong></summary>
   <br />
   <table>
-    <tr><th scope="col">Prévia e agenda no desktop</th><th scope="col">Os mesmos controles no celular</th></tr>
+    <tr><th scope="col">Desktop preview and scheduling</th><th scope="col">The same controls on mobile</th></tr>
     <tr>
-      <td><a href="assets/screenshots/importar-json-desktop.png"><img src="assets/screenshots/importar-json-desktop.png" width="560" alt="Importação JSON com prévia das rotinas, escolha dos dias e categoria, sem usar IA"></a></td>
-      <td><a href="assets/screenshots/importar-json-mobile.png"><img src="assets/screenshots/importar-json-mobile.png" width="240" alt="Importação no celular com dias em botões e ação Importar e agendar visível"></a></td>
+      <td><a href="assets/screenshots/importar-json-desktop.png"><img src="assets/screenshots/importar-json-desktop.png" width="560" alt="JSON import with routine previews, training days, and category selection, without AI"></a></td>
+      <td><a href="assets/screenshots/importar-json-mobile.png"><img src="assets/screenshots/importar-json-mobile.png" width="240" alt="Mobile import with day selection buttons and a visible Import and schedule action"></a></td>
     </tr>
   </table>
 </details>
 
-<sub>Capturas da aplicação com dados de demonstração. A tela do Assistente usa um provedor simulado.</sub>
+<sub>App screenshots use demonstration data. The Assistant screenshot uses a simulated provider.</sub>
 
-## Do primeiro treino ao próximo
+<a name="do-primeiro-treino-ao-proximo"></a>
 
-A abertura prepara seus dados locais e apresenta quatro slides sobre a Forja. Você pode pular a introdução ou marcar **Não mostrar a introdução novamente**. Essa preferência fica salva neste aparelho.
+## From your first workout to the next
 
-| Etapa | O que você faz na Forja |
+At startup, Forja prepares your local data and introduces the app in four slides. You can skip the introduction or select **Do not show the introduction again**. This preference is saved on the current device.
+
+| Step | What you do in Forja |
 | --- | --- |
-| **Planejar** | Comece com um plano de força em casa, corpo inteiro, superior/inferior ou 5×5. Crie suas rotinas, distribua na semana e ajuste uma data quando precisar. |
-| **Treinar** | Siga o roteiro e registre repetições, carga, tempo ou distância. Use cronômetros, superséries e aquecimentos. Em **Como executar**, consulte a demonstração, os músculos principais e auxiliares e a busca no YouTube pelo exercício. |
-| **Evoluir** | Veja a próxima meta, o motivo e a evolução da carga por exercício em 4 ou 8 semanas. Acompanhe volume, recordes, esforço e medidas corporais. No **Histórico**, filtre por semana ou por datas e abra uma sessão para ver o mapa muscular, as séries, o aquecimento e corrigir registros. |
-| **Encontrar exercícios** | Filtre pelo equipamento que você tem ou pelos músculos envolvidos. Consulte o atlas e as demonstrações disponíveis offline. |
+| **Plan** | Start with a home strength, full body, upper/lower, or 5×5 plan. Build your routines, schedule them throughout the week, and adjust individual dates when needed. |
+| **Train** | Follow the workout and log reps, weight, time, or distance. Use timers, supersets, and warm-up sets. In **Exercise guide**, view demonstrations, primary and secondary muscles, and YouTube search results for the exercise. |
+| **Progress** | See your next target, the reasoning behind it, and load progression by exercise over 4 or 8 weeks. Track volume, records, effort, and body measurements. In **History**, filter by week or date range and expand a session to inspect its muscle map, sets, and warm-ups or correct your records. |
+| **Find exercises** | Filter by your available equipment or the muscles involved. Browse the atlas and exercise demonstrations available offline. |
 
-A paleta padrão é **Âmbar**, com grafite e laranja no tema escuro e papel e laranja no claro. Em **Perfil → Configurações → Cor de acento**, você pode trocar a paleta. Durante o treino, o descanso continua contando enquanto você consulta **Como executar**. Os recursos locais do guia funcionam após carregar o app. A busca no YouTube abre outra aba e usa a conexão do aparelho.
+The default palette is **Amber**, with graphite and orange in dark mode and paper and orange in light mode. Change it under **Profile → Settings → Accent color**. During a workout, the rest timer keeps running while you consult the **Exercise guide**. Local guide resources work after the app has loaded. YouTube search opens a separate tab and uses your device's internet connection.
 
-Em **Treinos → Minhas rotinas**, o botão **Excluir plano** remove o conjunto criado a partir de um plano pronto. Use a lixeira de uma rotina para removê-la individualmente. Os agendamentos associados são retirados e as sessões já registradas continuam no Histórico.
+Under **Workouts → My routines**, **Delete plan** removes the group created from a starter plan. Use a routine's trash button to delete it individually. Associated schedule entries are removed, while completed sessions remain in History.
 
 <details>
-  <summary><strong>Como funcionam as regras de progressão</strong></summary>
+  <summary><strong>How progression rules work</strong></summary>
 
-| Regra | Como a Forja calcula o próximo alvo |
+| Rule | How Forja calculates the next target |
 | --- | --- |
-| Manual | Usa o último registro como referência. |
-| Linear | Sobe a carga após atingir o alvo e pode reduzi-la depois de falhas repetidas. |
-| Greyskull LP | Usa as repetições da última série para decidir o incremento. |
-| Dupla | Aumenta as repetições dentro da faixa antes de subir a carga. |
-| Tempo | Ajusta a meta de duração dos exercícios cronometrados. |
-| 5/3/1 | Prescreve séries por percentual e avança o máximo de treino ao concluir o ciclo. |
+| Manual | Uses your last record as a reference. |
+| Linear | Increases weight after you meet the target and may reduce it after repeated misses. |
+| Greyskull LP | Uses the reps in your final set to determine the increase. |
+| Double progression | Increases reps within the prescribed range before increasing weight. |
+| Time | Adjusts the duration target for timed exercises. |
+| 5/3/1 | Prescribes sets using percentages and increases the training max after a completed cycle. |
 
-Aquecimentos ficam no Histórico, fora do cálculo de metas, volume e recordes. Cada sessão guarda o alvo que valia na hora do treino.
+Warm-up sets remain in History but do not count toward progression targets, volume, or records. Each session stores the target that applied when you trained.
 
 </details>
 
-## Rodar localmente
+<a name="rodar-localmente"></a>
 
-Você precisa de **Git**, **Node.js 24** e **pnpm 10.34.9** ou **12.16.1**. Para instalar a versão usada na verificação em um clone limpo, rode `npm install --global pnpm@10.34.9`.
+## Run locally
+
+You need **Git**, **Node.js 24**, and **pnpm 10.34.9** or **12.16.1**. To install the version used for clean-clone verification, run `npm install --global pnpm@10.34.9`.
 
 ```sh
 git clone https://github.com/rfsants001/forja.git
@@ -139,16 +144,19 @@ pnpm install --frozen-lockfile
 npm start
 ```
 
-Abra **http://localhost:5577**. Em **Hoje**, selecione **Começar com um plano** para preparar o primeiro treino. Para desenvolver com recarga automática, use `npm run dev` no lugar de `npm start`. Os dois comandos abrem o app com a API do Assistente.
+Open **http://localhost:5577**. On **Today**, select **Start with a plan** to prepare your first workout. For development with automatic reloading, use `npm run dev` instead of `npm start`. Both commands run the app with the Assistant API.
 
-## Instalar como app
+<a name="instalar-como-app"></a>
 
-Rode `npm start` e abra **http://localhost:5577**. O comando gera o build e sobe o servidor. Após carregar o app, use **Instalar aplicativo** ou **Adicionar à Tela de Início** no navegador. Em outro dispositivo, sirva a instalação por HTTPS.
+## Install as an app
 
+Run `npm start` and open **http://localhost:5577**. The command builds the app and starts the server. Once the app has loaded, choose **Install app** or **Add to Home Screen** in your browser. To use another device, serve your installation over HTTPS.
 
-## Sincronizar PC e celular
+<a name="sincronizar-pc-e-celular"></a>
 
-A instalação opcional serve a mesma PWA e a API em uma origem e guarda os dados sincronizados em SQLite. Para experimentar no computador, rode:
+## Sync desktop and mobile
+
+The optional self-hosted installation serves the PWA and API from the same origin and stores synced data in SQLite. To try it on your computer, run:
 
 ```sh
 pnpm install --frozen-lockfile
@@ -156,99 +164,110 @@ pnpm build
 pnpm self-host
 ```
 
-Em outro terminal, rode `pnpm self-host:admin` para obter a chave do dono. Abra **http://127.0.0.1:8787** e entre em **Perfil → Dispositivos → Identificar-se como dono**. Informe a chave, confira os dados dos dois lados em **Revisar dados** e confirme a sincronização.
+In another terminal, run `pnpm self-host:admin` to retrieve the owner key. Open **http://127.0.0.1:8787**, then go to **Profile → Devices → Sign in as owner**. Enter the key, compare both sides under **Review data**, and confirm sync.
 
-Para acessar pelo celular, use uma origem HTTPS confiável que os dois aparelhos alcancem na sua rede ou VPN. Configure o endereço antes de instalar a PWA. Com um proxy HTTPS no mesmo computador, use uma configuração como esta.
+For phone access, use a trusted HTTPS origin that both devices can reach through your network or VPN. Configure the address before installing the PWA. With an HTTPS proxy on the same computer, use a configuration like this:
 
 ```sh
-FORJA_URL=https://forja.seu-dominio.example \
+FORJA_URL=https://forja.your-domain.example \
 FORJA_HOST=127.0.0.1 FORJA_PORT=8787 \
 FORJA_DATA_DIR=./data/forja FORJA_TIME_ZONE=America/Sao_Paulo \
 pnpm self-host
 ```
 
-Aponte o proxy HTTPS para `127.0.0.1:8787`. Também é possível servir TLS no próprio processo com `FORJA_TLS_CERT` e `FORJA_TLS_KEY`. Use o mesmo `FORJA_DATA_DIR` ao obter a chave do dono. O endereço configurado é o que aparece no QR.
+Point the HTTPS proxy to `127.0.0.1:8787`. You can also serve TLS directly from the process using `FORJA_TLS_CERT` and `FORJA_TLS_KEY`. Use the same `FORJA_DATA_DIR` when retrieving the owner key. The configured address appears in the QR code.
 
-1. No PC, abra **Dispositivos → Parear aparelho**.
-2. No celular, abra o QR pela câmera ou acesse o endereço exibido e digite o código.
-3. Aprove no PC, revise os dados no celular e confirme. Um treino finalizado sem internet entra na fila e é enviado na reconexão. A tela Dispositivos mostra a última sincronização, as pendências e os conflitos.
+1. On your computer, open **Devices → Pair a device**.
+2. On your phone, scan the QR code with the camera or visit the displayed address and enter the code.
+3. Approve the request on your computer, review the data on your phone, and confirm. Workouts completed offline are queued and uploaded when you reconnect. The Devices screen shows the latest sync, pending changes, and conflicts.
 
-Se você já usava a Forja em outro endereço, exporte um backup JSON de lá e importe na nova origem antes de sincronizar. O sync replica rotinas, agenda e exceções, categorias, exercícios personalizados referenciados e treinos concluídos. Medidas, peso corporal, preferências, notas pessoais da biblioteca e a sessão ainda em andamento ficam no aparelho.
+If you used Forja at another address, export a JSON backup there and import it into the new origin before syncing. Sync covers routines, the weekly schedule and date overrides, categories, referenced custom exercises, and completed workouts. Body measurements, body weight, preferences, personal library notes, and the active workout remain on each device.
 
-Para copiar a instalação inteira, pare o servidor e copie a pasta de dados, incluindo a chave do dono e os arquivos do SQLite. Guarde a cópia em local privado. Restaure com o servidor parado e confira o vínculo dos aparelhos ao voltar. A janela de revisão usa o fuso de `FORJA_TIME_ZONE` ou o fuso do host.
+To copy the entire installation, stop the server and copy the data directory, including the owner key and SQLite files. Keep the copy private. Restore it while the server is stopped, then check device connections after restarting. The review window uses `FORJA_TIME_ZONE` or the host's time zone.
 
 <a name="assistente-local"></a>
 
-## Assistente de treino
+<a name="assistente-de-treino"></a>
 
-Com a Forja aberta por `npm start` ou `npm run dev`, vá a **Perfil → Conexões de IA**. O Assistente funciona no computador que roda o servidor. **Dispositivos** cuida do sync e do acesso remoto.
+## Training Assistant
 
-- **Ollama.** Deixe o Ollama aberto com um modelo instalado. Selecione **Verificar Ollama**, escolha o modelo e clique em **Usar no Assistente**. A Forja detecta o serviço local em `http://127.0.0.1:11434`. O administrador pode usar `FORJA_OLLAMA_URL` para um endpoint alternativo.
-- **Codex CLI.** Instale o CLI oficial no Windows, macOS ou Linux e confirme que `codex --version` funciona no terminal que abre a Forja. Uma opção disponível nas três plataformas é `npm install -g @openai/codex`. No Linux, instale também o Bubblewrap. Em **Perfil → Conexões de IA**, clique em **Conectar ChatGPT** e, ao concluir, em **Usar no Assistente**. [Instalação do Codex](https://learn.chatgpt.com/docs/cli) · [Autenticação do Codex](https://learn.chatgpt.com/docs/auth).
-- **Claude Code.** O card informa a disponibilidade. A Anthropic restringe o uso de credenciais de assinatura por aplicativos de terceiros. [Política da Anthropic](https://code.claude.com/docs/en/legal-and-compliance#authentication-and-credential-use).
+With Forja running through `npm start` or `npm run dev`, open **Profile → AI connections**. The Assistant runs on the computer hosting the server. **Devices** handles sync and remote access.
+
+- **Ollama.** Keep Ollama running with a model installed. Select **Check Ollama**, choose a model, and click **Use in Assistant**. Forja detects the local service at `http://127.0.0.1:11434`. Administrators can set `FORJA_OLLAMA_URL` to use another endpoint.
+- **Codex CLI.** Install the official CLI on Windows, macOS, or Linux and confirm that `codex --version` works in the terminal used to start Forja. One option available on all three platforms is `npm install -g @openai/codex`. On Linux, also install Bubblewrap. Under **Profile → AI connections**, select **Connect ChatGPT**, complete sign-in, then select **Use in Assistant**. [Codex installation](https://learn.chatgpt.com/docs/cli) · [Codex authentication](https://learn.chatgpt.com/docs/auth).
+- **Claude Code.** The card shows availability. Anthropic restricts the use of subscription credentials by third-party applications. [Anthropic policy](https://code.claude.com/docs/en/legal-and-compliance#authentication-and-credential-use).
 
 <a name="montar-um-treino-com-codex-por-assinatura"></a>
 
-### Montar um treino
+<a name="montar-um-treino"></a>
 
-Abra **Treinos → Montar treino com IA**. Informe o local, o objetivo, o **nível geral de treino** e a **duração por sessão**. O nível define a quantidade de exercícios de musculação de todos os dias: **Iniciante: 4**, **Intermediário: 6**, **Avançado: 8**. Essas quantidades são configurações da Forja; a IA ainda adapta séries, repetições e descanso. Dias exclusivos de cardio mantêm seu bloco cronometrado. O coach propõe séries, repetições e descanso. A Forja confere a duração estimada, a ordem dos exercícios e a adequação ao objetivo antes de mostrar o resultado. A seção **Como a Forja montou este treino** explica a progressão e a base das escolhas. [Posição da ACSM sobre treino resistido](https://acsm.org/resistance-training-guidelines-update-2026/).
+### Build a workout
 
-Em **Criar com IA**, marque primeiro os dias de treino. Depois, escolha o tipo de treino no card de cada dia. Anexar um JSON é opcional e preserva os dias e tipos já escolhidos. Com um plano anexado, cada card também permite escolher sua referência. Em **Por split**, selecione a divisão e marque os dias; a prévia mostra a distribuição antes de gerar.
+Open **Workouts → Build a workout with AI**. Set the location, goal, **overall training level**, and **duration per session**. The level determines the number of strength exercises for every training day: **Beginner: 4**, **Intermediate: 6**, **Advanced: 8**. These counts are Forja settings; the AI still adapts sets, reps, and rest. Dedicated cardio days retain their timed block. The coach proposes sets, reps, and rest. Before displaying a result, Forja checks estimated duration, exercise order, and suitability for the goal. **How Forja built this workout** explains the progression and the basis for the choices. [ACSM resistance training position stand](https://acsm.org/resistance-training-guidelines-update-2026/).
 
-O tempo escolhido vale para **cada sessão individual**: 60 minutos em seis dias significam até 60 minutos em cada dia. Se os exercícios e os descansos do nível não couberem no tempo, ou faltarem exercícios compatíveis com seu equipamento, a Forja informa o impedimento. Você pode ajustar a duração, o nível ou o inventário. **Importar sem alterações** mantém o conteúdo original do arquivo e permite distribuir suas rotinas nos dias desejados. Na geração com referência, a prévia compara exercícios e séries antes/depois e informa exemplos sem cobertura no catálogo elegível. A comparação fica na nota da rotina salva. A seleção evita traduções duplicadas e preenchimento excessivo de panturrilhas ou punhos; a estimativa considera os dois lados dos unilaterais explícitos e os descansos entre exercícios.
+In **Create with AI**, select your training days first, then choose the workout type for each day. Attaching JSON is optional and preserves the days and types you have already selected. When a plan is attached, each day's controls also let you choose a reference routine. In **By split**, select a split and your days; the preview shows the schedule before generation.
 
-Em **Usar treino anterior como referência**, escolha uma sessão do Histórico, um CSV de Hevy, Strong ou FitNotes, um JSON da Forja ou **Plano externo (CSV ou JSON)**. A prévia mostra até 40 sessões ou rotinas. O arquivo é lido no navegador. Ao gerar, a IA recebe somente o resumo escolhido, com exercícios, séries, repetições, tempo e carga quando disponíveis. Para gravar sessões concluídas no Histórico, use as opções CSV em **Perfil → Importar de outro app**. Para continuar um programa sem IA, escolha **Importar JSON personalizado** nesse mesmo card.
+Your time setting applies to **each individual session**: 60 minutes across six days means up to 60 minutes on each day. If the exercises and rest periods for your level do not fit, or your equipment does not provide enough compatible options, Forja explains the limitation. Adjust the duration, level, or inventory. **Import unchanged** preserves the file's content and lets you schedule its routines on your chosen days. When generating from a reference, the preview compares exercise and set counts before and after, and lists examples not covered by the eligible catalog. The comparison is saved in the routine's note. Selection avoids translated duplicates and excessive calf or wrist exercises; duration estimates include both sides of explicitly unilateral exercises and rest between exercises.
 
-**Plano externo** aceita o JSON de plano do OpenGym (`opengym_plan: 1`). Você também pode montar um CSV com `treino,exercicio,series,repeticoes,segundos,carga_kg` ou um JSON com `routines` e uma lista de `exercises` por rotina. No CSV, só `exercicio` e `series` são obrigatórios. No JSON, `name` e `sets` são obrigatórios por exercício e `reps`, `seconds` e `loadKg` são opcionais. Um arquivo com uma rotina pode ter este formato.
+Under **Use a previous workout as reference**, choose a History session, a Hevy, Strong, or FitNotes CSV, a Forja JSON file, or **External plan (CSV or JSON)**. The preview shows up to 40 sessions or routines. Files are read in your browser. During generation, AI receives only the selected summary, including exercises, sets, reps, time, and weight when available. To add completed sessions to History, use the CSV options under **Profile → Import from another app**. To continue a program without AI, select **Import custom JSON** in the same section.
+
+**External plan** accepts OpenGym plan JSON (`opengym_plan: 1`). You can also prepare a CSV using the supported column names `treino,exercicio,series,repeticoes,segundos,carga_kg`, or JSON containing `routines` with an `exercises` list for each routine. Only `exercicio` and `series` are required in that CSV format. In JSON, each exercise requires `name` and `sets`; `reps`, `seconds`, and `loadKg` are optional. A single-routine file can look like this:
 
 ```json
-{"routines":[{"name":"Corpo inteiro","exercises":[{"name":"Agachamento","sets":3,"reps":"8–12"}]}]}
+{"routines":[{"name":"Full body","exercises":[{"name":"Squat","sets":3,"reps":"8–12"}]}]}
 ```
 
-Cadastre seu inventário em **Perfil → Meus equipamentos** ou pelo link no Assistente. Informe o tipo, a quantidade e, quando houver, o peso por unidade. Cadastre 4 anilhas de 5 kg e 2 de 10 kg em linhas separadas. O inventário aceita esteira, bicicleta ergométrica, elíptico e remo ergométrico. A IA usa os equipamentos e as quantidades para escolher as variações em casa. Supino com barra requer barra reta, banco e suporte para a barra. O catálogo de casa inclui variantes com halteres, barra W, barra fixa e anilhas, com opções de chão ou em pé quando não há banco. Rosca direta, martelo e inversa, por exemplo, são reconhecidas como exercícios distintos. A quantidade de halteres também é respeitada. Barras montáveis podem ser cadastradas como **barra de haltere**, inclusive com uma descrição entre parênteses, junto das anilhas; **suporte para flexão** também é reconhecido. A lista de equipamentos mostra o tipo usado pelo Assistente. Preparatórios não preenchem a quantidade de exercícios de trabalho do plano.
+Register your inventory under **Profile → My equipment** or through the link in the Assistant. Enter the type, quantity, and weight per item when applicable. Register four 5 kg plates and two 10 kg plates on separate rows. The inventory supports treadmills, stationary bikes, ellipticals, and rowing machines. AI uses your equipment and quantities to select home exercise variations. A barbell bench press requires a straight bar, a bench, and a rack. The home catalog includes dumbbell, EZ bar, pull-up bar, and plate variations, with floor or standing options when no bench is available. Standard, hammer, and reverse curls, for example, are recognized as distinct exercises. Available dumbbell quantities are also respected. Adjustable dumbbell handles can include a description in parentheses and must be registered alongside your plates; push-up handles are also recognized. The equipment list shows the type used by the Assistant. Preparatory drills do not fill the plan's working-exercise quota.
 
-O objetivo **Emagrecimento** mostra o último peso registrado e a meta de peso do Perfil. Ao gerar, o provedor recebe esses dois valores quando preenchidos. A sessão combina musculação com cardio moderado dentro da duração total. O cardio considera os aparelhos disponíveis e inclui caminhada como opção sem aparelho. [Atividade física e peso (CDC)](https://www.cdc.gov/healthy-weight-growth/physical-activity/).
+The **Weight loss** goal shows your latest recorded body weight and the target weight from Profile. When both are filled in, the provider receives them during generation. Sessions combine strength training with moderate cardio within the total duration. Cardio choices account for available equipment and include walking without a machine. [Physical activity and weight (CDC)](https://www.cdc.gov/healthy-weight-growth/physical-activity/).
 
-Na academia, a prévia mostra substituições por outra resistência quando a biblioteca tem uma variação da mesma família, como crucifixo com halter, máquina ou cabo. As alternativas ficam nas notas da rotina. Na revisão semanal, a Forja envia os agregados e as opções de troca da prévia. A revisão exige confirmação e permite desfazer a alteração enquanto a versão aplicada for a atual.
+For gym workouts, the preview offers alternatives using another form of resistance when the library contains a variation from the same movement family, such as a dumbbell, machine, or cable fly. Alternatives are saved in the routine's notes. During weekly reviews, Forja sends aggregates and replacement candidates. Changes require confirmation and can be undone while the applied version is still current.
 
-O login fica no perfil dedicado do Codex no host. O servidor usa o provedor e o modelo escolhidos na tela. Instalações avançadas ainda podem indicar caminhos absolutos por `FORJA_CODEX_BINARY` e `FORJA_CODEX_HOME`. Use `pnpm self-host:codex-probe` para testar o perfil dedicado com dados fictícios.
+Sign-in is stored in a dedicated Codex profile on the host. The server uses the provider and model selected in the UI. Advanced installations can still specify absolute paths through `FORJA_CODEX_BINARY` and `FORJA_CODEX_HOME`. Run `pnpm self-host:codex-probe` to test the dedicated profile with fictional data.
 
-A Forja usa um perfil isolado do Codex em todos os sistemas. No Linux, usa Bubblewrap e os certificados do sistema. No Windows e no macOS, executa o binário nativo com as restrições do CLI. No Windows, a Forja localiza o executável associado à instalação npm e também aceita o caminho de `codex.exe` em `FORJA_CODEX_BINARY`. O modo por código fica disponível quando habilitado na conta. Para um proxy com CA própria, o CLI aceita `CODEX_CA_CERTIFICATE` apontando para o certificado PEM configurado no host. [Documentação de autenticação do Codex](https://learn.chatgpt.com/docs/auth#custom-ca-bundles).
+Forja uses an isolated Codex profile on every system. On Linux, it uses Bubblewrap and system certificates. On Windows and macOS, it runs the native binary with CLI restrictions. On Windows, Forja locates the executable associated with the npm installation and also accepts the path to `codex.exe` through `FORJA_CODEX_BINARY`. Device-code sign-in is available when enabled for the account. For a proxy using a custom CA, the CLI accepts `CODEX_CA_CERTIFICATE` pointing to the PEM certificate configured on the host. [Codex authentication documentation](https://learn.chatgpt.com/docs/auth#custom-ca-bundles).
 
-### Usar uma API de IA compatível
+<a name="usar-uma-api-de-ia-compativel"></a>
 
-Configure `FORJA_COMPAT_URL` com a URL base até `/v1` ou equivalente e `FORJA_COMPAT_MODEL` com o ID do modelo. Se a API exigir chave, configure `FORJA_COMPAT_API_KEY` no ambiente do servidor. No macOS e Linux use `export NOME=valor`. No PowerShell use `$env:NOME = "valor"`. Inicie a Forja, abra **Conexões de IA → API compatível com OpenAI** e selecione **Usar no Assistente**.
+### Use a compatible AI API
 
-Exemplos de URLs são `https://api.openai.com/v1`, `https://generativelanguage.googleapis.com/v1beta/openai/` para Gemini e `http://127.0.0.1:1234/v1` para LM Studio. A API precisa aceitar Chat Completions e retornar texto em JSON. O destino aparece antes da geração. [Compatibilidade Gemini](https://ai.google.dev/gemini-api/docs/openai) · [Compatibilidade LM Studio](https://lmstudio.ai/docs/developer/openai-compat).
+Set `FORJA_COMPAT_URL` to the base URL ending in `/v1` or its equivalent, and `FORJA_COMPAT_MODEL` to the model ID. If the API requires a key, set `FORJA_COMPAT_API_KEY` in the server environment. On macOS and Linux, use `export NAME=value`. In PowerShell, use `$env:NAME = "value"`. Start Forja, open **AI connections → OpenAI-compatible API**, and select **Use in Assistant**.
 
-### Importar e distribuir um plano na semana
+Example URLs include `https://api.openai.com/v1`, `https://generativelanguage.googleapis.com/v1beta/openai/` for Gemini, and `http://127.0.0.1:1234/v1` for LM Studio. The API must accept Chat Completions and return JSON text. The destination is shown before generation. [Gemini compatibility](https://ai.google.dev/gemini-api/docs/openai) · [LM Studio compatibility](https://lmstudio.ai/docs/developer/openai-compat).
 
-Em **Montar treino com IA → Criar com IA**, o arquivo é opcional. Para começar do zero, selecione **Criar treino** nos dias desejados e escolha o tipo de cada sessão. Para usar um plano anterior, anexe seu JSON e selecione as rotinas como referência. Atribua a cada dia que quiser treinar uma rotina do arquivo e um tipo, como superior, inferior, push, pull, pernas ou cardio. Confira a semana antes de salvar. O modo **Por split** cria uma divisão a partir de um padrão escolhido. Em **Superior / Inferior + Cardio**, cinco dias de segunda a sexta geram Superior A, Inferior A, Cardio, Superior B e Inferior B. A Forja compara as sessões do mesmo tipo e diferencia a seleção de exercícios compatíveis. Se o inventário limitar as trocas, a prévia informa a limitação e o app varia a prescrição dentro do objetivo. Quando há dias dedicados ao cardio, esses dias são montados localmente.
+<a name="importar-e-distribuir-um-plano-na-semana"></a>
 
-Para continuar seu treino atual, abra **Perfil → Importar de outro app → Importar JSON personalizado**. O modal explica os campos aceitos, mostra um exemplo e permite baixá-lo. [Baixar um JSON de exemplo](assets/examples/plano-personalizado.json).
+### Import and schedule a weekly plan
 
-O mesmo fluxo está em **Assistente → Importar sem alterações**. Carregue um JSON da Forja, do OpenGym ou no formato portátil acima. Confira os exercícios na prévia, marque os dias e ajuste a rotina de cada dia. As sugestões seguem a ordem do arquivo e só são gravadas depois de **Importar e agendar**. A importação é local e mantém as prescrições do arquivo nos campos suportados. Rotinas sem dia também aparecem em **Treinos**. A agenda tem uma rotina por dia e a substituição de um dia ocupado exige confirmação. Histórico e treino em execução são preservados. Campos desconhecidos do arquivo não são importados; use `note` para orientações adicionais. Carga (`loadKg`), descanso (`restSec`), tempo (`seconds`/`secondsMax`), distância (`targetDistanceM`) e velocidade (`targetSpeedKmh`) mantêm suas unidades. Esse fluxo funciona sem configurar IA ou servidor.
+In **Build a workout with AI → Create with AI**, attaching a file is optional. To start from scratch, select **Create workout** for your chosen days and set each session's type. To use a previous plan, attach its JSON and select reference routines. Assign a file routine and workout type, such as upper, lower, push, pull, legs, or cardio, to each training day. Review the week before saving. **By split** builds a schedule from your chosen pattern. With **Upper / Lower + Cardio**, five days from Monday through Friday produce Upper A, Lower A, Cardio, Upper B, and Lower B. Forja compares sessions with the same role and varies compatible exercise selections. If your inventory limits substitutions, the preview explains the limitation and the app varies the prescription within your goal. Dedicated cardio days are assembled locally.
 
-A comparação entre sessões repetidas vale para todas as divisões disponíveis.
+To continue your existing program, open **Profile → Import from another app → Import custom JSON**. The dialog explains accepted fields, displays an example, and lets you download it. [Download an example JSON file](assets/examples/plano-personalizado.json).
 
-| Divisão | Exemplo de distribuição |
+The same flow is available under **Assistant → Import unchanged**. Load a Forja, OpenGym, or portable JSON file in the format above. Review exercises in the preview, select your days, and adjust each day's routine. Suggestions follow file order and are saved only after **Import and schedule**. Import runs locally and preserves prescriptions in supported fields. Unscheduled routines also appear in **Workouts**. Each day supports one routine; replacing an occupied day requires confirmation. History and the active workout are preserved. Unknown fields are not imported; use `note` for additional guidance. Weight (`loadKg`), rest (`restSec`), time (`seconds`/`secondsMax`), distance (`targetDistanceM`), and speed (`targetSpeedKmh`) retain their units. This flow works without configuring AI or a server.
+
+Repeated-session comparisons apply to every available split.
+
+| Split | Example schedule |
 | --- | --- |
-| Superior / Inferior | Superior A, Inferior A, Superior B, Inferior B |
-| Superior / Inferior + Cardio | Superior A, Inferior A, Cardio, Superior B, Inferior B |
-| Corpo inteiro | Corpo inteiro A, Corpo inteiro B, Corpo inteiro C |
-| Push / Pull / Legs | Empurrar A, Puxar A, Pernas A, Empurrar B, Puxar B, Pernas B |
+| Upper / Lower | Upper A, Lower A, Upper B, Lower B |
+| Upper / Lower + Cardio | Upper A, Lower A, Cardio, Upper B, Lower B |
+| Full body | Full body A, Full body B, Full body C |
+| Push / Pull / Legs | Push A, Pull A, Legs A, Push B, Pull B, Legs B |
 
-O [app desktop com servidor PWA integrado e QR para o celular](.specs/features/desktop-pwa/spec.md) está em planejamento.
+A [desktop app with an integrated PWA server and a phone QR code](.specs/features/desktop-pwa/spec.md) is planned.
 
+<a name="seus-dados"></a>
 
-## Seus dados
+## Your data
 
-Os registros locais ficam no IndexedDB do navegador. Em **Perfil → Seus dados**, exporte um backup JSON pra guardar ou transferir seus treinos. Na restauração, revise a prévia e escolha mesclar os registros ou substituir os dados locais.
+Local records are stored in your browser's IndexedDB. Under **Profile → Your data**, export a JSON backup to keep a copy or transfer your workouts. During restoration, review the preview and choose whether to merge records or replace local data.
 
-Você também pode importar CSVs de **FitNotes**, **Strong** e **Hevy**, importar peso de um XML do **Apple Health** ou compartilhar só o plano semanal em JSON ou PDF.
+You can also import **FitNotes**, **Strong**, and **Hevy** CSV files, import body weight from **Apple Health** XML, or share just your weekly plan as JSON or PDF.
 
-## Desenvolvimento e créditos
+<a name="desenvolvimento-e-créditos"></a>
 
-O domínio TypeScript vive em `packages/core`. A PWA React/Vite vive em `apps/web`. O servidor opcional Node.js 24 e SQLite está em `apps/server`. Rode `pnpm test`, `pnpm typecheck` e `pnpm build` antes de enviar uma alteração.
+## Development and credits
 
-Forja é inspirada no [openGym](https://github.com/DuarteSantos8/openGym). A anatomia vem do [MuscleMap](https://github.com/melihcolpan/MuscleMap) sob MIT. As demonstrações usam imagens do wger e do Wikimedia Commons com [crédito e licença por arquivo](apps/web/public/exercise-media/CREDITS.md). A [documentação de integrações](.specs/codebase/INTEGRATIONS.md) registra as fontes e o status da licença do projeto.
+The TypeScript domain lives in `packages/core`. The React/Vite PWA lives in `apps/web`. The optional Node.js 24 and SQLite server lives in `apps/server`. Run `pnpm test`, `pnpm typecheck`, and `pnpm build` before submitting a change.
+
+Forja is inspired by [openGym](https://github.com/DuarteSantos8/openGym). Anatomy comes from [MuscleMap](https://github.com/melihcolpan/MuscleMap) under MIT. Exercise demonstrations use wger and Wikimedia Commons images with [per-file attribution and licensing](apps/web/public/exercise-media/CREDITS.md). The [integrations documentation](.specs/codebase/INTEGRATIONS.md) records sources and the project's license status.
