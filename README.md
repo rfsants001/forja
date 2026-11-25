@@ -13,7 +13,7 @@
 <p align="center">
   <strong><a href="#screenshots">See Forja in action</a> · <a href="#run-locally">Run locally</a></strong>
   <br />
-  <a href="#install-as-an-app">Install as an app</a> · <a href="#sync-desktop-and-mobile">Set up sync</a> · <a href="#your-data">Back up your data</a>
+  <a href="#phone-quick-start">Phone guide</a> · <a href="#install-as-an-app">Install as an app</a> · <a href="#sync-desktop-and-mobile">Set up sync</a> · <a href="#your-data">Back up your data</a>
 </p>
 
 <a name="telas"></a>
@@ -152,6 +152,33 @@ Open **http://localhost:5577**. On **Today**, select **Start with a plan** to pr
 
 Run `npm start` and open **http://localhost:5577**. The command builds the app and starts the server. Once the app has loaded, choose **Install app** or **Add to Home Screen** in your browser. To use another device, serve your installation over HTTPS.
 
+## Phone quick start
+
+Start Forja with `npm start`. For the first phone connection, open your **reachable HTTPS installation** on both devices; `localhost` only works on the computer. Export a backup before moving existing data to a new address. See [network setup](#sync-desktop-and-mobile) for the server configuration.
+
+<table>
+  <tr><th scope="col">1 · Pair once (optional)</th><th scope="col">2 · Prepare your phone</th></tr>
+  <tr>
+    <td align="center"><a href="assets/screenshots/phone-guide-pair.png"><img src="assets/screenshots/phone-guide-pair.png" width="520" alt="Desktop Devices screen showing a pairing QR code and manual code"></a></td>
+    <td align="center"><a href="assets/screenshots/phone-guide-ready.png"><img src="assets/screenshots/phone-guide-ready.png" width="240" alt="Phone showing Ready to train offline after checking local resources and the saved plan"></a></td>
+  </tr>
+  <tr>
+    <td>To sync with your computer, open <strong>Profile → Devices</strong>, sign in as owner, and choose <strong>Pair a device</strong>. Scan the QR on your phone, approve the request on the computer, then review and confirm sync.</td>
+    <td>Save or sync your plan. Open <strong>Profile → Train anywhere</strong> and wait for <strong>Ready to train offline</strong>. Install through your browser’s <strong>Install app</strong> or <strong>Add to Home Screen</strong> option.</td>
+  </tr>
+  <tr><th scope="col">3 · Train anywhere</th><th scope="col">4 · Sync when you reconnect</th></tr>
+  <tr>
+    <td align="center"><a href="assets/screenshots/phone-guide-workout.png"><img src="assets/screenshots/phone-guide-workout.png" width="240" alt="Guided workout running offline with saved sets and a rest timer"></a></td>
+    <td align="center"><a href="assets/screenshots/phone-guide-synced.png"><img src="assets/screenshots/phone-guide-synced.png" width="240" alt="Phone Devices screen after reconnecting, with no pending changes and the latest sync time"></a></td>
+  </tr>
+  <tr>
+    <td>At the gym, open your saved workout, log sets and finish—even with the internet and computer switched off. Your records stay on the phone.</td>
+    <td>Open Forja when your server is reachable again. Pending changes sync automatically; check <strong>Profile → Devices</strong> for status or conflicts.</td>
+  </tr>
+</table>
+
+<sub>Real app captures with demonstration data and an example address. Pairing is optional for offline training. ZeroTier or another VPN can provide remote access; trusted HTTPS is still required for initial mobile PWA setup.</sub>
+
 ## Train offline at the gym
 
 Save your plan on the phone, then open **Profile → Train anywhere**. Forja checks the app files in Cache Storage and the plan's local exercise definitions before showing **Ready to train offline**. Keep the app open while the initial resources download. **Check resources** also repairs missing cached files when the original version is reachable.
@@ -162,17 +189,7 @@ Use **Protect storage** to request persistent browser storage, and keep backups.
 
 Updates require confirmation and wait until you finish or cancel an active workout. Local exercise demonstrations and the muscle atlas work offline when present in the catalog. YouTube and new AI proposals require a connection to their services. Initial mobile PWA setup still requires trusted HTTPS; native desktop installers remain planned.
 
-<details>
-  <summary><strong>Offline setup on desktop and mobile</strong></summary>
-  <br />
-  <table>
-    <tr><th scope="col">Desktop</th><th scope="col">Mobile</th></tr>
-    <tr>
-      <td><a href="assets/screenshots/offline-desktop.png"><img src="assets/screenshots/offline-desktop.png" width="560" alt="Forja checks cached resources and the local workout plan before showing offline readiness"></a></td>
-      <td><a href="assets/screenshots/offline-mobile.png"><img src="assets/screenshots/offline-mobile.png" width="240" alt="Mobile offline setup with readiness, storage protection, backup and installation instructions"></a></td>
-    </tr>
-  </table>
-</details>
+
 
 <a name="sincronizar-pc-e-celular"></a>
 
