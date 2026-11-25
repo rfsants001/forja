@@ -1,6 +1,6 @@
 # Forja · Roadmap
 
-Atualizado em 20/11/2026. O [PRD](PRD.md) define o aceite de produto e o [STATE](STATE.md) registra a retomada.
+Atualizado em 25/11/2026. O [PRD](PRD.md) define o aceite de produto e o [STATE](STATE.md) registra a retomada.
 
 | Fase | Estado | Entrega |
 | --- | --- | --- |

@@ -1,5 +1,7 @@
 # Forja
 
+- Offline review (2026-11-25): read [.specs/features/offline-gym/spec.md](.specs/features/offline-gym/spec.md). Keep real cache + local-plan readiness, SRI-safe repair, prompt-based updates, cross-tab active-draft guards, visible draft storage failures and truthful sync state. Pairing/VPN are optional for local training. `pnpm test:offline` builds production and checks the real offline/reconnect/update flow with Playwright. Physical devices, desktop installers and initial trusted HTTPS setup remain pending; do not claim universal platform acceptance.
+
 - Latest delivery (2026-11-20): Profile → Import from another app → Import custom JSON opens the same local `PortablePlanImport` used by Assistant → Import unchanged (`?modo=port`). Keep the example/download, preview, explicit weekdays, prescription fidelity, occupied-day guard, transaction and active draft/history preservation. This path requires no AI or server. [PRD/TRD/SDD](.specs/features/dados-portabilidade/importacao-json.md).
 - Shared UI now uses 4/6/8 px radii, compact headings and divided lists. All native radios use button-shaped labels with the real input covering the target; preserve keyboard arrows/focus/checked/disabled. Weekday controls/styles and `lib/weekdays.ts` are shared, including Profile's lazy route. Do not restore nested Coach cards or show engine requirements in local import mode.
 

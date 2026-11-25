@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PlugZap } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -6,6 +6,7 @@ import { toISO, type Routine } from '@forja/core';
 import { db } from '../db/db';
 import { getSettings } from '../db/repo';
 import { api, post, sessionInfo, syncNow, syncRuntime, SyncError } from '../lib/sync-client';
+import { offlineSnapshot, subscribeOffline } from '../lib/offline';
 import { useT } from '../lib/i18n';
 import { applySuggestion, undoSuggestion, weeklyReview } from '../lib/coach-review';
 import type { ReviewResult, Suggestion } from '../lib/coach-review';
@@ -17,6 +18,7 @@ interface Providers { id: 'ollama' | 'codex-cli' | 'compatible'; destination: st
 
 export function Assistente() {
   const t = useT();
+  const { online } = useSyncExternalStore(subscribeOffline, offlineSnapshot);
   const [params] = useSearchParams();
   const reviewMode = params.get('aba') === 'revisao';
   const importing = !reviewMode && params.get('modo') === 'port';
@@ -69,15 +71,15 @@ export function Assistente() {
   }
 
   useEffect(() => {
-    if (!importing) void refreshProvider(true);
+    if (!importing && online) void refreshProvider(true);
     return () => call.current?.abort();
-  }, [refreshProvider, importing]);
+  }, [refreshProvider, importing, online]);
 
   const noServer = connectionError?.code === 'NO_SERVER';
   const external = providers?.id === 'codex-cli';
   const unavailableKey = !external ? 'coach.unavailable'
     : providers.reason === 'CODEX_LOGIN_REQUIRED' ? 'coach.codexLoginRequired' : 'coach.codexUnavailable';
-  const providerStatus = noServer ? t('coach.serverRequired')
+  const providerStatus = !online ? t('offline.aiNeedsConnection') : noServer ? t('coach.serverRequired')
     : connectionError ? syncMessage(connectionError, t)
     : !providers ? t('coach.checking')
     : !providers.available ? t(unavailableKey)
@@ -85,7 +87,7 @@ export function Assistente() {
     : !model ? t('coach.modelMissing') : external ? 'Codex CLI · ChatGPT' : providers.id === 'compatible' ? t('engines.compatTitle') : 'Ollama';
 
   function generate() {
-    if (!preview || !routines) return;
+    if (!online || !preview || !routines) return;
     setResult(undefined);
     setSelected(undefined);
     setBaseline(routines);
@@ -117,7 +119,7 @@ export function Assistente() {
         <Link to="/perfil/assistente?aba=revisao" aria-current={reviewMode ? 'page' : undefined}>{t('coach.weekly')}</Link>
       </nav>
       {!reviewMode ? (
-        <CoachPlan exercises={exercises} workouts={workouts} settings={settings} model={model} destination={providers?.destination}
+        <CoachPlan exercises={exercises} workouts={workouts} settings={settings} model={online ? model : ''} destination={providers?.destination}
           provider={providers?.id} external={external} />
       ) : (
           <section className="card self-host-card">
@@ -144,7 +146,7 @@ export function Assistente() {
                 </details>
                 {providers && <p>{t('coach.destination', [providers.destination])}</p>}
                 <div className="self-host-actions">
-                  <button className="btn" type="button" disabled={busy || !model || !preview.workouts} onClick={generate}>{t(external ? 'coach.sendReview' : 'coach.generate')}</button>
+                  <button className="btn" type="button" disabled={busy || !online || !model || !preview.workouts} onClick={generate}>{t(external ? 'coach.sendReview' : 'coach.generate')}</button>
                   {call.current && <button className="btn ghost" type="button" onClick={() => call.current?.abort()}>{t('tg.cancel')}</button>}
                 </div>
               </>

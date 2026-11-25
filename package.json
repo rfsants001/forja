@@ -16,12 +16,14 @@
     "seed": "pnpm dlx tsx scripts/extract-seed.mts",
     "self-host": "node apps/server/src/index.mjs",
     "self-host:admin": "node apps/server/src/admin-key.mjs",
-    "self-host:codex-probe": "node apps/server/src/codex-probe.mjs"
+    "self-host:codex-probe": "node apps/server/src/codex-probe.mjs",
+    "test:offline": "pnpm --filter @forja/web build && node scripts/check-offline.mjs"
   },
   "engines": {
     "node": ">=24"
   },
   "devDependencies": {
+    "playwright": "^1.65.1",
     "typescript": "^5.6.3"
   }
 }

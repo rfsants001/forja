@@ -157,6 +157,7 @@ async function pull(installation: string) {
 async function performSync() {
   const state = await db.syncState.get('installation');
   if (!state) return;
+  if (!navigator.onLine) { status({ status: 'waiting', error: 'OFFLINE' }); return; }
   status({ status: 'running' });
   const session = await sessionInfo();
   if (session.installation !== state.installation) throw new SyncError('INSTALLATION_CHANGED');
@@ -207,10 +208,12 @@ export function watchSync() {
   refresh();
   const interval = window.setInterval(visible, 5000);
   addEventListener('online', refresh);
+  addEventListener('offline', refresh);
   document.addEventListener('visibilitychange', visible);
   return () => {
     clearInterval(interval);
     removeEventListener('online', refresh);
+    removeEventListener('offline', refresh);
     document.removeEventListener('visibilitychange', visible);
   };
 }

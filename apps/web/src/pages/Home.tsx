@@ -1,3 +1,4 @@
+import { OfflinePanel } from '../components/OfflinePanel';
 import { LoadTrend } from '../components/LoadTrend';
 import { useT } from '../lib/i18n';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -71,6 +72,7 @@ export function Home() {
         <Link className="btn ghost journal-plan" to="/treinos">{t("ui.planWorkout")} <ArrowUpRight size={17} aria-hidden /></Link>
       </header>
 
+      <OfflinePanel compact />
       <div className="journal-grid">
         <section className="journal-panel journal-session" aria-labelledby="today-workout">
           <p className="journal-session-label"><Dumbbell size={16} aria-hidden />{active ? t("ui.activeSession") : t("home.today")}</p>
@@ -119,7 +121,7 @@ export function Home() {
                 <li key={day.date}>
                   <Link to={`/treinos?data=${day.date}#agenda`} aria-current={day.date === today ? 'date' : undefined}>
                     <time dateTime={day.date}><span>{weekday.format(fromISO(day.date))}</span><strong>{fromISO(day.date).getDate()}</strong></time>
-                    <span className="journal-day-routine">{day.routine?.name ?? 'Dia livre'}</span>
+                    <span className="journal-day-routine">{day.routine?.name ?? t('home.freeDay')}</span>
                     {day.completed ? <Check size={17} className="journal-day-done" aria-label={t("ui.workoutLogged")} /> : <ChevronRight size={15} aria-hidden />}
                   </Link>
                 </li>
@@ -138,7 +140,7 @@ export function Home() {
               {dashboard.recent.map((workout) => (
                 <li key={workout.id}>
                   <Dumbbell size={17} aria-hidden />
-                  <Link to={`/historico?treino=${encodeURIComponent(workout.id)}`}>{dashboard.routineById.get(workout.routineId ?? '')?.name ?? workout.routineName ?? workout.note ?? 'Treino livre'}</Link>
+                  <Link to={`/historico?treino=${encodeURIComponent(workout.id)}`}>{dashboard.routineById.get(workout.routineId ?? '')?.name ?? workout.routineName ?? workout.note ?? t('home.freeSession')}</Link>
                   <time dateTime={workout.dateISO}>{dateShort.format(fromISO(workout.dateISO))}</time>
                 </li>
               ))}

@@ -4,6 +4,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getSettings } from './db/repo';
 import { applyAppearance } from './lib/appearance';
+import { AppStatus } from './components/AppStatus';
 import { AppNavigation } from './components/AppNavigation';
 import { watchSync } from './lib/sync-client';
 import { useT } from './lib/i18n';
@@ -54,6 +55,7 @@ export function App() {
         }}>{t('locale.skip')}</a>
         <AppNavigation />
         <main className="app-main" id="conteudo" tabIndex={-1}>
+          <AppStatus />
           <Suspense fallback={<p className="empty" role="status">{t('hist.loading')}</p>}>
             <Routes>
               <Route path="/" element={<Home />} />

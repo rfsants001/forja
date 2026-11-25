@@ -1,5 +1,9 @@
 # Forja desktop e acesso pelo celular
 
+## Dependência de produto — 25/11/2026
+
+O treino móvel precisa funcionar com PC e rede desligados após o preparo inicial. A revisão da PWA está em [Academia offline](../offline-gym/spec.md); ela não conclui o instalador proposto abaixo. O bootstrap HTTPS e a instalação entre plataformas precisam de prova própria. ZeroTier é uma opção de alcance remoto, não requisito para registrar um treino na academia.
+
 ## Produto
 
 O instalador disponibiliza a Forja em Windows, macOS e Linux. Ao abrir o aplicativo, o processo principal inicia o servidor local, abre a interface e informa se o banco está pronto. A instalação desktop concentra o catálogo, o banco SQLite, os perfis de IA e a configuração de rede. O celular usa a PWA já servida pelo mesmo processo.

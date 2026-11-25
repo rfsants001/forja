@@ -1,0 +1,25 @@
+.offline-panel { min-width: 0; display: grid; gap: 12px; }
+.offline-panel.compact { margin-bottom: 18px; padding: 12px 0; border-block: 1px solid var(--border-soft); }
+.offline-panel header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.offline-panel h2 { font: 650 15px/1.4 var(--font-body); }
+.offline-panel header p { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); margin-top: 4px; }
+.offline-panel .offline-ready { color: var(--ok); }
+.offline-panel p > svg { flex-shrink: 0; }
+.offline-panel .form-actions { margin: 0; justify-content: start; }
+.offline-checklist { list-style: none; }
+.offline-checklist li { display: flex; justify-content: space-between; align-items: start; gap: 12px; font-size: 13px; padding-block: 9px; border-bottom: 1px solid var(--border-soft); }
+.offline-checklist strong { text-align: end; font-weight: 600; }
+.offline-install { font-size: 13px; }
+.offline-install summary { cursor: pointer; padding-block: 10px; font-weight: 600; }
+.offline-install p { color: var(--text-2); margin-block: 8px; }
+.offline-device-link { color: var(--accent); text-decoration: underline; font-size: 13px; }
+.app-status:empty { display: none; }
+.app-status { display: grid; gap: 8px; margin-bottom: 16px; }
+.app-status-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; padding: 8px 10px; border: 1px solid var(--border-soft); background: var(--surface); border-radius: var(--r-sm); }
+.app-status-line a { color: var(--accent); text-decoration: underline; margin-inline-start: auto; }
+.app-status-update, .app-status-warning { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px; border: 1px solid var(--control-border); background: var(--surface); border-radius: var(--r-sm); font-size: 13px; }
+.app-status-update > div { flex: 1 1 220px; }
+.app-status-update p { margin-top: 4px; color: var(--text-2); }
+.app-status-warning { border-color: var(--danger); }
+.app-status-warning p { flex: 1 1 230px; }
+@media (max-width: 440px) { .offline-panel header { align-items: start; } .offline-panel header .btn { flex-shrink: 0; } }

@@ -1,5 +1,11 @@
 # Forja · Estado e retomada
 
+## Academia offline — 25/11/2026
+
+Revisão da PWA implementou verificação real dos recursos em Cache Storage + plano local, painel de preparo em Hoje/Perfil, persistência de armazenamento por solicitação e instruções de instalação. Atualização usa confirmação e bloqueia sessão ativa, inclusive em outra aba. A fila e o último resultado determinam o estado de sync; vínculo sozinho não significa sincronizado. Falhas de localStorage são visíveis e podem ser repetidas sem perder o estado em memória. Dispositivos explica a necessidade de HTTPS e deixa de gerar QR móvel para localhost. O Assistente explica o limite offline sem bloquear treinos salvos.
+
+[Contrato, achados, testes e pendências](../features/offline-gym/spec.md). Gates: 147 core + 50 servidor (197), typecheck e build. `pnpm test:offline` passou com servidor/SQLite reais e dois contextos Playwright: servidor desligado, reabertura, mídia, erro/retry de armazenamento, reconciliação de sessão concluída, reconexão sem duplicação e atualização entre abas. Instalação física, HTTPS inicial guiado, instaladores e expansão do escopo de sync continuam pendentes; não declarar esses itens concluídos.
+
 ## Entrega atual — 20/11/2026
 
 JSON personalizado está no Perfil, em **Importar de outro app**, com modal explicativo, exemplo baixável e prévia; o Assistente usa o mesmo formulário em **Importar sem alterações** (`?modo=port`). A pessoa escolhe os dias, revisa as rotinas sugeridas e confirma. Portabilidade não chama IA nem muda a prescrição. Histórico e rascunho ativo são preservados; dias ocupados exigem autorização.
@@ -8,7 +14,7 @@ Rádios têm aparência de botão, sem perder semântica ou teclado. A fundaçã
 
 O navegador conferiu os dois pontos de entrada, campos e unidades, download do exemplo, erros, conflitos, PT/EN, teclado e o JSON real com 19 rotinas. Importação também passou com a rede desligada e controles móveis por toque; o modo local não consulta engines. Nove telas em 320/390/1440 px passaram sem overflow. Nenhum POST de geração de IA. Gates: 147 core + 45 servidor, typecheck e build. Ver [PRD/TRD/SDD](../features/dados-portabilidade/importacao-json.md). Testes físicos e validação em todos os SOs permanecem pendentes, sem ampliar a garantia.
 
-Atualizado em 20/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [ROADMAP](ROADMAP.md).
+Atualizado em 25/11/2026. Leia primeiro [PROJECT](PROJECT.md), [PRD](PRD.md) e [ROADMAP](ROADMAP.md).
 
 ## Retomada — 19/11/2026
 

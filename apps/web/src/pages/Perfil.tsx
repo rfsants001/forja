@@ -22,6 +22,7 @@ import {
   applyImport, previewImport,
 } from '../lib/importers';
 import type { ImportResult } from '../lib/importers';
+import { OfflinePanel } from '../components/OfflinePanel';
 import { PortablePlanImportDialog } from '../components/PortablePlanImport';
 import { downloadPlan, importPlan, printPlan } from '../lib/plan-share';
 
@@ -1043,10 +1044,12 @@ export function Perfil() {
   const t = useT();
   const { hash } = useLocation();
   useEffect(() => {
-    if (hash !== '#importar-historico' && hash !== '#profile-weight') return;
-    const heading = document.getElementById(hash.slice(1));
+    if (!['#importar-historico', '#profile-weight', '#profile-offline', '#profile-settings', '#profile-backup', '#profile-plan'].includes(hash)) return;
+    const target = document.getElementById(hash.slice(1));
+    const heading = target?.querySelector<HTMLElement>('h2') ?? target;
+    heading?.setAttribute('tabindex', '-1');
     heading?.focus({ preventScroll: true });
-    heading?.scrollIntoView();
+    target?.scrollIntoView();
   }, [hash]);
   const rawSettings = useLiveQuery(() => db.settings.get('app'), []);
 
@@ -1080,6 +1083,7 @@ export function Perfil() {
       </div>
 
       <nav className="page-sections" aria-label={t('port.profileSections')}>
+        <a href="#profile-offline">{t('offline.title')}</a>
         <a href="#profile-settings">{t('perf.settingsTitle')}</a>
         <a href="#importar-historico">{t('perf.importTitle')}</a>
         <a href="#profile-weight">{t('perf.weightTitle')}</a>
@@ -1106,6 +1110,7 @@ export function Perfil() {
           {rawSettings === undefined ? <p role="status" className="hint">{t("ui.loadingPreferences")}</p> : <SettingsSection settings={settings} />}
         </section>
         <div className="profile-data">
+          <section id="profile-offline" className="card"><OfflinePanel /></section>
           <section aria-labelledby="profile-weight">
             <h2 className="section-title" id="profile-weight" tabIndex={-1}>{t("perf.weightTitle")}</h2>
             <div className="card">

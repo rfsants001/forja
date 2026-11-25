@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath } from 'node:url';
 import { forjaApi } from './forja-api.mjs';
+import { offlineManifest, precacheIntegrity } from './offline-manifest.mjs';
 
 export default defineConfig({
   resolve: {
@@ -42,11 +43,16 @@ export default defineConfig({
   plugins: [
     react(),
     forjaApi(),
+    offlineManifest(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'icon-maskable.svg', 'apple-touch-icon.png'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,webp,woff2}'],
+        globPatterns: ['**/*.{js,css,html,json,webp,woff,woff2,png,svg}'],
+        manifestTransforms: [async (entries) => precacheIntegrity(entries, fileURLToPath(new URL('./dist/', import.meta.url)))],
+        clientsClaim: true,
+        skipWaiting: false,
+        cleanupOutdatedCaches: true,
         navigateFallbackDenylist: [/^\/api\//],
       },
       manifest: {

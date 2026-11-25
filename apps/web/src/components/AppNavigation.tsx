@@ -1,14 +1,16 @@
 import { ArrowUpRight, BookOpen, CalendarDays, Dumbbell, Gauge, LibraryBig, LockKeyhole, Settings2 } from 'lucide-react';
+import { useSyncExternalStore } from 'react';
+import { sessionStorageFailed, subscribeSessionStorage } from '../lib/session-storage';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useSessionStore } from '../store/session';
 import { useT } from '../lib/i18n';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { useTransferStatus } from './AppStatus';
 
 export function AppNavigation() {
   const t = useT();
   const active = useSessionStore((state) => state.active);
-  const linked = useLiveQuery(() => db.syncState.get('installation'), []);
+  const transfer = useTransferStatus();
+  const draftFailed = useSyncExternalStore(subscribeSessionStorage, sessionStorageFailed);
   const { pathname } = useLocation();
   const pages = [
     { to: '/', label: t('nav.today'), Icon: BookOpen, end: true },
@@ -39,7 +41,7 @@ export function AppNavigation() {
       {active !== null && pathname !== '/treino' && (
         <Link className="nav-resume" to="/treino">{t('locale.resume')} <ArrowUpRight size={16} aria-hidden /></Link>
       )}
-      <div className="nav-storage"><LockKeyhole size={15} aria-hidden /> {t(linked ? 'locale.storageSynced' : 'locale.storage')}</div>
+      <div className="nav-storage"><LockKeyhole size={15} aria-hidden /> {t(draftFailed ? 'offline.storageBlocked' : 'offline.transfer.' + transfer.kind, [transfer.pending])}</div>
     </aside>
   );
 }

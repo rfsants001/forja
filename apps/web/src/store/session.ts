@@ -12,8 +12,9 @@
 //   e passar os sets pré-preenchidos em start(). O store apenas persiste e muta.
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { uid } from '../db/db';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { draftStorage, reportSessionRead, sessionReadFailed } from '../lib/session-storage';
+import { db, uid } from '../db/db';
 import { saveFinishedWorkout } from '../db/repo';
 import type { ExerciseMode, PR, Prescription, SetLog, TargetSnapshot, WorkoutLog, WorkoutEntry } from '@forja/core';
 export type { TargetSnapshot } from '@forja/core';
@@ -287,9 +288,29 @@ export const useSessionStore = create<SessionState>()(
       },
     }),
     {
+      storage: createJSONStorage(() => draftStorage),
+      onRehydrateStorage: () => (_state, error) => { reportSessionRead(!!error); },
       name: 'forja-session', // chave no localStorage
       // Persiste apenas o estado active; ações são recriadas pelo create
       partialize: (state) => ({ active: state.active }),
     },
   ),
 );
+
+/** Retry the current in-memory draft after storage becomes available again. */
+export async function retrySessionStorage() {
+  if (sessionReadFailed() && !useSessionStore.getState().active) {
+    await useSessionStore.persist.rehydrate();
+    await reconcileCompletedSession();
+    return;
+  }
+  draftStorage.setItem('forja-session', JSON.stringify({ state: { active: useSessionStore.getState().active }, version: 0 }));
+}
+
+/** A crash after the log commits must not resurrect its already-finished draft. */
+export async function reconcileCompletedSession() {
+  const active = useSessionStore.getState().active;
+  if (active && await db.workouts.get(active.id) && useSessionStore.getState().active?.id === active.id) {
+    useSessionStore.setState({ active: null });
+  }
+}

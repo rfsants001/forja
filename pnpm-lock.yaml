@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      playwright:
+        specifier: ^1.65.1
+        version: 1.65.1
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
@@ -50,6 +53,9 @@ importers:
       react-router-dom:
         specifier: ^7.1.1
         version: 7.18.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      workbox-window:
+        specifier: 7.4.1
+        version: 7.4.1
       zustand:
         specifier: ^5.0.2
         version: 5.0.16(@types/react@19.3.0)(react@19.3.1)
@@ -77,7 +83,7 @@ importers:
     devDependencies:
       vitest:
         specifier: ^2.1.8
-        version: 2.1.9(terser@5.51.2)
+        version: 2.1.9(@types/node@26.6.6)(terser@5.51.2)
 
 packages:
 
@@ -1826,6 +1832,16 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
+  playwright-core@1.65.1:
+    resolution: {integrity: sha512-hqPpz7blSMPxWVdoeE1yiBSzXsKiVOd2k+kjCvmUywD2GPO2Dd9HfcWnq9NN0GHbNZDFgZ9JfBFr+X5/BLo0qw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.65.1:
+    resolution: {integrity: sha512-vJ1FuoOrNwOKHUIVEvSt3jT1L+wjjDpwhwIstKtfvTh8XIG4FG4bIFuvNdMxi81LGfAhUgUZleVFaOLY4RIUUw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
@@ -1841,6 +1857,9 @@ packages:
   pretty-bytes@6.1.1:
     resolution: {integrity: sha512-mQUvGU6aUFQ+rNvTIAcZuWGRT9a6f6Yrg9bHs4ImKF+HZCEK+plBvnAZYSIQztknZF2qnzNtr6F8s0+IuptdlQ==}
     engines: {node: ^14.13.1 || >=16.0.0}
+
+  qrcode-generator@2.0.4:
+    resolution: {integrity: sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==}
 
   react-dom@19.3.1:
     resolution: {integrity: sha512-Y0bARz53lhEC1NMCASs0/j+faB/zqt3R8hpvg1e8+61ZVJ4UL0UdC4cBbXfZMcIuhrfgeILTLe+ZeBCavQPtKQ==}
@@ -2350,9 +2369,6 @@ packages:
         optional: true
       use-sync-external-store:
         optional: true
-
-  qrcode-generator@2.0.4:
-    resolution: {integrity: sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==}
 
 snapshots:
 
@@ -3401,13 +3417,13 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 1.2.0
 
-  '@vitest/mocker@2.1.9(vite@5.4.21(terser@5.51.2))':
+  '@vitest/mocker@2.1.9(vite@5.4.21(@types/node@26.6.6)(terser@5.51.2))':
     dependencies:
       '@vitest/spy': 2.1.9
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 5.4.21(terser@5.51.2)
+      vite: 5.4.21(@types/node@26.6.6)(terser@5.51.2)
 
   '@vitest/pretty-format@2.1.9':
     dependencies:
@@ -4147,6 +4163,12 @@ snapshots:
 
   picomatch@4.0.7: {}
 
+  playwright-core@1.65.1: {}
+
+  playwright@1.65.1:
+    dependencies:
+      playwright-core: 1.65.1
+
   possible-typed-array-names@1.1.0: {}
 
   postcss@8.5.32:
@@ -4158,6 +4180,8 @@ snapshots:
   pretty-bytes@5.6.0: {}
 
   pretty-bytes@6.1.1: {}
+
+  qrcode-generator@2.0.4: {}
 
   react-dom@19.3.1(react@19.3.1):
     dependencies:
@@ -4526,13 +4550,13 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  vite-node@2.1.9(terser@5.51.2):
+  vite-node@2.1.9(@types/node@26.6.6)(terser@5.51.2):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 1.1.2
-      vite: 5.4.21(terser@5.51.2)
+      vite: 5.4.21(@types/node@26.6.6)(terser@5.51.2)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -4555,12 +4579,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vite@5.4.21(terser@5.51.2):
+  vite@5.4.21(@types/node@26.6.6)(terser@5.51.2):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.32
       rollup: 4.66.0
     optionalDependencies:
+      '@types/node': 26.6.6
       fsevents: 2.3.3
       terser: 5.51.2
 
@@ -4577,10 +4602,10 @@ snapshots:
       fsevents: 2.3.3
       terser: 5.51.2
 
-  vitest@2.1.9(terser@5.51.2):
+  vitest@2.1.9(@types/node@26.6.6)(terser@5.51.2):
     dependencies:
       '@vitest/expect': 2.1.9
-      '@vitest/mocker': 2.1.9(vite@5.4.21(terser@5.51.2))
+      '@vitest/mocker': 2.1.9(vite@5.4.21(@types/node@26.6.6)(terser@5.51.2))
       '@vitest/pretty-format': 2.1.9
       '@vitest/runner': 2.1.9
       '@vitest/snapshot': 2.1.9
@@ -4596,9 +4621,11 @@ snapshots:
       tinyexec: 0.3.2
       tinypool: 1.1.1
       tinyrainbow: 1.2.0
-      vite: 5.4.21(terser@5.51.2)
-      vite-node: 2.1.9(terser@5.51.2)
+      vite: 5.4.21(@types/node@26.6.6)(terser@5.51.2)
+      vite-node: 2.1.9(@types/node@26.6.6)(terser@5.51.2)
       why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 26.6.6
     transitivePeerDependencies:
       - less
       - lightningcss
@@ -4779,5 +4806,3 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
       react: 19.3.1
-
-  qrcode-generator@2.0.4: {}

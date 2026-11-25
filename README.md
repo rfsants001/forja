@@ -152,6 +152,28 @@ Open **http://localhost:5577**. On **Today**, select **Start with a plan** to pr
 
 Run `npm start` and open **http://localhost:5577**. The command builds the app and starts the server. Once the app has loaded, choose **Install app** or **Add to Home Screen** in your browser. To use another device, serve your installation over HTTPS.
 
+## Train offline at the gym
+
+Save your plan on the phone, then open **Profile → Train anywhere**. Forja checks the app files in Cache Storage and the plan's local exercise definitions before showing **Ready to train offline**. Keep the app open while the initial resources download. **Check resources** also repairs missing cached files when the original version is reachable.
+
+Once prepared, open Forja at the gym with the internet and your computer switched off. Log sets, weights and rest, finish your workout, and reopen it in History. If the device is paired, changes wait locally until the app is open and can reach your server again. A VPN is optional for remote server access; it is not needed to execute a saved workout.
+
+Use **Protect storage** to request persistent browser storage, and keep backups. The browser may decline the request. Clearing app data still removes local records. Backups include plans and completed workouts, not the active session. Storage failures show a warning and a retry action; keep the app open until your draft is saved successfully.
+
+Updates require confirmation and wait until you finish or cancel an active workout. Local exercise demonstrations and the muscle atlas work offline when present in the catalog. YouTube and new AI proposals require a connection to their services. Initial mobile PWA setup still requires trusted HTTPS; native desktop installers remain planned.
+
+<details>
+  <summary><strong>Offline setup on desktop and mobile</strong></summary>
+  <br />
+  <table>
+    <tr><th scope="col">Desktop</th><th scope="col">Mobile</th></tr>
+    <tr>
+      <td><a href="assets/screenshots/offline-desktop.png"><img src="assets/screenshots/offline-desktop.png" width="560" alt="Forja checks cached resources and the local workout plan before showing offline readiness"></a></td>
+      <td><a href="assets/screenshots/offline-mobile.png"><img src="assets/screenshots/offline-mobile.png" width="240" alt="Mobile offline setup with readiness, storage protection, backup and installation instructions"></a></td>
+    </tr>
+  </table>
+</details>
+
 <a name="sincronizar-pc-e-celular"></a>
 
 ## Sync desktop and mobile
@@ -269,5 +291,7 @@ You can also import **FitNotes**, **Strong**, and **Hevy** CSV files, import bod
 ## Development and credits
 
 The TypeScript domain lives in `packages/core`. The React/Vite PWA lives in `apps/web`. The optional Node.js 24 and SQLite server lives in `apps/server`. Run `pnpm test`, `pnpm typecheck`, and `pnpm build` before submitting a change.
+
+For the production offline regression, install a test browser once with `pnpm exec playwright install chromium`, then run `pnpm test:offline`. The test uses temporary data, two isolated browser contexts, and a real server. It covers server shutdown, offline reopening and workout completion, storage failure/retry, reconnect without duplicate sessions, and update protection across tabs. Use `PLAYWRIGHT_EXECUTABLE_PATH` for an existing Chromium browser and `FORJA_QA_ARTIFACTS` to save screenshots. Physical Android/iOS and desktop acceptance checks are still required.
 
 Forja is inspired by [openGym](https://github.com/DuarteSantos8/openGym). Anatomy comes from [MuscleMap](https://github.com/melihcolpan/MuscleMap) under MIT. Exercise demonstrations use wger and Wikimedia Commons images with [per-file attribution and licensing](apps/web/public/exercise-media/CREDITS.md). The [integrations documentation](.specs/codebase/INTEGRATIONS.md) records sources and the project's license status.

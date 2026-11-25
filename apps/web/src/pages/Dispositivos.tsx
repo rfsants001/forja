@@ -48,6 +48,9 @@ export function Dispositivos() {
   const first = queue?.[0];
   const runtime = useSyncExternalStore(subscribeSync, syncRuntime);
   const attached = !!state && state.installation === session?.installation && !!session.device;
+  const mobileOrigin = session && new URL(session.origin);
+  const mobileAddressReady = !!mobileOrigin && mobileOrigin.protocol === 'https:'
+    && !['localhost', '127.0.0.1', '[::1]'].includes(mobileOrigin.hostname);
 
   async function refresh() {
     const info = await sessionInfo();
@@ -107,6 +110,8 @@ export function Dispositivos() {
         <section className="card self-host-card">
           <h2>{t('sync.installation')}</h2>
           <p className="hint">{session?.origin ?? location.origin}</p>
+          <p className="hint">{t('offline.devicesHelp')}</p>
+          <Link className="offline-device-link" to="/perfil#profile-offline">{t('offline.details')}</Link>
           <p role="status">
             {t(state && runtime.status !== 'idle' ? 'sync.state.' + runtime.status : 'sync.state.idle')}
             {' · '}{t('sync.pending', [queue?.length ?? 0])}
@@ -195,7 +200,9 @@ export function Dispositivos() {
                   }); }}>{t('sync.revoke')}</button>}
               </li>
             ))}</ul>
-            <button type="button" className="btn" disabled={busy} onClick={() => void run(newInvite)}>
+            {!mobileAddressReady && <p className="feedback" id="mobile-address-help">{t('offline.mobileSetup')}</p>}
+            <button type="button" className="btn" disabled={busy || !mobileAddressReady}
+              aria-describedby={!mobileAddressReady ? 'mobile-address-help' : undefined} onClick={() => void run(newInvite)}>
               {t(invite ? 'sync.newCode' : 'sync.pairDevice')}
             </button>
             {invite && (

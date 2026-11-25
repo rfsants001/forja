@@ -1,6 +1,6 @@
 # Forja · PRD
 
-Atualizado em 20/11/2026.
+Atualizado em 25/11/2026.
 
 ## Problema e proposta
 
@@ -24,7 +24,7 @@ Quem treina em casa precisa adaptar uma rotina ao próprio equipamento, lembrar 
 | PRD-04 | Progressão explicável | A série editável, o alvo gravado e o histórico descrevem a mesma meta. Abaixo da carga é miss. Primeiro registro serve de referência. 5/3/1 preenche três séries individuais e avança após acertos. |
 | PRD-05 | Portabilidade | Backup v2 inclui medidas e lê v1. Preview, cancelar, mesclar e substituir são ações distintas. Plano inclui definições mínimas de exercícios. JSON personalizado no Perfil/Assistente oferece exemplo e prévia, preserva prescrições sem IA e exige escolha de dias. CSV informa linhas ignoradas e evita repetição por identidade de origem. |
 | PRD-06 | UX acessível | Fluxos principais com status visível, teclado, foco claro, texto e ícone além da cor, áreas de toque adequadas e contraste aferido em ambos os temas. Usar WCAG 2.2 AA como referência de teste. |
-| PRD-07 | Uso offline | Após a carga inicial em origem segura, testar navegação, dois treinos, retomada, histórico e backup sem rede. As demonstrações locais e o atlas carregam em modo avião. |
+| PRD-07 | Uso offline | Após a carga inicial em origem segura, conferir recursos em cache e plano local antes de indicar preparo. Testar abertura fria, retomada, histórico e backup com servidor desligado; atualização depende de confirmação e não interrompe a sessão. As demonstrações locais e o atlas carregam em modo avião. |
 | PRD-08 | Biblioteca para casa e academia | Filtros por músculo principal ou auxiliar, equipamentos próprios e demonstrações. Detalhes exibem vistas frente/costas, legenda e crédito da mídia. |
 | PRD-09 | Aquecimento | Registrar antes das séries de trabalho, retomar após reload e corrigir no histórico. Aquecimento fica fora da meta, volume, PR e da próxima prescrição. |
 | PRD-10 | Formulários previsíveis | Rótulos permanecem visíveis, foco indica o campo ativo, Enter envia formulários de registro e erros preservam o que a pessoa digitou. Os botões são compactos no desktop e têm área maior em dispositivos de toque. |
